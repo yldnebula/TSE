@@ -1,0 +1,21 @@
+{
+  "name": "TSE",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "tsc:w":"tsc -w",
+    "web":"lite-server -c configs/http-config.json"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yldnebula/TSE.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/yldnebula/TSE/issues"
+  },
+  "homepage": "https://github.com/yldnebula/TSE#readme"
+}
