@@ -20,6 +20,7 @@ const canvas={
     width:400,
     height:400,
 }
+//https://blog.csdn.net/charlee44/article/details/87553067#4_421
 //************ */
 main();
 function main(){
