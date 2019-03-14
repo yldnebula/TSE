@@ -24,12 +24,18 @@ namespace Utils{
             let program = this.createProgram(gl, vshader, fshader);
             if(!program){
                 console.log("cannot create program\n");
-                return false;
+                return {
+                    status:false,
+                    program:program,
+                };
             }
             gl.useProgram(program);
             // gl.program = program;//在js里可以正确编译，但是ts里的声明文件没有这个变量
     
-            return true;
+            return {
+                status:true,
+                program:program
+            };
         }
         /**
          * 生成着色器程序

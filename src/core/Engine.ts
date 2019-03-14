@@ -2,6 +2,17 @@ namespace Engine{
     export class Nebula{
         GL:WebGLRenderingContext = null;
         canvas:HTMLCanvasElement = null;
+        projectMatrix:Matrix4    = null;
+        eye = {
+            x:6,
+            y:6,
+            z:14
+        };
+        center = {
+            x:0,
+            y:0,
+            z:0
+        }
         constructor(id:string, width:number, height:number){
             this.canvas =this.getCanvasByID(id, width, height);
             console.log(this.canvas);
@@ -49,6 +60,83 @@ namespace Engine{
                 }
             }
             return null;
+        }
+        setEyePoint(x:number,y:number,z:number){
+            this.eye.x = x;
+            this.eye.y = y;
+            this.eye.z = z;
+        }
+        setAtCenter(x:number,y:number,z:number){
+            this.center.x = x;
+            this.center.y = y;
+            this.center.z = z;
+        }
+        /**
+         * 设置透视摄像机
+         */
+        setPerspectiveCamera(fovy:number, near:number, far:number){
+            this.projectMatrix = new Matrix4(null);
+            this.projectMatrix.setPerspective(fovy,canvas.width/canvas.height,near,far);
+            this.projectMatrix.lookAt(this.eye.x, this.eye.y, this.eye.z,this.center.x,this.center.y,this.center.z,0,1,0);
+            sceneInfo.projViewMatrix = this.projectMatrix;
+        }
+        /**
+         * 设置正视摄像机
+         */
+        setOrthoCamera(){
+
+        }
+        setLightTypeColorPoint(type:number, color:Vector4, point:Vector3){
+
+        }
+    }
+    export class SceneInfo{
+        static instanceCount = 0;
+
+        SceneInfo:SceneInfo = null;
+        LigthColor:Float32Array = new Float32Array([1.0,1.0,1.0]);
+        LigthPoint:Float32Array = new Float32Array([2.3, 4.0, 3.5]);
+        AmbientLight:Float32Array = new Float32Array([0.2, 0.2, 0.2]);;
+        projViewMatrix:Matrix4 = null;
+
+        constructor(){
+            if(SceneInfo.instanceCount == 0){
+                SceneInfo.instanceCount ++;
+                this.SceneInfo = new SceneInfo();
+                return this.SceneInfo;
+            }else{
+                return this.SceneInfo;
+            }
+        }
+        initScene(){
+            GL.clearColor(0,0,0,1.0);
+            GL.enable(GL.DEPTH_TEST);
+        }
+    }
+    export class Event{
+        constructor(){
+
+        }
+        emit(){
+
+        }
+        listen(){
+
+        }
+        /**
+         * 鼠标事件
+         */
+        onMouseMove(){
+
+        }
+        onMouseDown(){
+
+        }
+        onMouseUp(){
+
+        }
+        onMouseClick(){
+
         }
     }
 }
