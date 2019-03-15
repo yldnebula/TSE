@@ -1,4 +1,4 @@
-namespace Engine{
+namespace Core{
     export class Nebula{
         GL:WebGLRenderingContext = null;
         canvas:HTMLCanvasElement = null;
@@ -89,28 +89,17 @@ namespace Engine{
         setLightTypeColorPoint(type:number, color:Vector4, point:Vector3){
 
         }
-    }
-    export class SceneInfo{
-        static instanceCount = 0;
+        /**
+         * 引擎生命周期
+         */
+        _OnLoad(){
 
-        SceneInfo:SceneInfo = null;
-        LigthColor:Float32Array = new Float32Array([1.0,1.0,1.0]);
-        LigthPoint:Float32Array = new Float32Array([2.3, 4.0, 3.5]);
-        AmbientLight:Float32Array = new Float32Array([0.2, 0.2, 0.2]);;
-        projViewMatrix:Matrix4 = null;
-
-        constructor(){
-            if(SceneInfo.instanceCount == 0){
-                SceneInfo.instanceCount ++;
-                this.SceneInfo = new SceneInfo();
-                return this.SceneInfo;
-            }else{
-                return this.SceneInfo;
-            }
         }
-        initScene(){
-            GL.clearColor(0,0,0,1.0);
-            GL.enable(GL.DEPTH_TEST);
+        _OnUpdate(){
+
+        }
+        _OnDestroy(){
+
         }
     }
     export class Event{

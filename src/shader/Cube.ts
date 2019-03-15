@@ -63,6 +63,8 @@ namespace shader{
         u_LightPosition:WebGLUniformLocation=null;
         u_AmbientLight:WebGLUniformLocation =null;
 
+        //
+        cube = null;
         constructor(){
             super();
 
@@ -75,49 +77,65 @@ namespace shader{
             }
             this.program = obj.program;
             this.initCubeInfo();
-            this._draw();
+            this.cube = this.initVertexBuffer(this.vertices,this.colors,this.normals,this.program,this.indices);  
         }
         /**
-         * 生命周期函数update
+         * 生命周期函数
          */
+        // onload(){
+        // }
         // onUpdate(){
         // }
         _draw(){
-            GL.useProgram(this.program);
+            if(this.program){
+                GL.useProgram(this.program);
 
-            var cube = this.initVertexBuffer(this.vertices,this.colors,this.normals,this.program,this.indices);
-
-            var u_ModelMatrix   = GL.getUniformLocation(this.program, 'u_ModelMatrix');
-            var u_MvpMatrix     = GL.getUniformLocation(this.program, 'u_MvpMatrix');
-            var u_NormalMatrix  = GL.getUniformLocation(this.program, 'u_NormalMatrix');
-            var u_LightColor    = GL.getUniformLocation(this.program, 'u_LightColor');
-            var u_LightPosition = GL.getUniformLocation(this.program, 'u_LightPosition');
-            var u_AmbientLight  = GL.getUniformLocation(this.program, 'u_AmbientLight');
-
-            if (!u_MvpMatrix || !u_NormalMatrix || !u_LightColor || !u_LightPosition　|| !u_AmbientLight ) {
-                console.log('Failed to get the storage location');
-                return;
-            }
-            // GL.uniform1i(u_Clicked, isClicked);
-
-            // Set the light color (white)
-            GL.uniform3fv(u_LightColor,sceneInfo.LigthColor);
-            // Set the light direction (in the world coordinate)
-            GL.uniform3fv(u_LightPosition,sceneInfo.LigthPoint);
-            // Set the ambient light
-            GL.uniform3fv(u_AmbientLight,sceneInfo.AmbientLight);
-
-            // Pass the model matrix to u_ModelMatrix
-            GL.uniformMatrix4fv(u_ModelMatrix, false, this.getModelMatrix().elements);
-            // Pass the model view projection matrix to u_MvpMatrix
-            GL.uniformMatrix4fv(u_MvpMatrix, false, this.getMvpMatrix().elements);
-            // Pass the matrix to transform the normal based on the model matrix to u_NormalMatrix
-            GL.uniformMatrix4fv(u_NormalMatrix, false, this.getNormalMatrix().elements);
+                var a_Position      = GL.getAttribLocation(this.program, 'a_Position');
+                var a_Color         = GL.getAttribLocation(this.program, 'a_Color');
+                var a_Normal        = GL.getAttribLocation(this.program, 'a_Normal');
     
-            // Clear color and depth buffer
-            GL.clear(GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT);
-            // Draw the cube
-            GL.drawElements(GL.TRIANGLES, cube.numIndices, GL.UNSIGNED_BYTE, 0);
+                var u_ModelMatrix   = GL.getUniformLocation(this.program, 'u_ModelMatrix');
+                var u_MvpMatrix     = GL.getUniformLocation(this.program, 'u_MvpMatrix');
+                var u_NormalMatrix  = GL.getUniformLocation(this.program, 'u_NormalMatrix');
+                var u_LightColor    = GL.getUniformLocation(this.program, 'u_LightColor');
+                var u_LightPosition = GL.getUniformLocation(this.program, 'u_LightPosition');
+                var u_AmbientLight  = GL.getUniformLocation(this.program, 'u_AmbientLight');
+    
+                if (a_Position < 0 || a_Color<0 || a_Normal<0) {
+                    console.log('Failed to get the attribute storage location');
+                    return;
+                }
+    
+                if (!u_ModelMatrix||!u_MvpMatrix || !u_NormalMatrix || !u_LightColor || !u_LightPosition　|| !u_AmbientLight ) {
+                    console.log('Failed to get the unifrom storage location');
+                    return;
+                }
+    
+                this.initAttributeVariable(GL,a_Position,this.cube.vertex);
+                this.initAttributeVariable(GL,a_Color,this.cube.color);
+                this.initAttributeVariable(GL,a_Normal,this.cube.normal);
+                GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.cube.index.buffer)
+    
+    
+    
+    
+                // Set the light color (white)
+                GL.uniform3fv(u_LightColor,sceneInfo.LigthColor);
+                // Set the light direction (in the world coordinate)
+                GL.uniform3fv(u_LightPosition,sceneInfo.LigthPoint);
+                // Set the ambient light
+                GL.uniform3fv(u_AmbientLight,sceneInfo.AmbientLight);
+    
+                // Pass the model matrix to u_ModelMatrix
+                GL.uniformMatrix4fv(u_ModelMatrix, false, this.getModelMatrix().elements);
+                // Pass the model view projection matrix to u_MvpMatrix
+                GL.uniformMatrix4fv(u_MvpMatrix, false, this.getMvpMatrix().elements);
+                // Pass the matrix to transform the normal based on the model matrix to u_NormalMatrix
+                GL.uniformMatrix4fv(u_NormalMatrix, false, this.getNormalMatrix().elements);
+        
+                // Draw the cube
+                GL.drawElements(GL.TRIANGLES, this.cube.numIndices, GL.UNSIGNED_BYTE, 0);
+            }
         }
         getVertex():string{
             return this.vertex;
@@ -175,20 +193,28 @@ namespace shader{
                 20,21,22,  20,22,23     // back
             ]);
         }
+        /**
+         * 初始化obj数据，全局只需绑定一次
+         * @param vertices 顶点矩阵
+         * @param colors 颜色矩阵
+         * @param normals 法向量矩阵
+         * @param program　对应的着色器程序 
+         * @param indices 索引矩阵
+         */
         initVertexBuffer(vertices:Float32Array, colors:Float32Array,normals:Float32Array,program:WebGLProgram,indices:Uint8Array){
             var cubeObj = {
-                vertexBuffer:null,
-                colorBuffer:null,
-                normalBUffer:null,
-                indexBuffer:null,
+                vertex:null,
+                color:null,
+                normal:null,
+                index:null,
                 numIndices:null,
             };
-            cubeObj.vertexBuffer = this.initArrayBufferForLaterUse(GL,vertices,3,GL.FLOAT);
-            cubeObj.colorBuffer  = this.initArrayBufferForLaterUse(GL,colors,3,GL.FLOAT);
-            cubeObj.normalBUffer = this.initArrayBufferForLaterUse(GL,normals,3,GL.FLOAT);
-            cubeObj.indexBuffer  = this.initElementArrayBufferForLaterUse(GL,indices,GL.UNSIGNED_BYTE);           
+            cubeObj.vertex = this.initArrayBufferForLaterUse(GL,vertices,3,GL.FLOAT);
+            cubeObj.color  = this.initArrayBufferForLaterUse(GL,colors,3,GL.FLOAT);
+            cubeObj.normal = this.initArrayBufferForLaterUse(GL,normals,3,GL.FLOAT);
+            cubeObj.index  = this.initElementArrayBufferForLaterUse(GL,indices,GL.UNSIGNED_BYTE);           
             
-            if(!cubeObj.vertexBuffer ||!cubeObj.colorBuffer||!cubeObj.normalBUffer||!cubeObj.indexBuffer){
+            if(!cubeObj.vertex ||!cubeObj.color||!cubeObj.normal||!cubeObj.index){
                 console.log("failed to init buffer");return null;
             }
             cubeObj.numIndices = indices.length;
@@ -196,62 +222,7 @@ namespace shader{
             GL.bindBuffer(GL.ARRAY_BUFFER, null);
             GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, null);
 
-            console.log(cubeObj);
             return cubeObj;
-        }
-        initArrayBuffer(gl:WebGLRenderingContext, attribute:string, data:Float32Array, num:number, type:number):boolean{
-            var buffer = this.gl.createBuffer();
-            if(!buffer){
-                console.log("failed to create the buffer object!");
-                return false
-            }
-            this.gl.bindBuffer(this.gl.ARRAY_BUFFER, buffer);
-            this.gl.bufferData(this.gl.ARRAY_BUFFER, data, this.gl.STATIC_DRAW);
-
-            var a_attribute = gl.getAttribLocation(this.program,attribute);
-            if(a_attribute < 0){
-                console.log("failed to get location of "+a_attribute);
-                return false;
-            }
-            this.gl.vertexAttribPointer(a_attribute, num, type, false, 0, 0);
-            this.gl.enableVertexAttribArray(a_attribute);
-
-            return true;
-        }
-        initArrayBufferForLaterUse(gl:WebGLRenderingContext, data:Float32Array, num:number, type:number){
-            var arrBufferObj = {
-                buffer:null,
-                num:null,
-                type:null
-            };
-            arrBufferObj.num = num;
-            arrBufferObj.type = type;
-
-            arrBufferObj.buffer = gl.createBuffer();
-            if(!arrBufferObj.buffer){
-                console.log("failed to create buffer");return null;
-            }
-            gl.bindBuffer(gl.ARRAY_BUFFER, arrBufferObj.buffer);
-            gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
-
-            return arrBufferObj;
-        }
-        initElementArrayBufferForLaterUse(gl:WebGLRenderingContext, data:Uint8Array, type:number){
-            var eleBufferObj = {
-                buffer:null,
-                type:null,
-            };
-            eleBufferObj.type = type;
-            eleBufferObj.buffer = gl.createBuffer();　  // Create a buffer object
-            if (!eleBufferObj.buffer) {
-              console.log('Failed to create the buffer object');
-              return null;
-            }
-            // Write date into the buffer object
-            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, eleBufferObj.buffer);
-            gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, data, gl.STATIC_DRAW);
-          
-            return eleBufferObj;
         }
     }
         

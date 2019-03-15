@@ -1,10 +1,11 @@
 ///<reference path="./core/Engine.ts" />
+///<reference path="./core/Scene.ts" />
 ///<reference path="../lib/shader-utils/shaderUtils.ts" />
 ///<reference path="../lib/matrix-utils/matrixUtils.ts" />
 ///<reference path="./shader/Cube.ts" />
 
-import Nebula = Engine.Nebula;
-import SceneInfo = Engine.SceneInfo;
+import Nebula = Core.Nebula;
+import SceneInfo = Core.SceneInfo;
 import shaderUtils = Utils.ShaderUtils;
 import Matrix4 = Utils.Matrix4;
 import Vector3 = Utils.Vector3;
@@ -20,7 +21,6 @@ const canvas={
     width:400,
     height:400,
 }
-var draw = null;
 //************ */
 main();
 function main(){
@@ -33,16 +33,12 @@ function main(){
 
     var Cube = new cube(); 
     Cube.setScale(1,1,1);
-    Cube._draw();
     var cube2 = new cube();
     cube2.setTranslate(0,3,0);
-    cube2._draw();
-    draw = function(){
-        cube2._draw();
-        Cube._draw();
-    }
-    // tick();
-    console.log(Cube.program == cube2.program)
+    var cube3 = new cube();
+    cube3.setRotation(20, 10,10);
+    cube3.setTranslate(0,0,3);
+
     var ca = document.getElementById('canvas');
 
     var isDrag:boolean = false;
@@ -57,7 +53,7 @@ function main(){
         }
 
         var pixels = new Uint8Array(4);
-        GL.readPixels(x, y, 1, 1, GL.RGBA, GL.UNSIGNED_BYTE, pixels);
+        GL.readPixels(x, y, 1, 1, GL.RGBA, GL.UNSIGNED_BYTE, pixels);//tap点像素颜色测试
         console.log(pixels);        
         if(pixels[0] == 255){
             isPick = 1;
@@ -74,20 +70,18 @@ function main(){
         if(!isDrag)return;
         if(ev.layerX <= canvas.width && ev.layerX >= 0 && ev.layerY >=0 && ev.layerY <=canvas.height){
             
-            var factor = 50/canvas.height;
+            var factor = 100/canvas.height;
             var dx = factor*(x - lastX);
             var dy = factor*(y - lastY);
             Cube.setRotation(0, dx,0);
+            cube2.setRotation(0, dx,0);
+            cube3.setRotation(0, dx,0);
             // Cube._draw();
         }
         lastX = x;
         lastY = y;
     }
 
-}
-function tick(){
-    draw();
-    requestAnimationFrame(tick);
 }
 
 

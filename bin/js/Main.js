@@ -645,6 +645,240 @@ var Utils;
     }());
     Utils.Vector4 = Vector4;
 })(Utils || (Utils = {}));
+var Utils;
+(function (Utils) {
+    var ObjParser = /** @class */ (function () {
+        function ObjParser() {
+            this.fileName = null;
+            this.mtls = null;
+            this.objects = null;
+            this.vertices = null;
+            this.normals = null;
+        }
+        ObjParser.prototype.parse = function (fileString, scale, reverse) {
+            var lines = fileString.split('\n');
+            lines.push(null);
+            var index = 0; //行号索引
+            var currentObject = null;
+            var currentMaterialName = '';
+            var line;
+            var sp = new StringParser(null);
+            while ((line = lines[index++]) != null) {
+                sp.init(line); // init StringParser
+                var command = sp.getWord(); // Get command
+                if (command == null)
+                    continue; // check null command
+                switch (command) {
+                    case '#':
+                        continue; // Skip comments
+                    case 'mtllib': // Read Material chunk
+                        var path = this.parseMtllib(sp, this.fileName);
+                        var mtl = new MTLDoc(); // Create MTL instance
+                        this.mtls.push(mtl);
+                        var request = new XMLHttpRequest();
+                        request.onreadystatechange = function () {
+                            if (request.readyState == 4) {
+                                if (request.status != 404) {
+                                    onReadMTLFile(request.responseText, mtl);
+                                }
+                                else {
+                                    mtl.complete = true;
+                                }
+                            }
+                        };
+                        request.open('GET', path, true); // Create a request to acquire the file
+                        request.send(); // Send the request
+                        continue; // Go to the next line
+                    case 'o':
+                    case 'g': // Read Object name
+                        var object = this.parseObjectName(sp);
+                        this.objects.push(object);
+                        currentObject = object;
+                        continue; // Go to the next line
+                    case 'v': // Read vertex
+                        var vertex = this.parseVertex(sp, scale);
+                        this.vertices.push(vertex);
+                        continue; // Go to the next line
+                    case 'vn': // Read normal
+                        var normal = this.parseNormal(sp);
+                        this.normals.push(normal);
+                        continue; // Go to the next line
+                    case 'usemtl': // Read Material name
+                        currentMaterialName = this.parseUsemtl(sp);
+                        continue; // Go to the next line
+                    case 'f': // Read face
+                        var face = this.parseFace(sp, currentMaterialName, this.vertices, reverse);
+                        currentObject.addFace(face);
+                        continue; // Go to the next line
+                }
+            }
+            return true;
+        };
+        ObjParser.prototype.parseMtllib = function (sp, fileName) {
+        };
+        return ObjParser;
+    }());
+    Utils.ObjParser = ObjParser;
+    var StringParser = /** @class */ (function () {
+        function StringParser(str) {
+            this.str = null;
+            this.index = null;
+            this.init(str);
+        }
+        StringParser.prototype.init = function (str) {
+            this.str = str;
+            this.index = 0;
+        };
+        StringParser.prototype.skipDelimiters = function () {
+            for (var i = this.index, len = this.str.length; i < len; i++) {
+                var c = this.str.charAt(i);
+                // Skip TAB, Space, '(', ')
+                if (c == '\t' || c == ' ' || c == '(' || c == ')' || c == '"')
+                    continue;
+                break;
+            }
+            this.index = i;
+        };
+        StringParser.prototype.skipToNextWord = function () {
+            this.skipDelimiters();
+            var n = getWordLength(this.str, this.index);
+            this.index += (n + 1);
+        };
+        StringParser.prototype.getWord = function () {
+            this.skipDelimiters();
+            var n = getWordLength(this.str, this.index);
+            if (n == 0)
+                return null;
+            var word = this.str.substr(this.index, n);
+            this.index += (n + 1);
+            return word;
+        };
+        StringParser.prototype.getInt = function () {
+            return parseInt(this.getWord());
+        };
+        StringParser.prototype.getFloat = function () {
+            return parseFloat(this.getWord());
+        };
+        return StringParser;
+    }());
+    Utils.StringParser = StringParser;
+    var MTLDoc = /** @class */ (function () {
+        function MTLDoc() {
+            this.complete = null;
+            this.materials = null;
+        }
+        MTLDoc.prototype.parseNewmtl = function (sp) {
+            return sp.getWord();
+        };
+        MTLDoc.prototype.parseRGB = function (sp, name) {
+            var r = sp.getFloat();
+            var g = sp.getFloat();
+            var b = sp.getFloat();
+            return (new Material(name, r, g, b, 1));
+        };
+        return MTLDoc;
+    }());
+    Utils.MTLDoc = MTLDoc;
+    var Material = /** @class */ (function () {
+        function Material(name, r, g, b, a) {
+            this.name = null;
+            this.color = null;
+            this.name = name;
+            this.color = new Color(r, g, b, a);
+        }
+        return Material;
+    }());
+    Utils.Material = Material;
+    var Color = /** @class */ (function () {
+        function Color(r, g, b, a) {
+            this.r = null;
+            this.g = null;
+            this.b = null;
+            this.a = null;
+            this.r = r;
+            this.g = g;
+            this.b = b;
+            this.a = a;
+        }
+        return Color;
+    }());
+    Utils.Color = Color;
+    var Vertex = /** @class */ (function () {
+        function Vertex(x, y, z) {
+            this.x = null;
+            this.y = null;
+            this.z = null;
+            this.x = x;
+            this.y = y;
+            this.z = z;
+        }
+        return Vertex;
+    }());
+    Utils.Vertex = Vertex;
+    var Normal = /** @class */ (function () {
+        function Normal(x, y, z) {
+            this.x = null;
+            this.y = null;
+            this.z = null;
+            this.x = x;
+            this.y = y;
+            this.z = z;
+        }
+        return Normal;
+    }());
+    Utils.Normal = Normal;
+    var OBJObject = /** @class */ (function () {
+        function OBJObject(name) {
+            this.name = null;
+            this.faces = null;
+            this.numIndices = null;
+            this.name = name;
+            this.faces = new Array(0);
+            this.numIndices = 0;
+        }
+        OBJObject.prototype.addFace = function (face) {
+            this.faces.push(face);
+            this.numIndices += face.numIndices;
+        };
+        return OBJObject;
+    }());
+    Utils.OBJObject = OBJObject;
+    var Face = /** @class */ (function () {
+        function Face() {
+            this.materialName = null;
+            this.vIndices = null;
+        }
+        return Face;
+    }());
+    Utils.Face = Face;
+    function getWordLength(str, start) {
+        var n = 0;
+        for (var i = start, len = str.length; i < len; i++) {
+            var c = str.charAt(i);
+            if (c == '\t' || c == ' ' || c == '(' || c == ')' || c == '"')
+                break;
+        }
+        return i - start;
+    }
+    function calcNormal(p0, p1, p2) {
+        // v0: a vector from p1 to p0, v1; a vector from p1 to p2
+        var v0 = new Float32Array(3);
+        var v1 = new Float32Array(3);
+        for (var i = 0; i < 3; i++) {
+            v0[i] = p0[i] - p1[i];
+            v1[i] = p2[i] - p1[i];
+        }
+        // The cross product of v0 and v1
+        var c = new Float32Array(3);
+        c[0] = v0[1] * v1[2] - v0[2] * v1[1];
+        c[1] = v0[2] * v1[0] - v0[0] * v1[2];
+        c[2] = v0[0] * v1[1] - v0[1] * v1[0];
+        // Normalize the result
+        var v = new Utils.Vector3(c);
+        v.normalize();
+        return v.elements;
+    }
+})(Utils || (Utils = {}));
 /**
  * 单例着色器工具类
  */
@@ -653,14 +887,13 @@ var Utils;
     var ShaderUtils = /** @class */ (function () {
         function ShaderUtils() {
             this.shaderUtils = null;
-            if (ShaderUtils.instanceCount == 0) {
-                ShaderUtils.instanceCount++;
-                this.shaderUtils = new ShaderUtils();
-                return this.shaderUtils;
-            }
-            else {
-                return this.shaderUtils;
-            }
+            // if(ShaderUtils.instanceCount == 0){
+            //     ShaderUtils.instanceCount++;
+            //     this.shaderUtils = new ShaderUtils();
+            //     return this.shaderUtils;
+            // }else{
+            //     return this.shaderUtils;
+            // }
         }
         /**
          * 通过着色器代码生成shader
@@ -677,7 +910,7 @@ var Utils;
                     program: program,
                 };
             }
-            gl.useProgram(program);
+            // gl.useProgram(program);
             // gl.program = program;//在js里可以正确编译，但是ts里的声明文件没有这个变量
             return {
                 status: true,
@@ -741,8 +974,8 @@ var Utils;
     }());
     Utils.ShaderUtils = ShaderUtils;
 })(Utils || (Utils = {}));
-var Engine;
-(function (Engine) {
+var Core;
+(function (Core) {
     var Nebula = /** @class */ (function () {
         function Nebula(id, width, height) {
             this.GL = null;
@@ -830,34 +1063,18 @@ var Engine;
         };
         Nebula.prototype.setLightTypeColorPoint = function (type, color, point) {
         };
+        /**
+         * 引擎生命周期
+         */
+        Nebula.prototype._OnLoad = function () {
+        };
+        Nebula.prototype._OnUpdate = function () {
+        };
+        Nebula.prototype._OnDestroy = function () {
+        };
         return Nebula;
     }());
-    Engine.Nebula = Nebula;
-    var SceneInfo = /** @class */ (function () {
-        function SceneInfo() {
-            this.SceneInfo = null;
-            this.LigthColor = new Float32Array([1.0, 1.0, 1.0]);
-            this.LigthPoint = new Float32Array([2.3, 4.0, 3.5]);
-            this.AmbientLight = new Float32Array([0.2, 0.2, 0.2]);
-            this.projViewMatrix = null;
-            if (SceneInfo.instanceCount == 0) {
-                SceneInfo.instanceCount++;
-                this.SceneInfo = new SceneInfo();
-                return this.SceneInfo;
-            }
-            else {
-                return this.SceneInfo;
-            }
-        }
-        ;
-        SceneInfo.prototype.initScene = function () {
-            GL.clearColor(0, 0, 0, 1.0);
-            GL.enable(GL.DEPTH_TEST);
-        };
-        SceneInfo.instanceCount = 0;
-        return SceneInfo;
-    }());
-    Engine.SceneInfo = SceneInfo;
+    Core.Nebula = Nebula;
     var Event = /** @class */ (function () {
         function Event() {
         }
@@ -878,8 +1095,37 @@ var Engine;
         };
         return Event;
     }());
-    Engine.Event = Event;
-})(Engine || (Engine = {}));
+    Core.Event = Event;
+})(Core || (Core = {}));
+var Core;
+(function (Core) {
+    var SceneInfo = /** @class */ (function () {
+        function SceneInfo() {
+            this.SceneInfo = null;
+            this.LigthColor = new Float32Array([1.0, 1.0, 1.0]);
+            this.LigthPoint = new Float32Array([2.3, 4.0, 3.5]);
+            this.AmbientLight = new Float32Array([0.2, 0.2, 0.2]);
+            this.projViewMatrix = null;
+            if (SceneInfo.instanceCount == 0) {
+                SceneInfo.instanceCount++;
+                this.SceneInfo = new SceneInfo();
+                return this.SceneInfo;
+            }
+            else {
+                return this.SceneInfo;
+            }
+        }
+        ;
+        SceneInfo.prototype.initScene = function () {
+            GL.clearColor(0, 0, 0, 1.0);
+            GL.clear(GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT);
+            GL.enable(GL.DEPTH_TEST);
+        };
+        SceneInfo.instanceCount = 0;
+        return SceneInfo;
+    }());
+    Core.SceneInfo = SceneInfo;
+})(Core || (Core = {}));
 var shader;
 (function (shader) {
     /**
@@ -911,7 +1157,7 @@ var shader;
         NEObject.prototype.onload = function () {
         };
         NEObject.prototype.onUpdate = function () {
-            // this._draw();
+            this._draw();
         };
         NEObject.prototype._draw = function () {
         };
@@ -968,6 +1214,63 @@ var shader;
         NEObject.prototype.onClick = function () {
         };
         NEObject.prototype.onDrag = function () {
+        };
+        /**
+ * 初始化各缓存区
+ * @param gl 上下文
+ * @param data 源数据
+ * @param num 单位数据长度
+ * @param type 单位类型
+ */
+        NEObject.prototype.initArrayBufferForLaterUse = function (gl, data, num, type) {
+            var arrBufferObj = {
+                buffer: null,
+                num: null,
+                type: null
+            };
+            arrBufferObj.num = num;
+            arrBufferObj.type = type;
+            arrBufferObj.buffer = gl.createBuffer();
+            if (!arrBufferObj.buffer) {
+                console.log("failed to create buffer");
+                return null;
+            }
+            gl.bindBuffer(gl.ARRAY_BUFFER, arrBufferObj.buffer);
+            gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
+            return arrBufferObj;
+        };
+        /**
+         * 初始化索引数组
+         * @param gl 上下文
+         * @param data 源数据
+         * @param type 索引源数据类型
+         */
+        NEObject.prototype.initElementArrayBufferForLaterUse = function (gl, data, type) {
+            var eleBufferObj = {
+                buffer: null,
+                type: null,
+            };
+            eleBufferObj.type = type;
+            eleBufferObj.buffer = gl.createBuffer(); // Create a buffer object
+            if (!eleBufferObj.buffer) {
+                console.log('Failed to create the buffer object');
+                return null;
+            }
+            // Write date into the buffer object
+            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, eleBufferObj.buffer);
+            gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, data, gl.STATIC_DRAW);
+            return eleBufferObj;
+        };
+        /**
+         * 分配缓冲区对象并且激活分配
+         * @param gl 上下文
+         * @param a_attribute 属性名
+         * @param buffer 缓冲区数据
+         */
+        NEObject.prototype.initAttributeVariable = function (gl, a_attribute, bufferObj) {
+            gl.bindBuffer(gl.ARRAY_BUFFER, bufferObj.buffer);
+            gl.vertexAttribPointer(a_attribute, bufferObj.num, bufferObj.type, false, 0, 0);
+            gl.enableVertexAttribArray(a_attribute);
         };
         return NEObject;
     }());
@@ -1039,6 +1342,8 @@ var shader;
             _this.u_LightColor = null;
             _this.u_LightPosition = null;
             _this.u_AmbientLight = null;
+            //
+            _this.cube = null;
             _this.shadertool = new shaderUtils();
             _this.gl = GL;
             var obj = _this.shadertool.initShaders(GL, _this.vertex, _this.fragment);
@@ -1048,44 +1353,55 @@ var shader;
             }
             _this.program = obj.program;
             _this.initCubeInfo();
-            _this._draw();
+            _this.cube = _this.initVertexBuffer(_this.vertices, _this.colors, _this.normals, _this.program, _this.indices);
             return _this;
         }
         /**
-         * 生命周期函数update
+         * 生命周期函数
          */
+        // onload(){
+        // }
         // onUpdate(){
         // }
         Cube.prototype._draw = function () {
-            GL.useProgram(this.program);
-            var cube = this.initVertexBuffer(this.vertices, this.colors, this.normals, this.program, this.indices);
-            var u_ModelMatrix = GL.getUniformLocation(this.program, 'u_ModelMatrix');
-            var u_MvpMatrix = GL.getUniformLocation(this.program, 'u_MvpMatrix');
-            var u_NormalMatrix = GL.getUniformLocation(this.program, 'u_NormalMatrix');
-            var u_LightColor = GL.getUniformLocation(this.program, 'u_LightColor');
-            var u_LightPosition = GL.getUniformLocation(this.program, 'u_LightPosition');
-            var u_AmbientLight = GL.getUniformLocation(this.program, 'u_AmbientLight');
-            if (!u_MvpMatrix || !u_NormalMatrix || !u_LightColor || !u_LightPosition || !u_AmbientLight) {
-                console.log('Failed to get the storage location');
-                return;
+            if (this.program) {
+                GL.useProgram(this.program);
+                var a_Position = GL.getAttribLocation(this.program, 'a_Position');
+                var a_Color = GL.getAttribLocation(this.program, 'a_Color');
+                var a_Normal = GL.getAttribLocation(this.program, 'a_Normal');
+                var u_ModelMatrix = GL.getUniformLocation(this.program, 'u_ModelMatrix');
+                var u_MvpMatrix = GL.getUniformLocation(this.program, 'u_MvpMatrix');
+                var u_NormalMatrix = GL.getUniformLocation(this.program, 'u_NormalMatrix');
+                var u_LightColor = GL.getUniformLocation(this.program, 'u_LightColor');
+                var u_LightPosition = GL.getUniformLocation(this.program, 'u_LightPosition');
+                var u_AmbientLight = GL.getUniformLocation(this.program, 'u_AmbientLight');
+                if (a_Position < 0 || a_Color < 0 || a_Normal < 0) {
+                    console.log('Failed to get the attribute storage location');
+                    return;
+                }
+                if (!u_ModelMatrix || !u_MvpMatrix || !u_NormalMatrix || !u_LightColor || !u_LightPosition || !u_AmbientLight) {
+                    console.log('Failed to get the unifrom storage location');
+                    return;
+                }
+                this.initAttributeVariable(GL, a_Position, this.cube.vertex);
+                this.initAttributeVariable(GL, a_Color, this.cube.color);
+                this.initAttributeVariable(GL, a_Normal, this.cube.normal);
+                GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.cube.index.buffer);
+                // Set the light color (white)
+                GL.uniform3fv(u_LightColor, sceneInfo.LigthColor);
+                // Set the light direction (in the world coordinate)
+                GL.uniform3fv(u_LightPosition, sceneInfo.LigthPoint);
+                // Set the ambient light
+                GL.uniform3fv(u_AmbientLight, sceneInfo.AmbientLight);
+                // Pass the model matrix to u_ModelMatrix
+                GL.uniformMatrix4fv(u_ModelMatrix, false, this.getModelMatrix().elements);
+                // Pass the model view projection matrix to u_MvpMatrix
+                GL.uniformMatrix4fv(u_MvpMatrix, false, this.getMvpMatrix().elements);
+                // Pass the matrix to transform the normal based on the model matrix to u_NormalMatrix
+                GL.uniformMatrix4fv(u_NormalMatrix, false, this.getNormalMatrix().elements);
+                // Draw the cube
+                GL.drawElements(GL.TRIANGLES, this.cube.numIndices, GL.UNSIGNED_BYTE, 0);
             }
-            // GL.uniform1i(u_Clicked, isClicked);
-            // Set the light color (white)
-            GL.uniform3fv(u_LightColor, sceneInfo.LigthColor);
-            // Set the light direction (in the world coordinate)
-            GL.uniform3fv(u_LightPosition, sceneInfo.LigthPoint);
-            // Set the ambient light
-            GL.uniform3fv(u_AmbientLight, sceneInfo.AmbientLight);
-            // Pass the model matrix to u_ModelMatrix
-            GL.uniformMatrix4fv(u_ModelMatrix, false, this.getModelMatrix().elements);
-            // Pass the model view projection matrix to u_MvpMatrix
-            GL.uniformMatrix4fv(u_MvpMatrix, false, this.getMvpMatrix().elements);
-            // Pass the matrix to transform the normal based on the model matrix to u_NormalMatrix
-            GL.uniformMatrix4fv(u_NormalMatrix, false, this.getNormalMatrix().elements);
-            // Clear color and depth buffer
-            GL.clear(GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT);
-            // Draw the cube
-            GL.drawElements(GL.TRIANGLES, cube.numIndices, GL.UNSIGNED_BYTE, 0);
         };
         Cube.prototype.getVertex = function () {
             return this.vertex;
@@ -1142,88 +1458,46 @@ var shader;
                 20, 21, 22, 20, 22, 23 // back
             ]);
         };
+        /**
+         * 初始化obj数据，全局只需绑定一次
+         * @param vertices 顶点矩阵
+         * @param colors 颜色矩阵
+         * @param normals 法向量矩阵
+         * @param program　对应的着色器程序
+         * @param indices 索引矩阵
+         */
         Cube.prototype.initVertexBuffer = function (vertices, colors, normals, program, indices) {
             var cubeObj = {
-                vertexBuffer: null,
-                colorBuffer: null,
-                normalBUffer: null,
-                indexBuffer: null,
+                vertex: null,
+                color: null,
+                normal: null,
+                index: null,
                 numIndices: null,
             };
-            cubeObj.vertexBuffer = this.initArrayBufferForLaterUse(GL, vertices, 3, GL.FLOAT);
-            cubeObj.colorBuffer = this.initArrayBufferForLaterUse(GL, colors, 3, GL.FLOAT);
-            cubeObj.normalBUffer = this.initArrayBufferForLaterUse(GL, normals, 3, GL.FLOAT);
-            cubeObj.indexBuffer = this.initElementArrayBufferForLaterUse(GL, indices, GL.UNSIGNED_BYTE);
-            if (!cubeObj.vertexBuffer || !cubeObj.colorBuffer || !cubeObj.normalBUffer || !cubeObj.indexBuffer) {
+            cubeObj.vertex = this.initArrayBufferForLaterUse(GL, vertices, 3, GL.FLOAT);
+            cubeObj.color = this.initArrayBufferForLaterUse(GL, colors, 3, GL.FLOAT);
+            cubeObj.normal = this.initArrayBufferForLaterUse(GL, normals, 3, GL.FLOAT);
+            cubeObj.index = this.initElementArrayBufferForLaterUse(GL, indices, GL.UNSIGNED_BYTE);
+            if (!cubeObj.vertex || !cubeObj.color || !cubeObj.normal || !cubeObj.index) {
                 console.log("failed to init buffer");
                 return null;
             }
             cubeObj.numIndices = indices.length;
             GL.bindBuffer(GL.ARRAY_BUFFER, null);
             GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, null);
-            console.log(cubeObj);
             return cubeObj;
-        };
-        Cube.prototype.initArrayBuffer = function (gl, attribute, data, num, type) {
-            var buffer = this.gl.createBuffer();
-            if (!buffer) {
-                console.log("failed to create the buffer object!");
-                return false;
-            }
-            this.gl.bindBuffer(this.gl.ARRAY_BUFFER, buffer);
-            this.gl.bufferData(this.gl.ARRAY_BUFFER, data, this.gl.STATIC_DRAW);
-            var a_attribute = gl.getAttribLocation(this.program, attribute);
-            if (a_attribute < 0) {
-                console.log("failed to get location of " + a_attribute);
-                return false;
-            }
-            this.gl.vertexAttribPointer(a_attribute, num, type, false, 0, 0);
-            this.gl.enableVertexAttribArray(a_attribute);
-            return true;
-        };
-        Cube.prototype.initArrayBufferForLaterUse = function (gl, data, num, type) {
-            var arrBufferObj = {
-                buffer: null,
-                num: null,
-                type: null
-            };
-            arrBufferObj.num = num;
-            arrBufferObj.type = type;
-            arrBufferObj.buffer = gl.createBuffer();
-            if (!arrBufferObj.buffer) {
-                console.log("failed to create buffer");
-                return null;
-            }
-            gl.bindBuffer(gl.ARRAY_BUFFER, arrBufferObj.buffer);
-            gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
-            return arrBufferObj;
-        };
-        Cube.prototype.initElementArrayBufferForLaterUse = function (gl, data, type) {
-            var eleBufferObj = {
-                buffer: null,
-                type: null,
-            };
-            eleBufferObj.type = type;
-            eleBufferObj.buffer = gl.createBuffer(); // Create a buffer object
-            if (!eleBufferObj.buffer) {
-                console.log('Failed to create the buffer object');
-                return null;
-            }
-            // Write date into the buffer object
-            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, eleBufferObj.buffer);
-            gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, data, gl.STATIC_DRAW);
-            return eleBufferObj;
         };
         return Cube;
     }(shader.NEObject));
     shader.Cube = Cube;
 })(shader || (shader = {}));
 ///<reference path="./core/Engine.ts" />
+///<reference path="./core/Scene.ts" />
 ///<reference path="../lib/shader-utils/shaderUtils.ts" />
 ///<reference path="../lib/matrix-utils/matrixUtils.ts" />
 ///<reference path="./shader/Cube.ts" />
-var Nebula = Engine.Nebula;
-var SceneInfo = Engine.SceneInfo;
+var Nebula = Core.Nebula;
+var SceneInfo = Core.SceneInfo;
 var shaderUtils = Utils.ShaderUtils;
 var Matrix4 = Utils.Matrix4;
 var Vector3 = Utils.Vector3;
@@ -1238,7 +1512,6 @@ var canvas = {
     width: 400,
     height: 400,
 };
-var draw = null;
 //************ */
 main();
 function main() {
@@ -1248,16 +1521,11 @@ function main() {
     sceneInfo.initScene();
     var Cube = new cube();
     Cube.setScale(1, 1, 1);
-    Cube._draw();
     var cube2 = new cube();
     cube2.setTranslate(0, 3, 0);
-    cube2._draw();
-    draw = function () {
-        cube2._draw();
-        Cube._draw();
-    };
-    // tick();
-    console.log(Cube.program == cube2.program);
+    var cube3 = new cube();
+    cube3.setRotation(20, 10, 10);
+    cube3.setTranslate(0, 0, 3);
     var ca = document.getElementById('canvas');
     var isDrag = false;
     var lastX = -1;
@@ -1270,7 +1538,7 @@ function main() {
             isDrag = true;
         }
         var pixels = new Uint8Array(4);
-        GL.readPixels(x, y, 1, 1, GL.RGBA, GL.UNSIGNED_BYTE, pixels);
+        GL.readPixels(x, y, 1, 1, GL.RGBA, GL.UNSIGNED_BYTE, pixels); //tap点像素颜色测试
         console.log(pixels);
         if (pixels[0] == 255) {
             isPick = 1;
@@ -1287,18 +1555,34 @@ function main() {
         if (!isDrag)
             return;
         if (ev.layerX <= canvas.width && ev.layerX >= 0 && ev.layerY >= 0 && ev.layerY <= canvas.height) {
-            var factor = 50 / canvas.height;
+            var factor = 100 / canvas.height;
             var dx = factor * (x - lastX);
             var dy = factor * (y - lastY);
             Cube.setRotation(0, dx, 0);
+            cube2.setRotation(0, dx, 0);
+            cube3.setRotation(0, dx, 0);
             // Cube._draw();
         }
         lastX = x;
         lastY = y;
     };
 }
-function tick() {
-    draw();
-    requestAnimationFrame(tick);
-}
+var Core;
+(function (Core) {
+    var Camera = /** @class */ (function () {
+        function Camera() {
+        }
+        return Camera;
+    }());
+    Core.Camera = Camera;
+})(Core || (Core = {}));
+var Core;
+(function (Core) {
+    var Render = /** @class */ (function () {
+        function Render() {
+        }
+        return Render;
+    }());
+    Core.Render = Render;
+})(Core || (Core = {}));
 //# sourceMappingURL=Main.js.map

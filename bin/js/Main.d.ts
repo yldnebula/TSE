@@ -133,6 +133,71 @@ declare namespace Utils {
         constructor(opt_src: Vector4 | null);
     }
 }
+declare namespace Utils {
+    class ObjParser {
+        fileName: any;
+        mtls: any;
+        objects: any;
+        vertices: any;
+        normals: any;
+        constructor();
+        parse(fileString: string, scale: any, reverse: any): boolean;
+        parseMtllib(sp: StringParser, fileName: string): void;
+    }
+    class StringParser {
+        str: any;
+        index: any;
+        constructor(str: string);
+        init(str: string): void;
+        skipDelimiters(): void;
+        skipToNextWord(): void;
+        getWord(): any;
+        getInt(): number;
+        getFloat(): number;
+    }
+    class MTLDoc {
+        complete: any;
+        materials: any;
+        constructor();
+        parseNewmtl(sp: StringParser): any;
+        parseRGB(sp: StringParser, name: any): Material;
+    }
+    class Material {
+        name: any;
+        color: any;
+        constructor(name: any, r: any, g: any, b: any, a: any);
+    }
+    class Color {
+        r: any;
+        g: any;
+        b: any;
+        a: any;
+        constructor(r: any, g: any, b: any, a: any);
+    }
+    class Vertex {
+        x: any;
+        y: any;
+        z: any;
+        constructor(x: any, y: any, z: any);
+    }
+    class Normal {
+        x: any;
+        y: any;
+        z: any;
+        constructor(x: any, y: any, z: any);
+    }
+    class OBJObject {
+        name: any;
+        faces: any;
+        numIndices: any;
+        constructor(name: any);
+        addFace(face: any): void;
+    }
+    class Face {
+        materialName: any;
+        vIndices: any;
+    }
+}
 /**
  * 单例着色器工具类
  */
@@ -167,7 +232,7 @@ declare namespace Utils {
         loadShader(gl: WebGLRenderingContext, type: number, shader_source: string): WebGLShader;
     }
 }
-declare namespace Engine {
+declare namespace Core {
     class Nebula {
         GL: WebGLRenderingContext;
         canvas: HTMLCanvasElement;
@@ -206,16 +271,12 @@ declare namespace Engine {
          */
         setOrthoCamera(): void;
         setLightTypeColorPoint(type: number, color: Vector4, point: Vector3): void;
-    }
-    class SceneInfo {
-        static instanceCount: number;
-        SceneInfo: SceneInfo;
-        LigthColor: Float32Array;
-        LigthPoint: Float32Array;
-        AmbientLight: Float32Array;
-        projViewMatrix: Matrix4;
-        constructor();
-        initScene(): void;
+        /**
+         * 引擎生命周期
+         */
+        _OnLoad(): void;
+        _OnUpdate(): void;
+        _OnDestroy(): void;
     }
     class Event {
         constructor();
@@ -228,6 +289,18 @@ declare namespace Engine {
         onMouseDown(): void;
         onMouseUp(): void;
         onMouseClick(): void;
+    }
+}
+declare namespace Core {
+    class SceneInfo {
+        static instanceCount: number;
+        SceneInfo: SceneInfo;
+        LigthColor: Float32Array;
+        LigthPoint: Float32Array;
+        AmbientLight: Float32Array;
+        projViewMatrix: Matrix4;
+        constructor();
+        initScene(): void;
     }
 }
 declare namespace shader {
@@ -267,6 +340,35 @@ declare namespace shader {
         getNormalMatrix(): Matrix4;
         onClick(): void;
         onDrag(): void;
+        /**
+ * 初始化各缓存区
+ * @param gl 上下文
+ * @param data 源数据
+ * @param num 单位数据长度
+ * @param type 单位类型
+ */
+        initArrayBufferForLaterUse(gl: WebGLRenderingContext, data: Float32Array, num: number, type: number): {
+            buffer: any;
+            num: any;
+            type: any;
+        };
+        /**
+         * 初始化索引数组
+         * @param gl 上下文
+         * @param data 源数据
+         * @param type 索引源数据类型
+         */
+        initElementArrayBufferForLaterUse(gl: WebGLRenderingContext, data: Uint8Array, type: number): {
+            buffer: any;
+            type: any;
+        };
+        /**
+         * 分配缓冲区对象并且激活分配
+         * @param gl 上下文
+         * @param a_attribute 属性名
+         * @param buffer 缓冲区数据
+         */
+        initAttributeVariable(gl: WebGLRenderingContext, a_attribute: any, bufferObj: any): void;
     }
 }
 declare namespace shader {
@@ -286,9 +388,10 @@ declare namespace shader {
         u_LightColor: WebGLUniformLocation;
         u_LightPosition: WebGLUniformLocation;
         u_AmbientLight: WebGLUniformLocation;
+        cube: any;
         constructor();
         /**
-         * 生命周期函数update
+         * 生命周期函数
          */
         _draw(): void;
         getVertex(): string;
@@ -297,27 +400,25 @@ declare namespace shader {
          * 生成单位立方体，位于原点
          */
         initCubeInfo(): void;
+        /**
+         * 初始化obj数据，全局只需绑定一次
+         * @param vertices 顶点矩阵
+         * @param colors 颜色矩阵
+         * @param normals 法向量矩阵
+         * @param program　对应的着色器程序
+         * @param indices 索引矩阵
+         */
         initVertexBuffer(vertices: Float32Array, colors: Float32Array, normals: Float32Array, program: WebGLProgram, indices: Uint8Array): {
-            vertexBuffer: any;
-            colorBuffer: any;
-            normalBUffer: any;
-            indexBuffer: any;
+            vertex: any;
+            color: any;
+            normal: any;
+            index: any;
             numIndices: any;
-        };
-        initArrayBuffer(gl: WebGLRenderingContext, attribute: string, data: Float32Array, num: number, type: number): boolean;
-        initArrayBufferForLaterUse(gl: WebGLRenderingContext, data: Float32Array, num: number, type: number): {
-            buffer: any;
-            num: any;
-            type: any;
-        };
-        initElementArrayBufferForLaterUse(gl: WebGLRenderingContext, data: Uint8Array, type: number): {
-            buffer: any;
-            type: any;
         };
     }
 }
-import Nebula = Engine.Nebula;
-import SceneInfo = Engine.SceneInfo;
+import Nebula = Core.Nebula;
+import SceneInfo = Core.SceneInfo;
 import shaderUtils = Utils.ShaderUtils;
 import Matrix4 = Utils.Matrix4;
 import Vector3 = Utils.Vector3;
@@ -331,6 +432,14 @@ declare const canvas: {
     width: number;
     height: number;
 };
-declare var draw: any;
 declare function main(): void;
-declare function tick(): void;
+declare namespace Core {
+    class Camera {
+        constructor();
+    }
+}
+declare namespace Core {
+    class Render {
+        constructor();
+    }
+}

@@ -6,13 +6,13 @@ namespace Utils{
         static instanceCount = 0;
         shaderUtils = null;
         constructor(){
-            if(ShaderUtils.instanceCount == 0){
-                ShaderUtils.instanceCount++;
-                this.shaderUtils = new ShaderUtils();
-                return this.shaderUtils;
-            }else{
-                return this.shaderUtils;
-            }
+            // if(ShaderUtils.instanceCount == 0){
+            //     ShaderUtils.instanceCount++;
+            //     this.shaderUtils = new ShaderUtils();
+            //     return this.shaderUtils;
+            // }else{
+            //     return this.shaderUtils;
+            // }
         }
         /**
          * 通过着色器代码生成shader
@@ -29,7 +29,7 @@ namespace Utils{
                     program:program,
                 };
             }
-            gl.useProgram(program);
+            // gl.useProgram(program);
             // gl.program = program;//在js里可以正确编译，但是ts里的声明文件没有这个变量
     
             return {
