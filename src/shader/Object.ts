@@ -24,18 +24,36 @@ namespace shader{
         private _normalMatrix:Matrix4= new Matrix4(null);//法向量变换矩阵
 
         constructor(){
+            
+            this.onload();
+            this._loop();
 
         }
-        init(){
+        onload(){
 
         }
+        onUpdate(){
+            // this._draw();
+        }
+        _draw(){
+
+        }
+        _loop(){
+            this.onUpdate();
+            requestAnimationFrame(this._loop.bind(this));
+        }
+        onDestroy(){
+
+        }
+
+
         setTranslate(x:number,y:number,z:number){
             this.coordinate.x +=x;
             this.coordinate.y +=y;
             this.coordinate.z +=z;
             this._modelMatrix.translate(x,y,z);
 
-            this._mvpMatrix = sceneInfo.projViewMatrix.multiply(this._modelMatrix);
+            this._mvpMatrix.set(sceneInfo.projViewMatrix).multiply(this._modelMatrix);
             this._normalMatrix.setInverseOf(this._modelMatrix);
             this._normalMatrix.transpose();
         }
@@ -45,11 +63,11 @@ namespace shader{
             this.scale.z =z;
             this._modelMatrix.scale(x,y,z);
             
-            this._mvpMatrix = sceneInfo.projViewMatrix.multiply(this._modelMatrix);
+            this._mvpMatrix.set(sceneInfo.projViewMatrix).multiply(this._modelMatrix);
             this._normalMatrix.setInverseOf(this._modelMatrix);
             this._normalMatrix.transpose();
         }
-        setRotation(x:number,y:number,z:number){
+        setRotation(x:number,y:number,z:number){//注意此处的x,y,z是角度增量，而非最终角度，调用时候请注意
             this.rotation.x +=x;
             this.rotation.y +=y;
             this.rotation.z +=z;
@@ -62,7 +80,9 @@ namespace shader{
             if(z != 0){
                 this._modelMatrix.rotate(z,0,0,1);
             }
-            this._mvpMatrix = sceneInfo.projViewMatrix.multiply(this._modelMatrix);
+            this._mvpMatrix.set(sceneInfo.projViewMatrix).multiply(this._modelMatrix);
+            this._normalMatrix.setInverseOf(this._modelMatrix);
+            this._normalMatrix.transpose();
         }
         getModelMatrix():Matrix4{
             return this._modelMatrix;
@@ -77,10 +97,6 @@ namespace shader{
 
         }
         onDrag(){
-
-        }
-
-        onDestroy(){
 
         }
     }

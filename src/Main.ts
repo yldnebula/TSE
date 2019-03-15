@@ -20,7 +20,7 @@ const canvas={
     width:400,
     height:400,
 }
-//https://blog.csdn.net/charlee44/article/details/87553067#4_421
+var draw = null;
 //************ */
 main();
 function main(){
@@ -32,8 +32,17 @@ function main(){
     
 
     var Cube = new cube(); 
-    Cube.setScale(4,4,4);
-    Cube.update(0);
+    Cube.setScale(1,1,1);
+    Cube._draw();
+    var cube2 = new cube();
+    cube2.setTranslate(0,3,0);
+    cube2._draw();
+    draw = function(){
+        cube2._draw();
+        Cube._draw();
+    }
+    // tick();
+    console.log(Cube.program == cube2.program)
     var ca = document.getElementById('canvas');
 
     var isDrag:boolean = false;
@@ -53,7 +62,6 @@ function main(){
         if(pixels[0] == 255){
             isPick = 1;
             console.log("pick");
-            Cube.update(isPick);
         }
     }
     ca.onmouseup=function(ev){
@@ -62,21 +70,24 @@ function main(){
     }
     ca.onmousemove=function(ev){
         var x = ev.clientX,y=ev.clientY;
+        // console.log(ev.target)
         if(!isDrag)return;
         if(ev.layerX <= canvas.width && ev.layerX >= 0 && ev.layerY >=0 && ev.layerY <=canvas.height){
             
-            var factor = 0.01/canvas.height;
+            var factor = 50/canvas.height;
             var dx = factor*(x - lastX);
             var dy = factor*(y - lastY);
-            currentAngle[0] = Math.max(Math.min(currentAngle[0]+dy, 90), -90);
-            currentAngle[1] = currentAngle[1]+dx;
-            Cube.setRotation(currentAngle[0], currentAngle[1],0);
-            Cube.update(isPick);
+            Cube.setRotation(0, dx,0);
+            // Cube._draw();
         }
         lastX = x;
         lastY = y;
     }
-    
+
+}
+function tick(){
+    draw();
+    requestAnimationFrame(tick);
 }
 
 

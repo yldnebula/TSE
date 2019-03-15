@@ -254,7 +254,11 @@ declare namespace shader {
         private _mvpMatrix;
         private _normalMatrix;
         constructor();
-        init(): void;
+        onload(): void;
+        onUpdate(): void;
+        _draw(): void;
+        _loop(): void;
+        onDestroy(): void;
         setTranslate(x: number, y: number, z: number): void;
         setScale(x: number, y: number, z: number): void;
         setRotation(x: number, y: number, z: number): void;
@@ -263,7 +267,6 @@ declare namespace shader {
         getNormalMatrix(): Matrix4;
         onClick(): void;
         onDrag(): void;
-        onDestroy(): void;
     }
 }
 declare namespace shader {
@@ -277,16 +280,40 @@ declare namespace shader {
         gl: WebGLRenderingContext;
         program: WebGLProgram;
         shadertool: shaderUtils;
+        u_ModelMatrix: WebGLUniformLocation;
+        u_MvpMatrix: WebGLUniformLocation;
+        u_NormalMatrix: WebGLUniformLocation;
+        u_LightColor: WebGLUniformLocation;
+        u_LightPosition: WebGLUniformLocation;
+        u_AmbientLight: WebGLUniformLocation;
         constructor();
-        update(isClicked: number): void;
+        /**
+         * 生命周期函数update
+         */
+        _draw(): void;
         getVertex(): string;
         getFragment(): string;
         /**
          * 生成单位立方体，位于原点
          */
         initCubeInfo(): void;
-        initVertexBuffer(): number;
+        initVertexBuffer(vertices: Float32Array, colors: Float32Array, normals: Float32Array, program: WebGLProgram, indices: Uint8Array): {
+            vertexBuffer: any;
+            colorBuffer: any;
+            normalBUffer: any;
+            indexBuffer: any;
+            numIndices: any;
+        };
         initArrayBuffer(gl: WebGLRenderingContext, attribute: string, data: Float32Array, num: number, type: number): boolean;
+        initArrayBufferForLaterUse(gl: WebGLRenderingContext, data: Float32Array, num: number, type: number): {
+            buffer: any;
+            num: any;
+            type: any;
+        };
+        initElementArrayBufferForLaterUse(gl: WebGLRenderingContext, data: Uint8Array, type: number): {
+            buffer: any;
+            type: any;
+        };
     }
 }
 import Nebula = Engine.Nebula;
@@ -304,4 +331,6 @@ declare const canvas: {
     width: number;
     height: number;
 };
+declare var draw: any;
 declare function main(): void;
+declare function tick(): void;

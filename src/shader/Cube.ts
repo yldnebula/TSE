@@ -54,6 +54,15 @@ namespace shader{
         gl          :WebGLRenderingContext=null;
         program     :WebGLProgram = null;
         shadertool  :shaderUtils = null;
+
+        //变量类型
+        u_ModelMatrix:WebGLUniformLocation = null;
+        u_MvpMatrix :WebGLUniformLocation  = null;
+        u_NormalMatrix:WebGLUniformLocation= null;
+        u_LightColor:WebGLUniformLocation  = null;
+        u_LightPosition:WebGLUniformLocation=null;
+        u_AmbientLight:WebGLUniformLocation =null;
+
         constructor(){
             super();
 
@@ -65,46 +74,50 @@ namespace shader{
                 return;
             }
             this.program = obj.program;
-            
             this.initCubeInfo();
-            this.update(0);
+            this._draw();
         }
-        update(isClicked:number){
-            var n = this.initVertexBuffer();
+        /**
+         * 生命周期函数update
+         */
+        // onUpdate(){
+        // }
+        _draw(){
+            GL.useProgram(this.program);
 
-            var u_ModelMatrix   = this.gl.getUniformLocation(this.program, 'u_ModelMatrix');
-            var u_MvpMatrix     = this.gl.getUniformLocation(this.program, 'u_MvpMatrix');
-            var u_NormalMatrix  = this.gl.getUniformLocation(this.program, 'u_NormalMatrix');
-            var u_LightColor    = this.gl.getUniformLocation(this.program, 'u_LightColor');
-            var u_LightPosition = this.gl.getUniformLocation(this.program, 'u_LightPosition');
-            var u_AmbientLight  = this.gl.getUniformLocation(this.program, 'u_AmbientLight');
-            var u_Clicked       = this.gl.getUniformLocation(this.program, 'u_Clicked');
+            var cube = this.initVertexBuffer(this.vertices,this.colors,this.normals,this.program,this.indices);
 
-            if (!u_MvpMatrix || !u_NormalMatrix || !u_LightColor || !u_LightPosition　|| !u_AmbientLight || !u_Clicked) {
+            var u_ModelMatrix   = GL.getUniformLocation(this.program, 'u_ModelMatrix');
+            var u_MvpMatrix     = GL.getUniformLocation(this.program, 'u_MvpMatrix');
+            var u_NormalMatrix  = GL.getUniformLocation(this.program, 'u_NormalMatrix');
+            var u_LightColor    = GL.getUniformLocation(this.program, 'u_LightColor');
+            var u_LightPosition = GL.getUniformLocation(this.program, 'u_LightPosition');
+            var u_AmbientLight  = GL.getUniformLocation(this.program, 'u_AmbientLight');
+
+            if (!u_MvpMatrix || !u_NormalMatrix || !u_LightColor || !u_LightPosition　|| !u_AmbientLight ) {
                 console.log('Failed to get the storage location');
                 return;
             }
-
-            this.gl.uniform1i(u_Clicked, isClicked);
+            // GL.uniform1i(u_Clicked, isClicked);
 
             // Set the light color (white)
-            this.gl.uniform3fv(u_LightColor,sceneInfo.LigthColor);
+            GL.uniform3fv(u_LightColor,sceneInfo.LigthColor);
             // Set the light direction (in the world coordinate)
-            this.gl.uniform3fv(u_LightPosition,sceneInfo.LigthPoint);
+            GL.uniform3fv(u_LightPosition,sceneInfo.LigthPoint);
             // Set the ambient light
-            this.gl.uniform3fv(u_AmbientLight,sceneInfo.AmbientLight);
+            GL.uniform3fv(u_AmbientLight,sceneInfo.AmbientLight);
 
             // Pass the model matrix to u_ModelMatrix
-            this.gl.uniformMatrix4fv(u_ModelMatrix, false, this.getModelMatrix().elements);
+            GL.uniformMatrix4fv(u_ModelMatrix, false, this.getModelMatrix().elements);
             // Pass the model view projection matrix to u_MvpMatrix
-            this.gl.uniformMatrix4fv(u_MvpMatrix, false, this.getMvpMatrix().elements);
+            GL.uniformMatrix4fv(u_MvpMatrix, false, this.getMvpMatrix().elements);
             // Pass the matrix to transform the normal based on the model matrix to u_NormalMatrix
-            this.gl.uniformMatrix4fv(u_NormalMatrix, false, this.getNormalMatrix().elements);
+            GL.uniformMatrix4fv(u_NormalMatrix, false, this.getNormalMatrix().elements);
     
             // Clear color and depth buffer
-            this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
+            GL.clear(GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT);
             // Draw the cube
-            this.gl.drawElements(this.gl.TRIANGLES, n, this.gl.UNSIGNED_BYTE, 0);
+            GL.drawElements(GL.TRIANGLES, cube.numIndices, GL.UNSIGNED_BYTE, 0);
         }
         getVertex():string{
             return this.vertex;
@@ -162,21 +175,29 @@ namespace shader{
                 20,21,22,  20,22,23     // back
             ]);
         }
-        initVertexBuffer():number{
-            if(!this.initArrayBuffer(this.gl,'a_Position',this.vertices, 3, this.gl.FLOAT))return -1;
-            if(!this.initArrayBuffer(this.gl,'a_Color',this.colors, 3, this.gl.FLOAT))return -1;
-            if(!this.initArrayBuffer(this.gl,'a_Normal',this.normals, 3, this.gl.FLOAT))return -1;
-            this.gl.bindBuffer(this.gl.ARRAY_BUFFER, null);
-
-            var indexBuffer = this.gl.createBuffer();
-            if(!indexBuffer){
-                console.log("failed to create index buffer of vertex");
-                return -1
+        initVertexBuffer(vertices:Float32Array, colors:Float32Array,normals:Float32Array,program:WebGLProgram,indices:Uint8Array){
+            var cubeObj = {
+                vertexBuffer:null,
+                colorBuffer:null,
+                normalBUffer:null,
+                indexBuffer:null,
+                numIndices:null,
+            };
+            cubeObj.vertexBuffer = this.initArrayBufferForLaterUse(GL,vertices,3,GL.FLOAT);
+            cubeObj.colorBuffer  = this.initArrayBufferForLaterUse(GL,colors,3,GL.FLOAT);
+            cubeObj.normalBUffer = this.initArrayBufferForLaterUse(GL,normals,3,GL.FLOAT);
+            cubeObj.indexBuffer  = this.initElementArrayBufferForLaterUse(GL,indices,GL.UNSIGNED_BYTE);           
+            
+            if(!cubeObj.vertexBuffer ||!cubeObj.colorBuffer||!cubeObj.normalBUffer||!cubeObj.indexBuffer){
+                console.log("failed to init buffer");return null;
             }
-            this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
-            this.gl.bufferData(this.gl.ELEMENT_ARRAY_BUFFER, this.indices, this.gl.STATIC_DRAW);
+            cubeObj.numIndices = indices.length;
 
-            return this.indices.length;
+            GL.bindBuffer(GL.ARRAY_BUFFER, null);
+            GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, null);
+
+            console.log(cubeObj);
+            return cubeObj;
         }
         initArrayBuffer(gl:WebGLRenderingContext, attribute:string, data:Float32Array, num:number, type:number):boolean{
             var buffer = this.gl.createBuffer();
@@ -196,6 +217,41 @@ namespace shader{
             this.gl.enableVertexAttribArray(a_attribute);
 
             return true;
+        }
+        initArrayBufferForLaterUse(gl:WebGLRenderingContext, data:Float32Array, num:number, type:number){
+            var arrBufferObj = {
+                buffer:null,
+                num:null,
+                type:null
+            };
+            arrBufferObj.num = num;
+            arrBufferObj.type = type;
+
+            arrBufferObj.buffer = gl.createBuffer();
+            if(!arrBufferObj.buffer){
+                console.log("failed to create buffer");return null;
+            }
+            gl.bindBuffer(gl.ARRAY_BUFFER, arrBufferObj.buffer);
+            gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
+
+            return arrBufferObj;
+        }
+        initElementArrayBufferForLaterUse(gl:WebGLRenderingContext, data:Uint8Array, type:number){
+            var eleBufferObj = {
+                buffer:null,
+                type:null,
+            };
+            eleBufferObj.type = type;
+            eleBufferObj.buffer = gl.createBuffer();　  // Create a buffer object
+            if (!eleBufferObj.buffer) {
+              console.log('Failed to create the buffer object');
+              return null;
+            }
+            // Write date into the buffer object
+            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, eleBufferObj.buffer);
+            gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, data, gl.STATIC_DRAW);
+          
+            return eleBufferObj;
         }
     }
         
