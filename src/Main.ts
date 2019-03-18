@@ -3,6 +3,8 @@
 ///<reference path="../lib/shader-utils/shaderUtils.ts" />
 ///<reference path="../lib/matrix-utils/matrixUtils.ts" />
 ///<reference path="./shader/Cube.ts" />
+///<reference path="./shader/Cylinder.ts" />
+///<reference path="../lib/parse-utils/objParse.ts" />
 
 import Nebula = Core.Nebula;
 import SceneInfo = Core.SceneInfo;
@@ -11,15 +13,17 @@ import Matrix4 = Utils.Matrix4;
 import Vector3 = Utils.Vector3;
 import Vector4 = Utils.Vector4;
 import cube = shader.Cube;
+import Cylinder = shader.Cylinder;
 import NEObject = shader.NEObject;
+import OBJParser = Utils.ObjParser;
 
 //************全局变量Global****************** */
 const shaderTool = new shaderUtils();
 var GL:WebGLRenderingContext = null;
 var sceneInfo = new SceneInfo();
 const canvas={
-    width:400,
-    height:400,
+    width:1200,
+    height:800,
 }
 //************ */
 main();
@@ -32,12 +36,14 @@ function main(){
     
 
     var Cube = new cube(); 
-    Cube.setScale(1,1,1);
-    var cube2 = new cube();
-    cube2.setTranslate(0,3,0);
-    var cube3 = new cube();
-    cube3.setRotation(20, 10,10);
-    cube3.setTranslate(0,0,3);
+    Cube.setTranslate(3,0,0);
+    // var cube2 = new cube();
+    // cube2.setTranslate(0,3,0);
+    // var cube3 = new cube();
+    // cube3.setRotation(20, 10,10);
+    // cube3.setTranslate(0,0,3);
+    var cylinder = new Cylinder();
+
 
     var ca = document.getElementById('canvas');
 
@@ -70,18 +76,17 @@ function main(){
         if(!isDrag)return;
         if(ev.layerX <= canvas.width && ev.layerX >= 0 && ev.layerY >=0 && ev.layerY <=canvas.height){
             
-            var factor = 100/canvas.height;
+            var factor = 300/canvas.height;
             var dx = factor*(x - lastX);
             var dy = factor*(y - lastY);
             Cube.setRotation(0, dx,0);
-            cube2.setRotation(0, dx,0);
-            cube3.setRotation(0, dx,0);
+            // cube2.setRotation(0, dx,0);
+            // cube3.setRotation(0, dx,0);
+            cylinder.setRotation(0, dx,0);
             // Cube._draw();
         }
         lastX = x;
         lastY = y;
     }
-
+    
 }
-
-

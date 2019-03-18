@@ -550,7 +550,7 @@ namespace Utils{
      */
     export class Vector3{
         elements:Float32Array = null;
-        constructor(opt_src:Vector3 | null){
+        constructor(opt_src:Float32Array|number[]|Vector3 | null){
             var v = new Float32Array(3);
             if (opt_src) {
               v[0] = opt_src[0]; v[1] = opt_src[1]; v[2] = opt_src[2];
@@ -580,7 +580,7 @@ namespace Utils{
      */
     export class Vector4{
         elements:Float32Array = null;
-        constructor(opt_src:Vector4 | null){
+        constructor(opt_src:Float32Array|number[]|Vector4 | null){
             var v = new Float32Array(4);
             if (opt_src) {
                 v[0] = opt_src[0]; v[1] = opt_src[1]; v[2] = opt_src[2]; v[3] = opt_src[3];

@@ -648,12 +648,19 @@ var Utils;
 var Utils;
 (function (Utils) {
     var ObjParser = /** @class */ (function () {
-        function ObjParser() {
+        function ObjParser(fileName) {
             this.fileName = null;
             this.mtls = null;
             this.objects = null;
             this.vertices = null;
             this.normals = null;
+            this.g_objDoc = null;
+            this.g_drawingInfo = null;
+            this.fileName = fileName;
+            this.mtls = new Array(0); // Initialize the property for MTL
+            this.objects = new Array(0); // Initialize the property for Object
+            this.vertices = new Array(0); // Initialize the property for Vertex
+            this.normals = new Array(0); // Initialize the property for Normal
         }
         ObjParser.prototype.parse = function (fileString, scale, reverse) {
             var lines = fileString.split('\n');
@@ -664,7 +671,7 @@ var Utils;
             var line;
             var sp = new StringParser(null);
             while ((line = lines[index++]) != null) {
-                sp.init(line); // init StringParser
+                sp.init(line.trim()); // init StringParser
                 var command = sp.getWord(); // Get command
                 if (command == null)
                     continue; // check null command
@@ -679,13 +686,13 @@ var Utils;
                         request.onreadystatechange = function () {
                             if (request.readyState == 4) {
                                 if (request.status != 404) {
-                                    onReadMTLFile(request.responseText, mtl);
+                                    this.onReadMTLFile(request.responseText, mtl);
                                 }
                                 else {
                                     mtl.complete = true;
                                 }
                             }
-                        };
+                        }.bind(this);
                         request.open('GET', path, true); // Create a request to acquire the file
                         request.send(); // Send the request
                         continue; // Go to the next line
@@ -715,6 +722,271 @@ var Utils;
             return true;
         };
         ObjParser.prototype.parseMtllib = function (sp, fileName) {
+            // Get directory path
+            var i = fileName.lastIndexOf("/");
+            var dirPath = "";
+            if (i > 0)
+                dirPath = fileName.substr(0, i + 1);
+            return dirPath + sp.getWord(); // Get path
+        };
+        /**
+         * parseObjectName
+         */
+        ObjParser.prototype.parseObjectName = function (sp) {
+            var name = sp.getWord();
+            return (new OBJObject(name));
+        };
+        /**
+         * parseVertex
+         */
+        ObjParser.prototype.parseVertex = function (sp, scale) {
+            var x = sp.getFloat() * scale;
+            var y = sp.getFloat() * scale;
+            var z = sp.getFloat() * scale;
+            return (new Vertex(x, y, z));
+        };
+        /**
+         * parseNormal
+         */
+        ObjParser.prototype.parseNormal = function (sp) {
+            var x = sp.getFloat();
+            var y = sp.getFloat();
+            var z = sp.getFloat();
+            return (new Normal(x, y, z));
+        };
+        /**
+         * parseUsemtl
+         */
+        ObjParser.prototype.parseUsemtl = function (sp) {
+            return sp.getWord();
+        };
+        /**
+         * parseFace
+         */
+        ObjParser.prototype.parseFace = function (sp, materialName, vertices, reverse) {
+            var face = new Face(materialName);
+            // get indices
+            for (;;) {
+                var word = sp.getWord();
+                if (word == null)
+                    break;
+                var subWords = word.split('/');
+                if (subWords.length >= 1) {
+                    var vi = parseInt(subWords[0]) - 1;
+                    face.vIndices.push(vi);
+                }
+                if (subWords.length >= 3) { //当没有贴图和法线时，nIndices压入-1
+                    var ni = parseInt(subWords[2]) - 1;
+                    face.nIndices.push(ni);
+                }
+                else {
+                    face.nIndices.push(-1);
+                }
+            }
+            // calc normal
+            var v0 = [
+                vertices[face.vIndices[0]].x,
+                vertices[face.vIndices[0]].y,
+                vertices[face.vIndices[0]].z
+            ];
+            var v1 = [
+                vertices[face.vIndices[1]].x,
+                vertices[face.vIndices[1]].y,
+                vertices[face.vIndices[1]].z
+            ];
+            var v2 = [
+                vertices[face.vIndices[2]].x,
+                vertices[face.vIndices[2]].y,
+                vertices[face.vIndices[2]].z
+            ];
+            var normal = calcNormal(v0, v1, v2);
+            // 法線が正しく求められたか調べる
+            if (normal == null) {
+                if (face.vIndices.length >= 4) { // 面が四角形なら別の3点の組み合わせで法線計算
+                    var v3 = [
+                        vertices[face.vIndices[3]].x,
+                        vertices[face.vIndices[3]].y,
+                        vertices[face.vIndices[3]].z
+                    ];
+                    normal = calcNormal(v1, v2, v3);
+                }
+                if (normal == null) { // 法線が求められなかったのでY軸方向の法線とする
+                    normal = new Float32Array([0.0, 1.0, 0.0]);
+                }
+            }
+            if (reverse) {
+                normal[0] = -normal[0];
+                normal[1] = -normal[1];
+                normal[2] = -normal[2];
+            }
+            face.normal = new Normal(normal[0], normal[1], normal[2]);
+            // Devide to triangles if face contains over 3 points.
+            if (face.vIndices.length > 3) {
+                var n = face.vIndices.length - 2; //需要多少三角形来绘制
+                var newVIndices = new Array(n * 3);
+                var newNIndices = new Array(n * 3);
+                for (var i = 0; i < n; i++) {
+                    newVIndices[i * 3 + 0] = face.vIndices[0];
+                    newVIndices[i * 3 + 1] = face.vIndices[i + 1];
+                    newVIndices[i * 3 + 2] = face.vIndices[i + 2];
+                    newNIndices[i * 3 + 0] = face.nIndices[0];
+                    newNIndices[i * 3 + 1] = face.nIndices[i + 1];
+                    newNIndices[i * 3 + 2] = face.nIndices[i + 2];
+                }
+                face.vIndices = newVIndices;
+                face.nIndices = newNIndices;
+            }
+            face.numIndices = face.vIndices.length;
+            return face;
+        };
+        /**
+         * isMTLComplete
+         */
+        ObjParser.prototype.isMTLComplete = function () {
+            if (this.mtls.length == 0)
+                return true;
+            for (var i = 0; i < this.mtls.length; i++) {
+                if (!this.mtls[i].complete)
+                    return false;
+            }
+            return true;
+        };
+        /**
+         * findColor
+         */
+        ObjParser.prototype.findColor = function (name) {
+            for (var i = 0; i < this.mtls.length; i++) {
+                for (var j = 0; j < this.mtls[i].materials.length; j++) {
+                    if (this.mtls[i].materials[j].name == name) {
+                        return (this.mtls[i].materials[j].color);
+                    }
+                }
+            }
+            return (new Color(0.8, 0.8, 0.8, 1));
+        };
+        /**
+         * getDrawingInfo
+         */
+        ObjParser.prototype.getDrawingInfo = function () {
+            // Create an arrays for vertex coordinates, normals, colors, and indices
+            var numIndices = 0;
+            for (var i = 0; i < this.objects.length; i++) {
+                numIndices += this.objects[i].numIndices;
+            }
+            var numVertices = numIndices;
+            var vertices = new Float32Array(numVertices * 3);
+            var normals = new Float32Array(numVertices * 3);
+            var colors = new Float32Array(numVertices * 4);
+            var indices = new Uint8Array(numIndices);
+            // Set vertex, normal and color
+            var index_indices = 0;
+            for (var i = 0; i < this.objects.length; i++) {
+                var object = this.objects[i];
+                for (var j = 0; j < object.faces.length; j++) {
+                    var face = object.faces[j];
+                    var color = this.findColor(face.materialName);
+                    var faceNormal = face.normal;
+                    for (var k = 0; k < face.vIndices.length; k++) {
+                        // Set index
+                        indices[index_indices] = index_indices;
+                        // Copy vertex
+                        var vIdx = face.vIndices[k];
+                        var vertex = this.vertices[vIdx];
+                        vertices[index_indices * 3 + 0] = vertex.x;
+                        vertices[index_indices * 3 + 1] = vertex.y;
+                        vertices[index_indices * 3 + 2] = vertex.z;
+                        // Copy color
+                        colors[index_indices * 4 + 0] = color.r;
+                        colors[index_indices * 4 + 1] = color.g;
+                        colors[index_indices * 4 + 2] = color.b;
+                        colors[index_indices * 4 + 3] = color.a;
+                        // Copy normal
+                        var nIdx = face.nIndices[k];
+                        if (nIdx >= 0) {
+                            var normal = this.normals[nIdx];
+                            normals[index_indices * 3 + 0] = normal.x;
+                            normals[index_indices * 3 + 1] = normal.y;
+                            normals[index_indices * 3 + 2] = normal.z;
+                        }
+                        else {
+                            normals[index_indices * 3 + 0] = faceNormal.x;
+                            normals[index_indices * 3 + 1] = faceNormal.y;
+                            normals[index_indices * 3 + 2] = faceNormal.z;
+                        }
+                        index_indices++;
+                    }
+                }
+            }
+            return new DrawingInfo(vertices, normals, colors, indices);
+        };
+        // Read a file
+        ObjParser.prototype.readOBJFile = function (fileName, scale, reverse, callback) {
+            var request = new XMLHttpRequest();
+            request.onreadystatechange = function () {
+                if (request.readyState === 4 && request.status !== 404) {
+                    this.onReadOBJFile(request.responseText, fileName, scale, reverse);
+                    if (typeof callback === 'function')
+                        callback();
+                }
+            }.bind(this);
+            request.open('GET', fileName, true); // Create a request to acquire the file
+            request.send(); // Send the request
+        };
+        // OBJ File has been read
+        ObjParser.prototype.onReadOBJFile = function (fileString, fileName, scale, reverse) {
+            var result = this.parse(fileString, scale, reverse); // Parse the file
+            if (!result) {
+                this.g_objDoc = null;
+                this.g_drawingInfo = null;
+                console.log("OBJ file parsing error.");
+                return;
+            }
+        };
+        ObjParser.prototype.onReadMTLFile = function (fileString, mtl) {
+            var lines = fileString.split('\n'); // Break up into lines and store them as array
+            lines.push(null); // Append null
+            var index = 0; // Initialize index of line
+            // Parse line by line
+            var line; // A string in the line to be parsed
+            var name = ""; // Material name
+            var sp = new StringParser(null); // Create StringParser
+            while ((line = lines[index++]) != null) {
+                sp.init(line); // init StringParser
+                var command = sp.getWord(); // Get command
+                if (command == null)
+                    continue; // check null command
+                switch (command) {
+                    case '#':
+                        continue; // Skip comments
+                    case 'newmtl': // Read Material chunk
+                        name = mtl.parseNewmtl(sp); // Get name
+                        continue; // Go to the next line
+                    case 'Kd': // Read normal
+                        if (name == "")
+                            continue; // Go to the next line because of Error
+                        var material = mtl.parseRGB(sp, name);
+                        mtl.materials.push(material);
+                        name = "";
+                        continue; // Go to the next line
+                }
+            }
+            mtl.complete = true;
+        };
+        // OBJ File has been read compreatly
+        ObjParser.prototype.onReadComplete = function (gl, model, objDoc) {
+            // Acquire the vertex coordinates and colors from OBJ file
+            var drawingInfo = objDoc.getDrawingInfo();
+            // Write date into the buffer object
+            gl.bindBuffer(gl.ARRAY_BUFFER, model.vertexBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, drawingInfo.vertices, gl.STATIC_DRAW);
+            gl.bindBuffer(gl.ARRAY_BUFFER, model.normalBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, drawingInfo.normals, gl.STATIC_DRAW);
+            gl.bindBuffer(gl.ARRAY_BUFFER, model.colorBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, drawingInfo.colors, gl.STATIC_DRAW);
+            // Write the indices to the buffer object
+            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, model.indexBuffer);
+            gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, drawingInfo.indices, gl.STATIC_DRAW);
+            return drawingInfo;
         };
         return ObjParser;
     }());
@@ -733,7 +1005,7 @@ var Utils;
             for (var i = this.index, len = this.str.length; i < len; i++) {
                 var c = this.str.charAt(i);
                 // Skip TAB, Space, '(', ')
-                if (c == '\t' || c == ' ' || c == '(' || c == ')' || c == '"')
+                if (c == '\t' || c == ' ' || c == '(' || c == ')' || c == '"' || c == " ")
                     continue;
                 break;
             }
@@ -765,7 +1037,7 @@ var Utils;
     var MTLDoc = /** @class */ (function () {
         function MTLDoc() {
             this.complete = null;
-            this.materials = null;
+            this.materials = [];
         }
         MTLDoc.prototype.parseNewmtl = function (sp) {
             return sp.getWord();
@@ -844,13 +1116,35 @@ var Utils;
     }());
     Utils.OBJObject = OBJObject;
     var Face = /** @class */ (function () {
-        function Face() {
+        function Face(materialName) {
             this.materialName = null;
             this.vIndices = null;
+            this.nIndices = null;
+            this.normal = null;
+            this.numIndices = null;
+            if (materialName == null)
+                this.materialName = '';
+            this.materialName = materialName;
+            this.vIndices = new Array(0);
+            this.nIndices = new Array(0);
         }
         return Face;
     }());
     Utils.Face = Face;
+    var DrawingInfo = /** @class */ (function () {
+        function DrawingInfo(vertices, normals, colors, indices) {
+            this.vertices = null;
+            this.normals = null;
+            this.colors = null;
+            this.indices = null;
+            this.vertices = vertices;
+            this.normals = normals;
+            this.colors = colors;
+            this.indices = indices;
+        }
+        return DrawingInfo;
+    }());
+    Utils.DrawingInfo = DrawingInfo;
     function getWordLength(str, start) {
         var n = 0;
         for (var i = start, len = str.length; i < len; i++) {
@@ -1106,6 +1400,7 @@ var Core;
             this.LigthPoint = new Float32Array([2.3, 4.0, 3.5]);
             this.AmbientLight = new Float32Array([0.2, 0.2, 0.2]);
             this.projViewMatrix = null;
+            this.Child = [];
             if (SceneInfo.instanceCount == 0) {
                 SceneInfo.instanceCount++;
                 this.SceneInfo = new SceneInfo();
@@ -1148,6 +1443,46 @@ var shader;
                 y: 1,
                 z: 1
             };
+            this.vertex = '' +
+                'attribute  vec4 a_Position;\n' +
+                'attribute  vec4 a_Color;\n' +
+                'attribute  vec4 a_Normal;\n' +
+                'uniform    mat4 u_MvpMatrix;\n' +
+                'uniform    mat4 u_ModelMatrix;\n' + // Model matrix
+                'uniform    mat4 u_NormalMatrix;\n' + // Transformation matrix of the normal
+                'uniform    bool u_Clicked;\n' +
+                'varying    vec4 v_Color;\n' +
+                'varying    vec3 v_Normal;\n' +
+                'varying    vec3 v_Position;\n' +
+                'void main() {\n' +
+                '   gl_Position = u_MvpMatrix * a_Position;\n' +
+                // Calculate the vertex position in the world coordinate
+                '   v_Position = vec3(u_ModelMatrix * a_Position);\n' +
+                '   v_Normal = normalize(vec3(u_NormalMatrix * a_Normal));\n' +
+                '   v_Color = a_Color;\n' +
+                '}\n';
+            this.fragment = '' +
+                '#ifdef GL_ES\n' +
+                'precision mediump float;\n' +
+                '#endif\n' +
+                'uniform vec3 u_LightColor;\n' + // Light color
+                'uniform vec3 u_LightPosition;\n' + // Position of the light source
+                'uniform vec3 u_AmbientLight;\n' + // Ambient light color
+                'varying vec3 v_Normal;\n' +
+                'varying vec3 v_Position;\n' +
+                'varying vec4 v_Color;\n' +
+                'void main() {\n' +
+                // Normalize the normal because it is interpolated and not 1.0 in length any more
+                '  vec3 normal = normalize(v_Normal);\n' +
+                // Calculate the light direction and make its length 1.
+                '  vec3 lightDirection = normalize(u_LightPosition - v_Position);\n' +
+                // The dot product of the light direction and the orientation of a surface (the normal)
+                '  float nDotL = max(dot(lightDirection, normal), 0.0);\n' +
+                // Calculate the final color from diffuse reflection and ambient reflection
+                '  vec3 diffuse = u_LightColor * v_Color.rgb * nDotL;\n' +
+                '  vec3 ambient = u_AmbientLight * v_Color.rgb;\n' +
+                '  gl_FragColor = vec4(diffuse + ambient, v_Color.a);\n' +
+                '}\n';
             this._modelMatrix = new Matrix4(null); //模型矩阵
             this._mvpMatrix = new Matrix4(null); //模型视图投影矩阵
             this._normalMatrix = new Matrix4(null); //法向量变换矩阵
@@ -1297,11 +1632,6 @@ var shader;
                 'void main() {\n' +
                 '   gl_Position = u_MvpMatrix * a_Position;\n' +
                 // Calculate the vertex position in the world coordinate
-                '   if(u_Clicked){' +
-                '       v_Color = vec4(1.0, 1.0, 0.0, 1.0);' +
-                '   }else{' +
-                '       v_Color = a_Color;' +
-                '   }' +
                 '   v_Position = vec3(u_ModelMatrix * a_Position);\n' +
                 '   v_Normal = normalize(vec3(u_NormalMatrix * a_Normal));\n' +
                 '   v_Color = a_Color;\n' +
@@ -1344,6 +1674,7 @@ var shader;
             _this.u_AmbientLight = null;
             //
             _this.cube = null;
+            _this.info = null;
             _this.shadertool = new shaderUtils();
             _this.gl = GL;
             var obj = _this.shadertool.initShaders(GL, _this.vertex, _this.fragment);
@@ -1353,7 +1684,6 @@ var shader;
             }
             _this.program = obj.program;
             _this.initCubeInfo();
-            _this.cube = _this.initVertexBuffer(_this.vertices, _this.colors, _this.normals, _this.program, _this.indices);
             return _this;
         }
         /**
@@ -1364,7 +1694,7 @@ var shader;
         // onUpdate(){
         // }
         Cube.prototype._draw = function () {
-            if (this.program) {
+            if (this.program && this.info) {
                 GL.useProgram(this.program);
                 var a_Position = GL.getAttribLocation(this.program, 'a_Position');
                 var a_Color = GL.getAttribLocation(this.program, 'a_Color');
@@ -1457,6 +1787,15 @@ var shader;
                 16, 17, 18, 16, 18, 19,
                 20, 21, 22, 20, 22, 23 // back
             ]);
+            var obp = new OBJParser('./resources/cube.obj');
+            obp.readOBJFile('./resources/cube.obj', 0.5, true, function () {
+                this.info = obp.getDrawingInfo();
+                this.vertices = this.info.vertices;
+                this.normals = this.info.normals;
+                this.colors = this.info.colors;
+                this.indices = this.info.indices;
+                this.cube = this.initVertexBuffer(this.vertices, this.colors, this.normals, this.program, this.indices);
+            }.bind(this));
         };
         /**
          * 初始化obj数据，全局只需绑定一次
@@ -1491,11 +1830,189 @@ var shader;
     }(shader.NEObject));
     shader.Cube = Cube;
 })(shader || (shader = {}));
+///<reference path="./Object.ts" />
+var shader;
+(function (shader) {
+    var Cylinder = /** @class */ (function (_super) {
+        __extends(Cylinder, _super);
+        function Cylinder() {
+            var _this = _super.call(this) || this;
+            _this.vertex = '' +
+                'attribute  vec4 a_Position;\n' +
+                'attribute  vec4 a_Color;\n' +
+                'attribute  vec4 a_Normal;\n' +
+                'uniform    mat4 u_MvpMatrix;\n' +
+                'uniform    mat4 u_ModelMatrix;\n' + // Model matrix
+                'uniform    mat4 u_NormalMatrix;\n' + // Transformation matrix of the normal
+                'uniform    bool u_Clicked;\n' +
+                'varying    vec4 v_Color;\n' +
+                'varying    vec3 v_Normal;\n' +
+                'varying    vec3 v_Position;\n' +
+                'void main() {\n' +
+                '   gl_Position = u_MvpMatrix * a_Position;\n' +
+                // Calculate the vertex position in the world coordinate
+                '   v_Position = vec3(u_ModelMatrix * a_Position);\n' +
+                '   v_Normal = normalize(vec3(u_NormalMatrix * a_Normal));\n' +
+                '   v_Color = a_Color;\n' +
+                '}\n';
+            _this.fragment = '' +
+                '#ifdef GL_ES\n' +
+                'precision mediump float;\n' +
+                '#endif\n' +
+                'uniform vec3 u_LightColor;\n' + // Light color
+                'uniform vec3 u_LightPosition;\n' + // Position of the light source
+                'uniform vec3 u_AmbientLight;\n' + // Ambient light color
+                'varying vec3 v_Normal;\n' +
+                'varying vec3 v_Position;\n' +
+                'varying vec4 v_Color;\n' +
+                'void main() {\n' +
+                // Normalize the normal because it is interpolated and not 1.0 in length any more
+                '  vec3 normal = normalize(v_Normal);\n' +
+                // Calculate the light direction and make its length 1.
+                '  vec3 lightDirection = normalize(u_LightPosition - v_Position);\n' +
+                // The dot product of the light direction and the orientation of a surface (the normal)
+                '  float nDotL = max(dot(lightDirection, normal), 0.0);\n' +
+                // Calculate the final color from diffuse reflection and ambient reflection
+                '  vec3 diffuse = u_LightColor * v_Color.rgb * nDotL;\n' +
+                '  vec3 ambient = u_AmbientLight * v_Color.rgb;\n' +
+                '  gl_FragColor = vec4(diffuse + ambient, v_Color.a);\n' +
+                '}\n';
+            _this.vertices = null;
+            _this.colors = null;
+            _this.indices = null;
+            _this.normals = null;
+            _this.gl = null;
+            _this.program = null;
+            _this.shadertool = null;
+            //变量类型
+            _this.u_ModelMatrix = null;
+            _this.u_MvpMatrix = null;
+            _this.u_NormalMatrix = null;
+            _this.u_LightColor = null;
+            _this.u_LightPosition = null;
+            _this.u_AmbientLight = null;
+            //
+            _this.Cylinder = null;
+            _this.info = null;
+            _this.shadertool = new shaderUtils();
+            _this.gl = GL;
+            var obj = _this.shadertool.initShaders(GL, _this.vertex, _this.fragment);
+            if (!obj.status) {
+                console.log("failed to init shader");
+                return _this;
+            }
+            _this.program = obj.program;
+            _this.initCylinderInfo();
+            return _this;
+        }
+        /**
+         * 生命周期函数
+         */
+        // onload(){
+        // }
+        // onUpdate(){
+        // }
+        Cylinder.prototype._draw = function () {
+            if (this.program && this.info) {
+                GL.useProgram(this.program);
+                var a_Position = GL.getAttribLocation(this.program, 'a_Position');
+                var a_Color = GL.getAttribLocation(this.program, 'a_Color');
+                var a_Normal = GL.getAttribLocation(this.program, 'a_Normal');
+                var u_ModelMatrix = GL.getUniformLocation(this.program, 'u_ModelMatrix');
+                var u_MvpMatrix = GL.getUniformLocation(this.program, 'u_MvpMatrix');
+                var u_NormalMatrix = GL.getUniformLocation(this.program, 'u_NormalMatrix');
+                var u_LightColor = GL.getUniformLocation(this.program, 'u_LightColor');
+                var u_LightPosition = GL.getUniformLocation(this.program, 'u_LightPosition');
+                var u_AmbientLight = GL.getUniformLocation(this.program, 'u_AmbientLight');
+                if (a_Position < 0 || a_Color < 0 || a_Normal < 0) {
+                    console.log('Failed to get the attribute storage location');
+                    return;
+                }
+                if (!u_ModelMatrix || !u_MvpMatrix || !u_NormalMatrix || !u_LightColor || !u_LightPosition || !u_AmbientLight) {
+                    console.log('Failed to get the unifrom storage location');
+                    return;
+                }
+                this.initAttributeVariable(GL, a_Position, this.Cylinder.vertex);
+                this.initAttributeVariable(GL, a_Color, this.Cylinder.color);
+                this.initAttributeVariable(GL, a_Normal, this.Cylinder.normal);
+                GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.Cylinder.index.buffer);
+                // Set the light color (white)
+                GL.uniform3fv(u_LightColor, sceneInfo.LigthColor);
+                // Set the light direction (in the world coordinate)
+                GL.uniform3fv(u_LightPosition, sceneInfo.LigthPoint);
+                // Set the ambient light
+                GL.uniform3fv(u_AmbientLight, sceneInfo.AmbientLight);
+                // Pass the model matrix to u_ModelMatrix
+                GL.uniformMatrix4fv(u_ModelMatrix, false, this.getModelMatrix().elements);
+                // Pass the model view projection matrix to u_MvpMatrix
+                GL.uniformMatrix4fv(u_MvpMatrix, false, this.getMvpMatrix().elements);
+                // Pass the matrix to transform the normal based on the model matrix to u_NormalMatrix
+                GL.uniformMatrix4fv(u_NormalMatrix, false, this.getNormalMatrix().elements);
+                // Draw the Cylinder
+                GL.drawElements(GL.TRIANGLES, this.Cylinder.numIndices, GL.UNSIGNED_BYTE, 0);
+            }
+        };
+        Cylinder.prototype.getVertex = function () {
+            return this.vertex;
+        };
+        Cylinder.prototype.getFragment = function () {
+            return this.fragment;
+        };
+        /**
+         * 生成单位立方体，位于原点
+         */
+        Cylinder.prototype.initCylinderInfo = function () {
+            var obp = new OBJParser('./resources/cylinder.obj');
+            obp.readOBJFile('./resources/cylinder.obj', 1, true, function () {
+                this.info = obp.getDrawingInfo();
+                this.vertices = this.info.vertices;
+                this.normals = this.info.normals;
+                this.colors = this.info.colors;
+                this.indices = this.info.indices;
+                this.Cylinder = this.initVertexBuffer(this.vertices, this.colors, this.normals, this.program, this.indices);
+                console.log(this.info);
+            }.bind(this));
+        };
+        /**
+         * 初始化obj数据，全局只需绑定一次
+         * @param vertices 顶点矩阵
+         * @param colors 颜色矩阵
+         * @param normals 法向量矩阵
+         * @param program　对应的着色器程序
+         * @param indices 索引矩阵
+         */
+        Cylinder.prototype.initVertexBuffer = function (vertices, colors, normals, program, indices) {
+            var CylinderObj = {
+                vertex: null,
+                color: null,
+                normal: null,
+                index: null,
+                numIndices: null,
+            };
+            CylinderObj.vertex = this.initArrayBufferForLaterUse(GL, vertices, 3, GL.FLOAT);
+            CylinderObj.color = this.initArrayBufferForLaterUse(GL, colors, 4, GL.FLOAT);
+            CylinderObj.normal = this.initArrayBufferForLaterUse(GL, normals, 3, GL.FLOAT);
+            CylinderObj.index = this.initElementArrayBufferForLaterUse(GL, indices, GL.UNSIGNED_BYTE);
+            if (!CylinderObj.vertex || !CylinderObj.color || !CylinderObj.normal || !CylinderObj.index) {
+                console.log("failed to init buffer");
+                return null;
+            }
+            CylinderObj.numIndices = indices.length;
+            GL.bindBuffer(GL.ARRAY_BUFFER, null);
+            GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, null);
+            return CylinderObj;
+        };
+        return Cylinder;
+    }(shader.NEObject));
+    shader.Cylinder = Cylinder;
+})(shader || (shader = {}));
 ///<reference path="./core/Engine.ts" />
 ///<reference path="./core/Scene.ts" />
 ///<reference path="../lib/shader-utils/shaderUtils.ts" />
 ///<reference path="../lib/matrix-utils/matrixUtils.ts" />
 ///<reference path="./shader/Cube.ts" />
+///<reference path="./shader/Cylinder.ts" />
+///<reference path="../lib/parse-utils/objParse.ts" />
 var Nebula = Core.Nebula;
 var SceneInfo = Core.SceneInfo;
 var shaderUtils = Utils.ShaderUtils;
@@ -1503,14 +2020,16 @@ var Matrix4 = Utils.Matrix4;
 var Vector3 = Utils.Vector3;
 var Vector4 = Utils.Vector4;
 var cube = shader.Cube;
+var Cylinder = shader.Cylinder;
 var NEObject = shader.NEObject;
+var OBJParser = Utils.ObjParser;
 //************全局变量Global****************** */
 var shaderTool = new shaderUtils();
 var GL = null;
 var sceneInfo = new SceneInfo();
 var canvas = {
-    width: 400,
-    height: 400,
+    width: 1200,
+    height: 800,
 };
 //************ */
 main();
@@ -1520,12 +2039,13 @@ function main() {
     ne.setPerspectiveCamera(30, 1, 100);
     sceneInfo.initScene();
     var Cube = new cube();
-    Cube.setScale(1, 1, 1);
-    var cube2 = new cube();
-    cube2.setTranslate(0, 3, 0);
-    var cube3 = new cube();
-    cube3.setRotation(20, 10, 10);
-    cube3.setTranslate(0, 0, 3);
+    Cube.setTranslate(3, 0, 0);
+    // var cube2 = new cube();
+    // cube2.setTranslate(0,3,0);
+    // var cube3 = new cube();
+    // cube3.setRotation(20, 10,10);
+    // cube3.setTranslate(0,0,3);
+    var cylinder = new Cylinder();
     var ca = document.getElementById('canvas');
     var isDrag = false;
     var lastX = -1;
@@ -1555,12 +2075,13 @@ function main() {
         if (!isDrag)
             return;
         if (ev.layerX <= canvas.width && ev.layerX >= 0 && ev.layerY >= 0 && ev.layerY <= canvas.height) {
-            var factor = 100 / canvas.height;
+            var factor = 300 / canvas.height;
             var dx = factor * (x - lastX);
             var dy = factor * (y - lastY);
             Cube.setRotation(0, dx, 0);
-            cube2.setRotation(0, dx, 0);
-            cube3.setRotation(0, dx, 0);
+            // cube2.setRotation(0, dx,0);
+            // cube3.setRotation(0, dx,0);
+            cylinder.setRotation(0, dx, 0);
             // Cube._draw();
         }
         lastX = x;
@@ -1580,7 +2101,31 @@ var Core;
 (function (Core) {
     var Render = /** @class */ (function () {
         function Render() {
+            this.stopped = true;
+            this.currentFPS = 0;
+            this.duration = 0;
+            this.frameRate = 0;
+            this.startTime = 0;
+            this.renderQueue = [];
+            requestAnimationFrame(this.main.bind(this));
         }
+        /**
+         * 主控函数，控制生命周期和帧刷新
+         */
+        Render.prototype.main = function () {
+            if (this.stopped) {
+                return;
+            }
+            var now = Date.now();
+            for (var _i = 0, _a = this.renderQueue; _i < _a.length; _i++) {
+                var renderCommand = _a[_i];
+                renderCommand(this.frameRate);
+            }
+            var delta = now - this.duration - this.startTime;
+            this.currentFPS = 1000 / delta;
+            this.duration = now - this.startTime;
+            requestAnimationFrame(this.main.bind(this));
+        };
         return Render;
     }());
     Core.Render = Render;

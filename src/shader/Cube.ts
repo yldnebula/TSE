@@ -1,7 +1,7 @@
 ///<reference path="./Object.ts" />
 namespace shader{
     export class Cube extends NEObject{
-        private vertex:string    = ''+
+        vertex:string    = ''+
         'attribute  vec4 a_Position;\n' +
         'attribute  vec4 a_Color;\n' +
         'attribute  vec4 a_Normal;\n' +
@@ -15,16 +15,11 @@ namespace shader{
         'void main() {\n' +
         '   gl_Position = u_MvpMatrix * a_Position;\n' +
             // Calculate the vertex position in the world coordinate
-        '   if(u_Clicked){'+
-        '       v_Color = vec4(1.0, 1.0, 0.0, 1.0);'+
-        '   }else{'+
-        '       v_Color = a_Color;'+
-        '   }'+
         '   v_Position = vec3(u_ModelMatrix * a_Position);\n' +
         '   v_Normal = normalize(vec3(u_NormalMatrix * a_Normal));\n' +
         '   v_Color = a_Color;\n' +
         '}\n';
-        private fragment:string  = ''+
+        fragment:string  = ''+
         '#ifdef GL_ES\n' +
         'precision mediump float;\n' +
         '#endif\n' +
@@ -65,6 +60,7 @@ namespace shader{
 
         //
         cube = null;
+        info = null;
         constructor(){
             super();
 
@@ -77,7 +73,6 @@ namespace shader{
             }
             this.program = obj.program;
             this.initCubeInfo();
-            this.cube = this.initVertexBuffer(this.vertices,this.colors,this.normals,this.program,this.indices);  
         }
         /**
          * 生命周期函数
@@ -87,7 +82,7 @@ namespace shader{
         // onUpdate(){
         // }
         _draw(){
-            if(this.program){
+            if(this.program && this.info){
                 GL.useProgram(this.program);
 
                 var a_Position      = GL.getAttribLocation(this.program, 'a_Position');
@@ -192,6 +187,15 @@ namespace shader{
                 16,17,18,  16,18,19,    // down
                 20,21,22,  20,22,23     // back
             ]);
+            var obp = new OBJParser('./resources/cube.obj');
+            obp.readOBJFile('./resources/cube.obj',0.5,true,function(){
+                this.info = obp.getDrawingInfo();
+                this.vertices = this.info.vertices;
+                this.normals  = this.info.normals;
+                this.colors   = this.info.colors;
+                this.indices  = this.info.indices;
+                this.cube = this.initVertexBuffer(this.vertices,this.colors,this.normals,this.program,this.indices);  
+            }.bind(this));
         }
         /**
          * 初始化obj数据，全局只需绑定一次

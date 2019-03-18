@@ -119,7 +119,7 @@ declare namespace Utils {
      */
     class Vector3 {
         elements: Float32Array;
-        constructor(opt_src: Vector3 | null);
+        constructor(opt_src: Float32Array | number[] | Vector3 | null);
         /**
          * 标准化三维向量
          */
@@ -130,7 +130,7 @@ declare namespace Utils {
      */
     class Vector4 {
         elements: Float32Array;
-        constructor(opt_src: Vector4 | null);
+        constructor(opt_src: Float32Array | number[] | Vector4 | null);
     }
 }
 declare namespace Utils {
@@ -140,9 +140,47 @@ declare namespace Utils {
         objects: any;
         vertices: any;
         normals: any;
-        constructor();
+        g_objDoc: any;
+        g_drawingInfo: any;
+        constructor(fileName: any);
         parse(fileString: string, scale: any, reverse: any): boolean;
-        parseMtllib(sp: StringParser, fileName: string): void;
+        parseMtllib(sp: StringParser, fileName: string): string;
+        /**
+         * parseObjectName
+         */
+        parseObjectName(sp: StringParser): OBJObject;
+        /**
+         * parseVertex
+         */
+        parseVertex(sp: any, scale: any): Vertex;
+        /**
+         * parseNormal
+         */
+        parseNormal(sp: StringParser): Normal;
+        /**
+         * parseUsemtl
+         */
+        parseUsemtl(sp: StringParser): any;
+        /**
+         * parseFace
+         */
+        parseFace(sp: any, materialName: any, vertices: any, reverse: any): Face;
+        /**
+         * isMTLComplete
+         */
+        isMTLComplete(): boolean;
+        /**
+         * findColor
+         */
+        findColor(name: any): any;
+        /**
+         * getDrawingInfo
+         */
+        getDrawingInfo(): DrawingInfo;
+        readOBJFile(fileName: any, scale: any, reverse: any, callback: any): void;
+        onReadOBJFile(fileString: any, fileName: any, scale: any, reverse: any): void;
+        onReadMTLFile(fileString: any, mtl: any): void;
+        onReadComplete(gl: any, model: any, objDoc: any): any;
     }
     class StringParser {
         str: any;
@@ -157,7 +195,7 @@ declare namespace Utils {
     }
     class MTLDoc {
         complete: any;
-        materials: any;
+        materials: any[];
         constructor();
         parseNewmtl(sp: StringParser): any;
         parseRGB(sp: StringParser, name: any): Material;
@@ -196,6 +234,17 @@ declare namespace Utils {
     class Face {
         materialName: any;
         vIndices: any;
+        nIndices: any;
+        normal: any;
+        numIndices: any;
+        constructor(materialName: any);
+    }
+    class DrawingInfo {
+        vertices: any;
+        normals: any;
+        colors: any;
+        indices: any;
+        constructor(vertices: any, normals: any, colors: any, indices: any);
     }
 }
 /**
@@ -299,6 +348,7 @@ declare namespace Core {
         LigthPoint: Float32Array;
         AmbientLight: Float32Array;
         projViewMatrix: Matrix4;
+        Child: any[];
         constructor();
         initScene(): void;
     }
@@ -323,6 +373,8 @@ declare namespace shader {
             y: number;
             z: number;
         };
+        vertex: string;
+        fragment: string;
         private _modelMatrix;
         private _mvpMatrix;
         private _normalMatrix;
@@ -373,8 +425,8 @@ declare namespace shader {
 }
 declare namespace shader {
     class Cube extends NEObject {
-        private vertex;
-        private fragment;
+        vertex: string;
+        fragment: string;
         vertices: Float32Array;
         colors: Float32Array;
         indices: Uint8Array;
@@ -389,6 +441,7 @@ declare namespace shader {
         u_LightPosition: WebGLUniformLocation;
         u_AmbientLight: WebGLUniformLocation;
         cube: any;
+        info: any;
         constructor();
         /**
          * 生命周期函数
@@ -417,6 +470,53 @@ declare namespace shader {
         };
     }
 }
+declare namespace shader {
+    class Cylinder extends NEObject {
+        vertex: string;
+        fragment: string;
+        vertices: Float32Array;
+        colors: Float32Array;
+        indices: Uint8Array;
+        normals: Float32Array;
+        gl: WebGLRenderingContext;
+        program: WebGLProgram;
+        shadertool: shaderUtils;
+        u_ModelMatrix: WebGLUniformLocation;
+        u_MvpMatrix: WebGLUniformLocation;
+        u_NormalMatrix: WebGLUniformLocation;
+        u_LightColor: WebGLUniformLocation;
+        u_LightPosition: WebGLUniformLocation;
+        u_AmbientLight: WebGLUniformLocation;
+        Cylinder: any;
+        info: any;
+        constructor();
+        /**
+         * 生命周期函数
+         */
+        _draw(): void;
+        getVertex(): string;
+        getFragment(): string;
+        /**
+         * 生成单位立方体，位于原点
+         */
+        initCylinderInfo(): void;
+        /**
+         * 初始化obj数据，全局只需绑定一次
+         * @param vertices 顶点矩阵
+         * @param colors 颜色矩阵
+         * @param normals 法向量矩阵
+         * @param program　对应的着色器程序
+         * @param indices 索引矩阵
+         */
+        initVertexBuffer(vertices: Float32Array, colors: Float32Array, normals: Float32Array, program: WebGLProgram, indices: Uint8Array): {
+            vertex: any;
+            color: any;
+            normal: any;
+            index: any;
+            numIndices: any;
+        };
+    }
+}
 import Nebula = Core.Nebula;
 import SceneInfo = Core.SceneInfo;
 import shaderUtils = Utils.ShaderUtils;
@@ -424,7 +524,9 @@ import Matrix4 = Utils.Matrix4;
 import Vector3 = Utils.Vector3;
 import Vector4 = Utils.Vector4;
 import cube = shader.Cube;
+import Cylinder = shader.Cylinder;
 import NEObject = shader.NEObject;
+import OBJParser = Utils.ObjParser;
 declare const shaderTool: shaderUtils;
 declare var GL: WebGLRenderingContext;
 declare var sceneInfo: SceneInfo;
@@ -440,6 +542,16 @@ declare namespace Core {
 }
 declare namespace Core {
     class Render {
+        stopped: boolean;
+        currentFPS: number;
+        duration: number;
+        frameRate: number;
+        startTime: number;
+        renderQueue: any[];
         constructor();
+        /**
+         * 主控函数，控制生命周期和帧刷新
+         */
+        private main;
     }
 }

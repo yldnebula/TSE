@@ -8,6 +8,7 @@ namespace Core{
         AmbientLight:Float32Array = new Float32Array([0.2, 0.2, 0.2]);;
         projViewMatrix:Matrix4 = null;
 
+        Child = [];
         constructor(){
             if(SceneInfo.instanceCount == 0){
                 SceneInfo.instanceCount ++;
