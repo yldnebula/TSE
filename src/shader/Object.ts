@@ -62,18 +62,31 @@ namespace shader{
         private _mvpMatrix:Matrix4   = new Matrix4(null);//模型视图投影矩阵
         private _normalMatrix:Matrix4= new Matrix4(null);//法向量变换矩阵
 
-        
+        public name  = '';
+        public Child = [];
+        public parent:NEObject | Scene = null;
         constructor(){
             
-            this.onload();
-            this._loop();
+            this.onLoad();
+            this.onStart();
+            // var nowScene = ne.getScene();
+            // if(!!nowScene){
+            //     nowScene.addUpdateEvents(this.onUpdate.bind(this));
+            // }
+            // this._loop();
 
         }
-        onload(){
+        onLoad(){
 
         }
-        onUpdate(){
-            this._draw();
+        onStart(){
+
+        }
+        /**
+         * 帧刷新函数，每帧调用
+         */
+        onUpdate(dt:number){
+            // this._draw();
         }
         _draw(){
 
@@ -85,8 +98,39 @@ namespace shader{
         onDestroy(){
 
         }
+        /**
+         * 父子层级函数
+         * 添加孩子,需要判断是否添加了自己上级或自身
+         */
+        addChild(object:NEObject){
+            this.Child.push(object);
+            object.parent = this;
+        }
+        /**
+         * 设置父节点
+         */
+        setParent(object:Scene|NEObject){
+            if(!!object){
+                if(!!this.parent){
+                    var idx = this.parent.Child.indexOf(this);//判断是否是第一次设置父节点
+                    if(idx != -1){
+                        this.parent.Child.splice(idx, 1);
+                    }
+                }
+                object.Child.push(this);
+                this.parent = object;
+            }else{
+                console.error("you can not set a child NEobject to null");
+                return;
+            }
+        }
+        getParent(){
+            return this.parent;
+        }
 
-
+        /**
+         * 模型变换函数
+         */
         setTranslate(x:number,y:number,z:number){
             this.coordinate.x +=x;
             this.coordinate.y +=y;
@@ -96,6 +140,10 @@ namespace shader{
             this._mvpMatrix.set(sceneInfo.projViewMatrix).multiply(this._modelMatrix);
             this._normalMatrix.setInverseOf(this._modelMatrix);
             this._normalMatrix.transpose();
+
+            for(var child of this.Child){
+                child.setTranslate(x,y,z)
+            }
         }
         setScale(x:number,y:number,z:number){
             this.scale.x =x;
@@ -106,6 +154,9 @@ namespace shader{
             this._mvpMatrix.set(sceneInfo.projViewMatrix).multiply(this._modelMatrix);
             this._normalMatrix.setInverseOf(this._modelMatrix);
             this._normalMatrix.transpose();
+            for(var child of this.Child){
+                child.setScale(x,y,z)
+            }
         }
         setRotation(x:number,y:number,z:number){//注意此处的x,y,z是角度增量，而非最终角度，调用时候请注意
             this.rotation.x +=x;
@@ -123,6 +174,9 @@ namespace shader{
             this._mvpMatrix.set(sceneInfo.projViewMatrix).multiply(this._modelMatrix);
             this._normalMatrix.setInverseOf(this._modelMatrix);
             this._normalMatrix.transpose();
+            for(var child of this.Child){
+                child.setRotation(x,y,z)
+            }
         }
         getModelMatrix():Matrix4{
             return this._modelMatrix;

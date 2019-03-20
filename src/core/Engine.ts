@@ -13,6 +13,8 @@ namespace Core{
             y:0,
             z:0
         }
+        private scene:Scene[] =[];
+        private nowScene:Scene = null;
         constructor(id:string, width:number, height:number){
             this.canvas =this.getCanvasByID(id, width, height);
             console.log(this.canvas);
@@ -90,6 +92,47 @@ namespace Core{
 
         }
         /**
+         * 导演函数director
+         */
+        getScene():Scene{
+            if(this.nowScene == null){
+                return null;
+            }else{
+                return this.nowScene;
+            }
+        }
+        /**
+         * 添加一个场景
+         * @param scene 场景对象
+         */
+        addScene(scene:Scene){
+            this.scene.push(scene);
+        }
+        /**
+         * 删除一个场景
+         * @param scene 场景对象
+         */
+        deleteScene(scene:Scene):boolean{
+            if(this.scene.indexOf(scene) == -1)return false
+            this.scene.splice(this.scene.indexOf(scene),1);
+            return true;
+        }
+        /**
+         * 设置当前场景
+         * @param scene 场景对象
+         * @param index 场景索引
+         */
+        setScene(id:number){
+            for(var i = 0; i < this.scene.length; i++){
+                if(this.scene[i].sceneID == id){
+                    this.nowScene = this.scene[i];
+                    return true;
+                }
+            }
+            console.log("cannot set a scene");
+            return false
+        }
+        /**
          * 引擎生命周期
          */
         _OnLoad(){
@@ -99,32 +142,6 @@ namespace Core{
 
         }
         _OnDestroy(){
-
-        }
-    }
-    export class Event{
-        constructor(){
-
-        }
-        emit(){
-
-        }
-        listen(){
-
-        }
-        /**
-         * 鼠标事件
-         */
-        onMouseMove(){
-
-        }
-        onMouseDown(){
-
-        }
-        onMouseUp(){
-
-        }
-        onMouseClick(){
 
         }
     }

@@ -296,6 +296,8 @@ declare namespace Core {
             y: number;
             z: number;
         };
+        private scene;
+        private nowScene;
         constructor(id: string, width: number, height: number);
         /**
          * 创建一个画布
@@ -321,36 +323,96 @@ declare namespace Core {
         setOrthoCamera(): void;
         setLightTypeColorPoint(type: number, color: Vector4, point: Vector3): void;
         /**
+         * 导演函数director
+         */
+        getScene(): Scene;
+        /**
+         * 添加一个场景
+         * @param scene 场景对象
+         */
+        addScene(scene: Scene): void;
+        /**
+         * 删除一个场景
+         * @param scene 场景对象
+         */
+        deleteScene(scene: Scene): boolean;
+        /**
+         * 设置当前场景
+         * @param scene 场景对象
+         * @param index 场景索引
+         */
+        setScene(id: number): boolean;
+        /**
          * 引擎生命周期
          */
         _OnLoad(): void;
         _OnUpdate(): void;
         _OnDestroy(): void;
     }
-    class Event {
-        constructor();
-        emit(): void;
-        listen(): void;
-        /**
-         * 鼠标事件
-         */
-        onMouseMove(): void;
-        onMouseDown(): void;
-        onMouseUp(): void;
-        onMouseClick(): void;
-    }
 }
 declare namespace Core {
-    class SceneInfo {
+    class Scene {
         static instanceCount: number;
-        SceneInfo: SceneInfo;
+        Scene: Scene;
+        sceneID: number;
         LigthColor: Float32Array;
         LigthPoint: Float32Array;
         AmbientLight: Float32Array;
         projViewMatrix: Matrix4;
         Child: any[];
-        constructor();
+        private updateEvents;
+        constructor(id: number);
+        /**
+         * 初始化场景
+         */
         initScene(): void;
+        /**
+         * 为场景添加一个孩子
+         */
+        addChild(object: NEObject): void;
+        /**
+         * 删除一个孩子
+         */
+        deleteChild(object: NEObject): void;
+        /**
+         * 场景更新函数，最终交由render管理
+         * @param dt 帧间隔时间
+         */
+        _update(dt: number): void;
+        /**
+         * 添加update函数到更新队列
+         * @param listener 添加一个update函数
+         */
+        addUpdateEvents(listener: (deltaTime: number) => void): void;
+        /**
+         * 删除一个update函数从队列当中
+         * @param listener update函数
+         */
+        removeUpdateEvents(listener: (deltaTime: number) => void): void;
+        /**
+         * 递归遍历场景子节点,自顶向下行为
+         * //也可以考虑在每个NEObject中定义注册函数，形成自下而上的行为
+         */
+        traverseScene(parent: Scene | NEObject, callBack: (parent: any) => void): void;
+    }
+}
+declare namespace Core {
+    class Render {
+        stopped: boolean;
+        currentFPS: number;
+        duration: number;
+        frameRate: number;
+        startTime: number;
+        renderQueue: any[];
+        constructor();
+        /**
+         * 主控函数，控制生命周期和帧刷新
+         */
+        main(): void;
+        /**
+         * 渲染函数，将所有帧更新函数加入渲染队列,如果需要渲染几个场景，可以将scene改为Scene[]
+         */
+        render(scene: Scene): void;
     }
 }
 declare namespace shader {
@@ -378,12 +440,32 @@ declare namespace shader {
         private _modelMatrix;
         private _mvpMatrix;
         private _normalMatrix;
+        name: string;
+        Child: any[];
+        parent: NEObject | Scene;
         constructor();
-        onload(): void;
-        onUpdate(): void;
+        onLoad(): void;
+        onStart(): void;
+        /**
+         * 帧刷新函数，每帧调用
+         */
+        onUpdate(dt: number): void;
         _draw(): void;
         _loop(): void;
         onDestroy(): void;
+        /**
+         * 父子层级函数
+         * 添加孩子,需要判断是否添加了自己上级或自身
+         */
+        addChild(object: NEObject): void;
+        /**
+         * 设置父节点
+         */
+        setParent(object: Scene | NEObject): void;
+        getParent(): Scene | NEObject;
+        /**
+         * 模型变换函数
+         */
         setTranslate(x: number, y: number, z: number): void;
         setScale(x: number, y: number, z: number): void;
         setRotation(x: number, y: number, z: number): void;
@@ -446,6 +528,7 @@ declare namespace shader {
         /**
          * 生命周期函数
          */
+        onUpdate(dt: any): void;
         _draw(): void;
         getVertex(): string;
         getFragment(): string;
@@ -493,6 +576,7 @@ declare namespace shader {
         /**
          * 生命周期函数
          */
+        onUpdate(dt: any): void;
         _draw(): void;
         getVertex(): string;
         getFragment(): string;
@@ -518,7 +602,7 @@ declare namespace shader {
     }
 }
 import Nebula = Core.Nebula;
-import SceneInfo = Core.SceneInfo;
+import Scene = Core.Scene;
 import shaderUtils = Utils.ShaderUtils;
 import Matrix4 = Utils.Matrix4;
 import Vector3 = Utils.Vector3;
@@ -527,31 +611,44 @@ import cube = shader.Cube;
 import Cylinder = shader.Cylinder;
 import NEObject = shader.NEObject;
 import OBJParser = Utils.ObjParser;
+import Render = Core.Render;
 declare const shaderTool: shaderUtils;
 declare var GL: WebGLRenderingContext;
-declare var sceneInfo: SceneInfo;
 declare const canvas: {
     width: number;
     height: number;
 };
+declare var ne: Nebula;
+declare var sceneInfo: Scene;
+declare var render: Render;
 declare function main(): void;
 declare namespace Core {
     class Camera {
         constructor();
     }
 }
-declare namespace Core {
-    class Render {
-        stopped: boolean;
-        currentFPS: number;
-        duration: number;
-        frameRate: number;
-        startTime: number;
-        renderQueue: any[];
-        constructor();
-        /**
-         * 主控函数，控制生命周期和帧刷新
-         */
-        private main;
-    }
-}
+declare const zero_guard = 0.00001;
+declare function rayPickLog(val: any): void;
+declare function test1(): void;
+declare function test2(): void;
+declare function intersectSurfaceLine(pA: any, pB: any, pC: any, endA: any, endB: any, out: any): boolean;
+declare function getNormal(pA: any, pB: any, out: any): void;
+declare function getBaseScale(nAB: any): any;
+declare function intersect(nSurface: any, point: any, nLine: any, linePoint: any, baseScale: any, out: any): boolean;
+declare function xBaseInsect(nSurface: any, point: any, nLine: any, linePoint: any, out: any): boolean;
+declare function yBaseInsect(nSurface: any, point: any, nLine: any, linePoint: any, out: any): boolean;
+declare function zBaseInsect(nSurface: any, point: any, nLine: any, linePoint: any, out: any): boolean;
+declare function surfacePointInSurface(pA: any, pB: any, pC: any, point: any): boolean;
+declare function xyPointInSurface2D(pA: any, pB: any, pC: any, p: any): boolean;
+declare function yzPointInSurface2D(pA: any, pB: any, pC: any, p: any): boolean;
+declare function xzPointInSurface2D(pA: any, pB: any, pC: any, p: any): boolean;
+declare function pointInSurface2D(pA: any, pB: any, pC: any, p: any): boolean;
+/**
+ * Computes the cross product of two vec3's
+ *
+ * @param {vec3} out the receiving vector
+ * @param {vec3} a the first operand
+ * @param {vec3} b the second operand
+ * @returns {vec3} out
+ */
+declare function cross(out: any, a: any, b: any): any;

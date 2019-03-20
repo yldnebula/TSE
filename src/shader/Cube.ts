@@ -63,7 +63,7 @@ namespace shader{
         info = null;
         constructor(){
             super();
-
+            this.name = 'cube';
             this.shadertool = new shaderUtils();
             this.gl = GL;
             var obj = this.shadertool.initShaders(GL,this.vertex,this.fragment);
@@ -79,8 +79,10 @@ namespace shader{
          */
         // onload(){
         // }
-        // onUpdate(){
-        // }
+        onUpdate(dt){
+            // console.log(dt)
+            this._draw();
+        }
         _draw(){
             if(this.program && this.info){
                 GL.useProgram(this.program);

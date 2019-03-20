@@ -1285,6 +1285,8 @@ var Core;
                 y: 0,
                 z: 0
             };
+            this.scene = [];
+            this.nowScene = null;
             this.canvas = this.getCanvasByID(id, width, height);
             console.log(this.canvas);
             this.GL = this.create3DContext(this.canvas);
@@ -1358,6 +1360,49 @@ var Core;
         Nebula.prototype.setLightTypeColorPoint = function (type, color, point) {
         };
         /**
+         * 导演函数director
+         */
+        Nebula.prototype.getScene = function () {
+            if (this.nowScene == null) {
+                return null;
+            }
+            else {
+                return this.nowScene;
+            }
+        };
+        /**
+         * 添加一个场景
+         * @param scene 场景对象
+         */
+        Nebula.prototype.addScene = function (scene) {
+            this.scene.push(scene);
+        };
+        /**
+         * 删除一个场景
+         * @param scene 场景对象
+         */
+        Nebula.prototype.deleteScene = function (scene) {
+            if (this.scene.indexOf(scene) == -1)
+                return false;
+            this.scene.splice(this.scene.indexOf(scene), 1);
+            return true;
+        };
+        /**
+         * 设置当前场景
+         * @param scene 场景对象
+         * @param index 场景索引
+         */
+        Nebula.prototype.setScene = function (id) {
+            for (var i = 0; i < this.scene.length; i++) {
+                if (this.scene[i].sceneID == id) {
+                    this.nowScene = this.scene[i];
+                    return true;
+                }
+            }
+            console.log("cannot set a scene");
+            return false;
+        };
+        /**
          * 引擎生命周期
          */
         Nebula.prototype._OnLoad = function () {
@@ -1369,57 +1414,149 @@ var Core;
         return Nebula;
     }());
     Core.Nebula = Nebula;
-    var Event = /** @class */ (function () {
-        function Event() {
-        }
-        Event.prototype.emit = function () {
-        };
-        Event.prototype.listen = function () {
-        };
-        /**
-         * 鼠标事件
-         */
-        Event.prototype.onMouseMove = function () {
-        };
-        Event.prototype.onMouseDown = function () {
-        };
-        Event.prototype.onMouseUp = function () {
-        };
-        Event.prototype.onMouseClick = function () {
-        };
-        return Event;
-    }());
-    Core.Event = Event;
 })(Core || (Core = {}));
 var Core;
 (function (Core) {
-    var SceneInfo = /** @class */ (function () {
-        function SceneInfo() {
-            this.SceneInfo = null;
+    var Scene = /** @class */ (function () {
+        function Scene(id) {
+            this.Scene = null;
+            this.sceneID = 0;
             this.LigthColor = new Float32Array([1.0, 1.0, 1.0]);
             this.LigthPoint = new Float32Array([2.3, 4.0, 3.5]);
             this.AmbientLight = new Float32Array([0.2, 0.2, 0.2]);
             this.projViewMatrix = null;
             this.Child = [];
-            if (SceneInfo.instanceCount == 0) {
-                SceneInfo.instanceCount++;
-                this.SceneInfo = new SceneInfo();
-                return this.SceneInfo;
-            }
-            else {
-                return this.SceneInfo;
-            }
+            this.updateEvents = [];
+            // if(Scene.instanceCount == 0){//不是单例类，多个场景切换
+            //     Scene.instanceCount ++;
+            //     this.Scene = new Scene();
+            //     return this.Scene;
+            // }else{
+            //     return this.Scene;
+            // }
+            this.sceneID = id;
         }
         ;
-        SceneInfo.prototype.initScene = function () {
-            GL.clearColor(0, 0, 0, 1.0);
+        /**
+         * 初始化场景
+         */
+        Scene.prototype.initScene = function () {
+            GL.clearColor(0.0, 0, 0, 1.0);
             GL.clear(GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT);
             GL.enable(GL.DEPTH_TEST);
         };
-        SceneInfo.instanceCount = 0;
-        return SceneInfo;
+        /**
+         * 为场景添加一个孩子
+         */
+        Scene.prototype.addChild = function (object) {
+            this.Child.push(object);
+        };
+        /**
+         * 删除一个孩子
+         */
+        Scene.prototype.deleteChild = function (object) {
+            for (var i = 0; i < this.Child.length; i++) {
+                if (this.Child[i] === object) {
+                    this.Child.splice(i, 1);
+                }
+            }
+        };
+        /**
+         * 场景更新函数，最终交由render管理
+         * @param dt 帧间隔时间
+         */
+        Scene.prototype._update = function (dt) {
+            for (var _i = 0, _a = this.updateEvents; _i < _a.length; _i++) {
+                var event = _a[_i];
+                if (!!event) {
+                    event(dt);
+                }
+            }
+        };
+        /**
+         * 添加update函数到更新队列
+         * @param listener 添加一个update函数
+         */
+        Scene.prototype.addUpdateEvents = function (listener) {
+            this.updateEvents.push(listener);
+        };
+        /**
+         * 删除一个update函数从队列当中
+         * @param listener update函数
+         */
+        Scene.prototype.removeUpdateEvents = function (listener) {
+            var index = this.updateEvents.indexOf(listener);
+            if (index !== -1) {
+                // lazy delete
+                this.updateEvents[index] = undefined;
+            }
+        };
+        /**
+         * 递归遍历场景子节点,自顶向下行为
+         * //也可以考虑在每个NEObject中定义注册函数，形成自下而上的行为
+         */
+        Scene.prototype.traverseScene = function (parent, callBack) {
+            if (parent instanceof NEObject) {
+                callBack(parent);
+            }
+            if (!!parent && parent.Child.length > 0) {
+                for (var _i = 0, _a = parent.Child; _i < _a.length; _i++) {
+                    var child = _a[_i];
+                    this.traverseScene(child, callBack);
+                }
+            }
+        };
+        Scene.instanceCount = 0;
+        return Scene;
     }());
-    Core.SceneInfo = SceneInfo;
+    Core.Scene = Scene;
+})(Core || (Core = {}));
+var Core;
+(function (Core) {
+    var Render = /** @class */ (function () {
+        //单例类
+        function Render() {
+            this.stopped = true;
+            this.currentFPS = 0;
+            this.duration = 0;
+            this.frameRate = 1000 / 60;
+            this.startTime = 0;
+            this.renderQueue = [];
+            // requestAnimationFrame(this.main.bind(this));
+        }
+        /**
+         * 主控函数，控制生命周期和帧刷新
+         */
+        Render.prototype.main = function () {
+            if (this.stopped) {
+                return;
+            }
+            var now = Date.now();
+            for (var _i = 0, _a = this.renderQueue; _i < _a.length; _i++) {
+                var renderCommand = _a[_i];
+                renderCommand(this.frameRate);
+            }
+            var delta = now - this.duration - this.startTime;
+            this.currentFPS = 1000 / delta;
+            this.duration = now - this.startTime;
+            requestAnimationFrame(this.main.bind(this));
+        };
+        /**
+         * 渲染函数，将所有帧更新函数加入渲染队列,如果需要渲染几个场景，可以将scene改为Scene[]
+         */
+        Render.prototype.render = function (scene) {
+            //渲染场景，
+            //更新函数
+            ne.getScene().traverseScene(ne.getScene(), function (o) {
+                ne.getScene().addUpdateEvents(o.onUpdate.bind(o));
+                render.stopped = false;
+            });
+            this.renderQueue.push(scene.initScene.bind(scene));
+            this.renderQueue.push(scene._update.bind(scene));
+        };
+        return Render;
+    }());
+    Core.Render = Render;
 })(Core || (Core = {}));
 var shader;
 (function (shader) {
@@ -1486,13 +1623,26 @@ var shader;
             this._modelMatrix = new Matrix4(null); //模型矩阵
             this._mvpMatrix = new Matrix4(null); //模型视图投影矩阵
             this._normalMatrix = new Matrix4(null); //法向量变换矩阵
-            this.onload();
-            this._loop();
+            this.name = '';
+            this.Child = [];
+            this.parent = null;
+            this.onLoad();
+            this.onStart();
+            // var nowScene = ne.getScene();
+            // if(!!nowScene){
+            //     nowScene.addUpdateEvents(this.onUpdate.bind(this));
+            // }
+            // this._loop();
         }
-        NEObject.prototype.onload = function () {
+        NEObject.prototype.onLoad = function () {
         };
-        NEObject.prototype.onUpdate = function () {
-            this._draw();
+        NEObject.prototype.onStart = function () {
+        };
+        /**
+         * 帧刷新函数，每帧调用
+         */
+        NEObject.prototype.onUpdate = function (dt) {
+            // this._draw();
         };
         NEObject.prototype._draw = function () {
         };
@@ -1502,6 +1652,39 @@ var shader;
         };
         NEObject.prototype.onDestroy = function () {
         };
+        /**
+         * 父子层级函数
+         * 添加孩子,需要判断是否添加了自己上级或自身
+         */
+        NEObject.prototype.addChild = function (object) {
+            this.Child.push(object);
+            object.parent = this;
+        };
+        /**
+         * 设置父节点
+         */
+        NEObject.prototype.setParent = function (object) {
+            if (!!object) {
+                if (!!this.parent) {
+                    var idx = this.parent.Child.indexOf(this); //判断是否是第一次设置父节点
+                    if (idx != -1) {
+                        this.parent.Child.splice(idx, 1);
+                    }
+                }
+                object.Child.push(this);
+                this.parent = object;
+            }
+            else {
+                console.error("you can not set a child NEobject to null");
+                return;
+            }
+        };
+        NEObject.prototype.getParent = function () {
+            return this.parent;
+        };
+        /**
+         * 模型变换函数
+         */
         NEObject.prototype.setTranslate = function (x, y, z) {
             this.coordinate.x += x;
             this.coordinate.y += y;
@@ -1510,6 +1693,10 @@ var shader;
             this._mvpMatrix.set(sceneInfo.projViewMatrix).multiply(this._modelMatrix);
             this._normalMatrix.setInverseOf(this._modelMatrix);
             this._normalMatrix.transpose();
+            for (var _i = 0, _a = this.Child; _i < _a.length; _i++) {
+                var child = _a[_i];
+                child.setTranslate(x, y, z);
+            }
         };
         NEObject.prototype.setScale = function (x, y, z) {
             this.scale.x = x;
@@ -1519,6 +1706,10 @@ var shader;
             this._mvpMatrix.set(sceneInfo.projViewMatrix).multiply(this._modelMatrix);
             this._normalMatrix.setInverseOf(this._modelMatrix);
             this._normalMatrix.transpose();
+            for (var _i = 0, _a = this.Child; _i < _a.length; _i++) {
+                var child = _a[_i];
+                child.setScale(x, y, z);
+            }
         };
         NEObject.prototype.setRotation = function (x, y, z) {
             this.rotation.x += x;
@@ -1536,6 +1727,10 @@ var shader;
             this._mvpMatrix.set(sceneInfo.projViewMatrix).multiply(this._modelMatrix);
             this._normalMatrix.setInverseOf(this._modelMatrix);
             this._normalMatrix.transpose();
+            for (var _i = 0, _a = this.Child; _i < _a.length; _i++) {
+                var child = _a[_i];
+                child.setRotation(x, y, z);
+            }
         };
         NEObject.prototype.getModelMatrix = function () {
             return this._modelMatrix;
@@ -1675,6 +1870,7 @@ var shader;
             //
             _this.cube = null;
             _this.info = null;
+            _this.name = 'cube';
             _this.shadertool = new shaderUtils();
             _this.gl = GL;
             var obj = _this.shadertool.initShaders(GL, _this.vertex, _this.fragment);
@@ -1691,8 +1887,10 @@ var shader;
          */
         // onload(){
         // }
-        // onUpdate(){
-        // }
+        Cube.prototype.onUpdate = function (dt) {
+            // console.log(dt)
+            this._draw();
+        };
         Cube.prototype._draw = function () {
             if (this.program && this.info) {
                 GL.useProgram(this.program);
@@ -1894,6 +2092,7 @@ var shader;
             //
             _this.Cylinder = null;
             _this.info = null;
+            _this.name = 'cylinder';
             _this.shadertool = new shaderUtils();
             _this.gl = GL;
             var obj = _this.shadertool.initShaders(GL, _this.vertex, _this.fragment);
@@ -1910,8 +2109,9 @@ var shader;
          */
         // onload(){
         // }
-        // onUpdate(){
-        // }
+        Cylinder.prototype.onUpdate = function (dt) {
+            this._draw();
+        };
         Cylinder.prototype._draw = function () {
             if (this.program && this.info) {
                 GL.useProgram(this.program);
@@ -2008,13 +2208,14 @@ var shader;
 })(shader || (shader = {}));
 ///<reference path="./core/Engine.ts" />
 ///<reference path="./core/Scene.ts" />
+///<reference path="./core/Render.ts" />
 ///<reference path="../lib/shader-utils/shaderUtils.ts" />
 ///<reference path="../lib/matrix-utils/matrixUtils.ts" />
 ///<reference path="./shader/Cube.ts" />
 ///<reference path="./shader/Cylinder.ts" />
 ///<reference path="../lib/parse-utils/objParse.ts" />
 var Nebula = Core.Nebula;
-var SceneInfo = Core.SceneInfo;
+var Scene = Core.Scene;
 var shaderUtils = Utils.ShaderUtils;
 var Matrix4 = Utils.Matrix4;
 var Vector3 = Utils.Vector3;
@@ -2023,29 +2224,33 @@ var cube = shader.Cube;
 var Cylinder = shader.Cylinder;
 var NEObject = shader.NEObject;
 var OBJParser = Utils.ObjParser;
+var Render = Core.Render;
 //************全局变量Global****************** */
 var shaderTool = new shaderUtils();
 var GL = null;
-var sceneInfo = new SceneInfo();
 var canvas = {
     width: 1200,
     height: 800,
 };
+var ne = new Nebula('canvas', canvas.width, canvas.height); //gl作为全局变量
+GL = ne.GL;
+var sceneInfo = new Scene(0);
+ne.addScene(sceneInfo);
+ne.setScene(0);
+ne.setPerspectiveCamera(30, 1, 100);
+sceneInfo.initScene();
+var render = new Render();
 //************ */
 main();
 function main() {
-    var ne = new Nebula('canvas', canvas.width, canvas.height); //gl作为全局变量
-    GL = ne.GL;
-    ne.setPerspectiveCamera(30, 1, 100);
-    sceneInfo.initScene();
     var Cube = new cube();
     Cube.setTranslate(3, 0, 0);
-    // var cube2 = new cube();
-    // cube2.setTranslate(0,3,0);
-    // var cube3 = new cube();
-    // cube3.setRotation(20, 10,10);
-    // cube3.setTranslate(0,0,3);
     var cylinder = new Cylinder();
+    cylinder.setParent(ne.getScene());
+    Cube.setParent(cylinder);
+    render.render(sceneInfo);
+    render.stopped = false; //将来可以改变为资源加载完成后自动改为false，开始update
+    render.main();
     var ca = document.getElementById('canvas');
     var isDrag = false;
     var lastX = -1;
@@ -2057,6 +2262,8 @@ function main() {
         if (ev.layerX <= canvas.width && ev.layerX >= 0 && ev.layerY >= 0 && ev.layerY <= canvas.height) {
             isDrag = true;
         }
+        lastX = x;
+        lastY = y;
         var pixels = new Uint8Array(4);
         GL.readPixels(x, y, 1, 1, GL.RGBA, GL.UNSIGNED_BYTE, pixels); //tap点像素颜色测试
         console.log(pixels);
@@ -2079,10 +2286,8 @@ function main() {
             var dx = factor * (x - lastX);
             var dy = factor * (y - lastY);
             Cube.setRotation(0, dx, 0);
-            // cube2.setRotation(0, dx,0);
-            // cube3.setRotation(0, dx,0);
-            cylinder.setRotation(0, dx, 0);
-            // Cube._draw();
+            cylinder.setTranslate(0, -dy / 40, 0);
+            // cylinder.setScale(1,Math.max(1,Math.min(2,dx/10)),1)
         }
         lastX = x;
         lastY = y;
@@ -2097,37 +2302,421 @@ var Core;
     }());
     Core.Camera = Camera;
 })(Core || (Core = {}));
-var Core;
-(function (Core) {
-    var Render = /** @class */ (function () {
-        function Render() {
-            this.stopped = true;
-            this.currentFPS = 0;
-            this.duration = 0;
-            this.frameRate = 0;
-            this.startTime = 0;
-            this.renderQueue = [];
-            requestAnimationFrame(this.main.bind(this));
+var zero_guard = 0.00001;
+function rayPickLog(val) {
+    //return;
+    console.log(val);
+}
+test1();
+test2();
+function test1() {
+    var pA = new Vector4(null);
+    var pB = new Vector4(null);
+    var pC = new Vector4(null);
+    var endA = new Vector4(null);
+    var endB = new Vector4(null);
+    var out = new Vector4(null);
+    pA[0] = 0;
+    pA[1] = 0;
+    pA[2] = 0;
+    pB[0] = 2;
+    pB[1] = 0;
+    pB[2] = 2;
+    pC[0] = 0;
+    pC[1] = 2;
+    pC[2] = 2;
+    endA[0] = 0;
+    endA[1] = 0;
+    endA[2] = 2;
+    endB[0] = 2;
+    endB[1] = 2;
+    endB[2] = 0;
+    if (intersectSurfaceLine(pA, pB, pC, endA, endB, out)) {
+        rayPickLog(out);
+    }
+    else {
+        rayPickLog("error");
+    }
+}
+function test2() {
+    var pA = new Vector4(null);
+    var pB = new Vector4(null);
+    var pC = new Vector4(null);
+    var endA = new Vector4(null);
+    var endB = new Vector4(null);
+    var out = new Vector4(null);
+    pA[0] = 2;
+    pA[1] = 0;
+    pA[2] = 1;
+    pB[0] = 2;
+    pB[1] = 0;
+    pB[2] = 2;
+    pC[0] = 0;
+    pC[1] = 2;
+    pC[2] = 2;
+    endA[0] = 0;
+    endA[1] = 0;
+    endA[2] = 2;
+    endB[0] = 2;
+    endB[1] = 2;
+    endB[2] = 0;
+    if (intersectSurfaceLine(pA, pB, pC, endA, endB, out)) {
+        rayPickLog(out);
+    }
+    else {
+        rayPickLog("error");
+    }
+}
+//pA、pB、pC是三个三维点,确定一个三角形
+//endA和endB是两个三维点，确定一条线段
+//如果存在焦点，则返回true，out为交点
+function intersectSurfaceLine(pA, pB, pC, endA, endB, out) {
+    var ret = false;
+    var surfaceNornal = new Vector4(null);
+    var side0 = new Vector4(null);
+    var side1 = new Vector4(null);
+    var nLine = new Vector4(null);
+    getNormal(pA, pB, side0);
+    getNormal(pA, pC, side1);
+    cross(surfaceNornal, side0, side1);
+    if (surfaceNornal[0] == 0 && surfaceNornal[1] == 0 && surfaceNornal[2] == 0) {
+        rayPickLog("surface error");
+        return false;
+    }
+    getNormal(endA, endB, nLine);
+    rayPickLog("surface normal:" + surfaceNornal);
+    rayPickLog("line normal:" + nLine);
+    if ((nLine[0] * surfaceNornal[0]
+        + nLine[1] * surfaceNornal[1]
+        + nLine[2] * surfaceNornal[2]) == 0) {
+        rayPickLog("surface and line parallel");
+        return false; //直线和面平行
+    }
+    var baseScale = -1;
+    baseScale = getBaseScale(nLine);
+    if (baseScale < 0) {
+        rayPickLog("line error");
+        return false;
+    }
+    rayPickLog("getBaseScale:" + baseScale.toString());
+    ret = intersect(surfaceNornal, pA, nLine, endA, baseScale, out);
+    if (!ret)
+        return false;
+    rayPickLog("out:" + out);
+    ret = surfacePointInSurface(pA, pB, pC, out);
+    rayPickLog("in surface:" + ret);
+    return ret;
+}
+function getNormal(pA, pB, out) {
+    out[0] = pB[0] - pA[0];
+    out[1] = pB[1] - pA[1];
+    out[2] = pB[2] - pA[2];
+}
+function getBaseScale(nAB) {
+    //找到不为0的偏量
+    var baseScale = null; //0 for x; 1 for y, 2 for z;
+    while (1) {
+        if (nAB[0] != 0) {
+            baseScale = 0;
+            if (nAB[0] > -zero_guard && nAB[0] < zero_guard) {
+            }
+            else {
+                break;
+            }
         }
-        /**
-         * 主控函数，控制生命周期和帧刷新
-         */
-        Render.prototype.main = function () {
-            if (this.stopped) {
-                return;
+        if (nAB[1] != 0) {
+            if (baseScale == null) {
+                baseScale = 1;
             }
-            var now = Date.now();
-            for (var _i = 0, _a = this.renderQueue; _i < _a.length; _i++) {
-                var renderCommand = _a[_i];
-                renderCommand(this.frameRate);
+            if (nAB[1] > -zero_guard && nAB[1] < zero_guard) {
             }
-            var delta = now - this.duration - this.startTime;
-            this.currentFPS = 1000 / delta;
-            this.duration = now - this.startTime;
-            requestAnimationFrame(this.main.bind(this));
-        };
-        return Render;
-    }());
-    Core.Render = Render;
-})(Core || (Core = {}));
+            else {
+                baseScale = 1;
+                break;
+            }
+        }
+        if (nAB[2] != 0) {
+            if (baseScale == null) {
+                baseScale = 2;
+            }
+            if (nAB[2] > -zero_guard && nAB[2] < zero_guard) {
+            }
+            else {
+                baseScale = 2;
+                break;
+            }
+        }
+        break;
+    }
+    if (baseScale == null)
+        return -1;
+    return baseScale;
+}
+function intersect(nSurface, point, nLine, linePoint, baseScale, out) {
+    var ret = false;
+    if (baseScale == 0) {
+        ret = xBaseInsect(nSurface, point, nLine, linePoint, out);
+    }
+    else if (baseScale == 1) {
+        ret = yBaseInsect(nSurface, point, nLine, linePoint, out);
+    }
+    else if (baseScale == 2) {
+        ret = zBaseInsect(nSurface, point, nLine, linePoint, out);
+    }
+    return ret;
+}
+function xBaseInsect(nSurface, point, nLine, linePoint, out) {
+    var yK = (nLine[1] / nLine[0]);
+    var yT = (nLine[1] / nLine[0]) * (-linePoint[0]) + linePoint[1];
+    var zK = (nLine[2] / nLine[0]);
+    var zT = (nLine[2] / nLine[0]) * (-linePoint[0]) + linePoint[2];
+    var surfaceK = nSurface[0] + yK * nSurface[1] + zK * nSurface[2];
+    var surfaceT = (-point[0]) * nSurface[0] + (yT - point[1]) * nSurface[1] + (zT - point[2]) * nSurface[2];
+    if (surfaceK == 0)
+        return false;
+    out[0] = (-surfaceT) / surfaceK;
+    out[1] = yK * out[0] + yT;
+    out[2] = zK * out[0] + zT;
+    return true;
+}
+function yBaseInsect(nSurface, point, nLine, linePoint, out) {
+    var xK = (nLine[0] / nLine[1]);
+    var xT = (nLine[0] / nLine[1]) * (-linePoint[1]) + linePoint[0];
+    rayPickLog("y base");
+    var zK = (nLine[2] / nLine[1]);
+    var zT = (nLine[2] / nLine[1]) * (-linePoint[1]) + linePoint[2];
+    var surfaceK = xK * nSurface[0] + nSurface[1] + zK * nSurface[2];
+    var surfaceT = (xT - point[0]) * nSurface[0] + (-point[1]) * nSurface[1] + (zT - point[2]) * nSurface[2];
+    if (surfaceK == 0)
+        return false;
+    out[1] = (-surfaceT) / surfaceK;
+    out[0] = xK * out[1] + xT;
+    out[2] = zK * out[1] + zT;
+    return true;
+}
+function zBaseInsect(nSurface, point, nLine, linePoint, out) {
+    var xK = (nLine[0] / nLine[2]);
+    var xT = (nLine[0] / nLine[2]) * (-linePoint[2]) + linePoint[0];
+    rayPickLog("z base");
+    var yK = (nLine[1] / nLine[2]);
+    var yT = (nLine[1] / nLine[2]) * (-linePoint[2]) + linePoint[1];
+    var surfaceK = xK * nSurface[0] + yK * nSurface[1] + nSurface[2];
+    var surfaceT = (xT - point[0]) * nSurface[0] + (yT - point[1]) * nSurface[1] + (-point[2]) * nSurface[2];
+    if (surfaceK == 0)
+        return false;
+    out[2] = (-surfaceT) / surfaceK;
+    out[0] = xK * out[2] + xT;
+    out[1] = yK * out[2] + yT;
+    return true;
+}
+//面内的点，从垂直于x、y或z的面上(二维上)判断点在面以内
+function surfacePointInSurface(pA, pB, pC, point) {
+    var x1 = pB[0] - pA[0];
+    var y1 = pB[1] - pA[1];
+    var z1 = pB[2] - pA[2];
+    var x2 = pC[0] - pA[0];
+    var y2 = pC[1] - pA[1];
+    var z2 = pC[2] - pA[2];
+    var x3 = pC[0] - pB[0];
+    var y3 = pC[1] - pB[1];
+    var z3 = pC[2] - pB[2];
+    var ret = false;
+    var base = null; //
+    while (1) {
+        if ((y1 != 0 || z1 != 0) &&
+            (y2 != 0 || z2 != 0) &&
+            (y3 != 0 || z3 != 0)) {
+            base = 0; //yz面
+            rayPickLog("check in yz");
+            break;
+        }
+        if ((x1 != 0 || z1 != 0) &&
+            (x2 != 0 || z2 != 0) &&
+            (x3 != 0 || z3 != 0)) {
+            base = 1; //xz面
+            rayPickLog("check in xz");
+            break;
+        }
+        if ((x1 != 0 || y1 != 0) &&
+            (x2 != 0 || y2 != 0) &&
+            (x3 != 0 || y3 != 0)) {
+            base = 2; //xy面
+            rayPickLog("check in xy");
+            break;
+        }
+        rayPickLog("check in no face");
+        break;
+    }
+    if (base == null)
+        return ret;
+    if (base == 0) {
+        //xy 面
+        ret = yzPointInSurface2D(pA, pB, pC, point);
+    }
+    else if (base == 1) {
+        ret = xzPointInSurface2D(pA, pB, pC, point);
+    }
+    else if (base == 2) {
+        ret = xyPointInSurface2D(pA, pB, pC, point);
+    }
+    return ret;
+}
+function xyPointInSurface2D(pA, pB, pC, p) {
+    var pointA = new Vector4(null);
+    var pointB = new Vector4(null);
+    var pointC = new Vector4(null);
+    var point = new Vector4(null);
+    pointA[0] = pA[0];
+    pointA[1] = pA[1];
+    pointB[0] = pB[0];
+    pointB[1] = pB[1];
+    pointC[0] = pC[0];
+    pointC[1] = pC[1];
+    point[0] = p[0];
+    point[1] = p[1];
+    return pointInSurface2D(pointA, pointB, pointC, point);
+}
+function yzPointInSurface2D(pA, pB, pC, p) {
+    var pointA = new Vector4(null);
+    var pointB = new Vector4(null);
+    var pointC = new Vector4(null);
+    var point = new Vector4(null);
+    pointA[0] = pA[1];
+    pointA[1] = pA[2];
+    pointB[0] = pB[1];
+    pointB[1] = pB[2];
+    pointC[0] = pC[1];
+    pointC[1] = pC[2];
+    point[0] = p[1];
+    point[1] = p[2];
+    return pointInSurface2D(pointA, pointB, pointC, point);
+}
+function xzPointInSurface2D(pA, pB, pC, p) {
+    var pointA = new Vector4(null);
+    var pointB = new Vector4(null);
+    var pointC = new Vector4(null);
+    var point = new Vector4(null);
+    pointA[0] = pA[0];
+    pointA[1] = pA[2];
+    pointB[0] = pB[0];
+    pointB[1] = pB[2];
+    pointC[0] = pC[0];
+    pointC[1] = pC[2];
+    point[0] = p[0];
+    point[1] = p[2];
+    return pointInSurface2D(pointA, pointB, pointC, point);
+}
+//点P在三角形内，则如果 "AB的向量*k + 则AC的向量*t = AP的向量"， 则 "k >=0, t >= 0, k + t <= 1"
+function pointInSurface2D(pA, pB, pC, p) {
+    rayPickLog("pointInSurface2D pA:" + pA);
+    rayPickLog("pointInSurface2D pB:" + pB);
+    rayPickLog("pointInSurface2D pC:" + pC);
+    rayPickLog("pointInSurface2D p:" + p);
+    var AB = new Vector4(null);
+    var AC = new Vector4(null);
+    var AP = new Vector4(null);
+    var k = 0;
+    var t = 0;
+    AB[0] = pB[0] - pA[0];
+    AB[1] = pB[1] - pA[1];
+    AC[0] = pC[0] - pA[0];
+    AC[1] = pC[1] - pA[1];
+    AP[0] = p[0] - pA[0];
+    AP[1] = p[1] - pA[1];
+    //k AB[0] + t AC[0] = AP[0];
+    //k AB[1] + t AC[1] = AP[1];
+    var getted = false;
+    while (1) {
+        if (AB[0] == 0) {
+            //如果 AB[0] == 0;
+            if (AC[0] != 0) {
+                //如果 AC[0] != 0;
+                t = AP[0] / AC[0];
+                if (AB[1] != 0) {
+                    //
+                    k = (AP[1] - t * AC[1]) / AB[1];
+                    getted = true;
+                    break;
+                }
+                //AB[1] == 0
+                var val_1 = t * AC[1] - AP[1];
+                if (val_1 > -zero_guard && val_1 < zero_guard) {
+                    //t AC[1] == AP[1]
+                    k = 0;
+                    getted = true;
+                    break;
+                }
+                //无解
+                break;
+            }
+            //如果 AC[0] == 0;则只能通过"k AB[1] + t AC[1] = AP[1]" 求解
+            if (AP[0] < -zero_guard && AP[0] > zero_guard) {
+                //AP[0] != 0,使得"k AB[0] + t AC[0] = AP[0]" 左右不平等，无解
+                break;
+            }
+            //通过"k AB[1] + t AC[1] = AP[1]" 求解
+            if (AB[1] == 0) {
+                k = 0;
+                if (AC[1] != 0) {
+                    t = AP[1] / AC[1];
+                    getted = true;
+                    break;
+                }
+                //AC[1] == 0
+                if (AP[1] < -zero_guard && AP[1] > zero_guard) {
+                    //AP[1] != 0,使得"k AB[1] + t AC[1] = AP[1]" 左右不平等，无解
+                    break;
+                }
+                t = 0;
+                getted = true;
+                break;
+            }
+            //如果 AB[1] != 0
+            if (AC[1] == 0) {
+                k = AP[1] / AB[1];
+                t = 0;
+                getted = true;
+                break;
+            }
+            //AC[1] != 0, 假设AC[1] == 0, 求之中一个解(此时应该是两条线重合了)
+            k = AP[1] / AB[1];
+            t = 0;
+            getted = true;
+            break;
+        }
+        //AB[0] != 0
+        //据"k AB[0] + t AC[0] = AP[0]", 以t为基换算k
+        var kK = (-AC[0]) / AB[0];
+        var kT = AP[0] / AB[0];
+        //带入"k AB[1] + t AC[1] = AP[1]"
+        var nt = kK * AB[1] + AC[1];
+        var val = AP[1] - kT * AB[1];
+        t = val / nt;
+        k = kK * t + kT;
+        getted = true;
+        break;
+    }
+    if (!getted)
+        return false;
+    rayPickLog("in line, t:" + t + ", k:" + k);
+    if (t >= 0 && k >= 0 && t + k <= 1)
+        return true;
+    return false;
+}
+/**
+ * Computes the cross product of two vec3's
+ *
+ * @param {vec3} out the receiving vector
+ * @param {vec3} a the first operand
+ * @param {vec3} b the second operand
+ * @returns {vec3} out
+ */
+function cross(out, a, b) {
+    var ax = a[0], ay = a[1], az = a[2];
+    var bx = b[0], by = b[1], bz = b[2];
+    out[0] = ay * bz - az * by;
+    out[1] = az * bx - ax * bz;
+    out[2] = ax * by - ay * bx;
+    return out;
+}
 //# sourceMappingURL=Main.js.map

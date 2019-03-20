@@ -63,6 +63,7 @@ namespace shader{
         info = null;
         constructor(){
             super();
+            this.name = 'cylinder';
 
             this.shadertool = new shaderUtils();
             this.gl = GL;
@@ -79,8 +80,9 @@ namespace shader{
          */
         // onload(){
         // }
-        // onUpdate(){
-        // }
+        onUpdate(dt){
+            this._draw();
+        }
         _draw(){
             if(this.program && this.info){
                 GL.useProgram(this.program);
