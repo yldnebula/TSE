@@ -2307,7 +2307,11 @@ function rayPickLog(val) {
     //return;
     console.log(val);
 }
-test1();
+// var date= new Date().getTime();
+// for(var i = 0; i < 2000; i++){
+//   test1();
+// }
+// console.log(new Date().getTime()-date);
 test2();
 function test1() {
     var pA = new Vector4(null);

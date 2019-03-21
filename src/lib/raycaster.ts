@@ -6,7 +6,14 @@ function rayPickLog(val)
   
   console.log(val);
 }
-test1();test2();
+// var date= new Date().getTime();
+
+// for(var i = 0; i < 2000; i++){
+//   test1();
+// }
+// console.log(new Date().getTime()-date);
+
+test2();
 function test1()
 {
   const pA = new Vector4(null);
