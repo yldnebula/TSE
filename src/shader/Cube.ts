@@ -197,6 +197,7 @@ namespace shader{
                 this.colors   = this.info.colors;
                 this.indices  = this.info.indices;
                 this.cube = this.initVertexBuffer(this.vertices,this.colors,this.normals,this.program,this.indices);  
+                // console.log(this.info);
             }.bind(this));
         }
         /**
@@ -216,7 +217,7 @@ namespace shader{
                 numIndices:null,
             };
             cubeObj.vertex = this.initArrayBufferForLaterUse(GL,vertices,3,GL.FLOAT);
-            cubeObj.color  = this.initArrayBufferForLaterUse(GL,colors,3,GL.FLOAT);
+            cubeObj.color  = this.initArrayBufferForLaterUse(GL,colors,4,GL.FLOAT);
             cubeObj.normal = this.initArrayBufferForLaterUse(GL,normals,3,GL.FLOAT);
             cubeObj.index  = this.initElementArrayBufferForLaterUse(GL,indices,GL.UNSIGNED_BYTE);           
             

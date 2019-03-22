@@ -415,6 +415,64 @@ declare namespace Core {
         render(scene: Scene): void;
     }
 }
+declare namespace Lib {
+    class RayCaster {
+        constructor();
+        test2(): Vector4;
+        /**
+         * 射线相交的物体
+         * @param objects 检查的物体
+         * @param testChild 是否检查子物体
+         */
+        intersectObjects(objects: NEObject[], testChild: boolean): NEObject[];
+        /**
+         * 判断点在面中
+         * @param pA 三角形a点
+         * @param pB 三角形b点
+         * @param pC 三角形c点
+         * @param endA 线段a点
+         * @param endB 线段b点
+         * @param out 交点，如果有
+         */
+        intersectSurfaceLine(pA: Vector4, pB: Vector4, pC: Vector4, endA: Vector4, endB: Vector4, out: Vector4): boolean;
+        /**
+         * 获取法向量
+         * @param pA a点
+         * @param pB b点
+         * @param out 计算后的法向量
+         */
+        getNormal(pA: any, pB: any, out: any): void;
+        getBaseScale(nAB: Vector4): any;
+        intersect(nSurface: any, point: any, nLine: any, linePoint: any, baseScale: any, out: any): boolean;
+        xBaseInsect(nSurface: any, point: any, nLine: any, linePoint: any, out: any): boolean;
+        yBaseInsect(nSurface: any, point: any, nLine: any, linePoint: any, out: any): boolean;
+        zBaseInsect(nSurface: any, point: any, nLine: any, linePoint: any, out: any): boolean;
+        surfacePointInSurface(pA: any, pB: any, pC: any, point: any): boolean;
+        xyPointInSurface2D(pA: any, pB: any, pC: any, p: any): boolean;
+        yzPointInSurface2D(pA: any, pB: any, pC: any, p: any): boolean;
+        xzPointInSurface2D(pA: any, pB: any, pC: any, p: any): boolean;
+        pointInSurface2D(pA: any, pB: any, pC: any, p: any): boolean;
+        cross(out: any, a: any, b: any): any;
+        rayPickLog(val: any): void;
+    }
+}
+declare namespace Lib {
+    class BoundingBox {
+        vertices: Float32Array;
+        indices: Uint8Array;
+        target: NEObject;
+        maxX: number;
+        maxY: number;
+        maxZ: number;
+        minX: number;
+        minY: number;
+        minZ: number;
+        constructor(object: NEObject);
+        handleObject(): void;
+        setVertices(maxX: any, minX: any, maxY: any, minY: any, maxZ: any, minZ: any): void;
+        generateTestTriangle(): any[];
+    }
+}
 declare namespace shader {
     /**
      * 所有３维物体的子类，实现基本方法
@@ -440,6 +498,7 @@ declare namespace shader {
         private _modelMatrix;
         private _mvpMatrix;
         private _normalMatrix;
+        vertices: any;
         name: string;
         Child: any[];
         parent: NEObject | Scene;
@@ -451,7 +510,7 @@ declare namespace shader {
          */
         onUpdate(dt: number): void;
         _draw(): void;
-        _loop(): void;
+        _loop(dt: any): void;
         onDestroy(): void;
         /**
          * 父子层级函数
@@ -612,6 +671,8 @@ import Cylinder = shader.Cylinder;
 import NEObject = shader.NEObject;
 import OBJParser = Utils.ObjParser;
 import Render = Core.Render;
+import RayCaster = Lib.RayCaster;
+import BoundingBox = Lib.BoundingBox;
 declare const shaderTool: shaderUtils;
 declare var GL: WebGLRenderingContext;
 declare const canvas: {

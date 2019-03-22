@@ -152,7 +152,7 @@ namespace shader{
                 this.colors   = this.info.colors;
                 this.indices  = this.info.indices;
                 this.Cylinder = this.initVertexBuffer(this.vertices,this.colors,this.normals,this.program,this.indices);  
-                console.log(this.info);
+                // console.log(this.Cylinder);
             }.bind(this));
         }
         /**

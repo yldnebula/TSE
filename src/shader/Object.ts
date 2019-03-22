@@ -62,6 +62,7 @@ namespace shader{
         private _mvpMatrix:Matrix4   = new Matrix4(null);//模型视图投影矩阵
         private _normalMatrix:Matrix4= new Matrix4(null);//法向量变换矩阵
 
+        public vertices;
         public name  = '';
         public Child = [];
         public parent:NEObject | Scene = null;
@@ -91,8 +92,8 @@ namespace shader{
         _draw(){
 
         }
-        _loop(){
-            this.onUpdate();
+        _loop(dt){
+            this.onUpdate(dt);
             requestAnimationFrame(this._loop.bind(this));
         }
         onDestroy(){

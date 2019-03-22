@@ -13,7 +13,7 @@ function rayPickLog(val)
 // }
 // console.log(new Date().getTime()-date);
 
-test2();
+// test2();
 function test1()
 {
   const pA = new Vector4(null);
