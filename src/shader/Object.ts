@@ -139,7 +139,7 @@ namespace shader{
             this.coordinate.z +=z;
             this._modelMatrix.translate(x,y,z);
 
-            this._mvpMatrix.set(sceneInfo.projViewMatrix).multiply(this._modelMatrix);
+            this._mvpMatrix.set(camera.projViewMatrix).multiply(this._modelMatrix);
             this._normalMatrix.setInverseOf(this._modelMatrix);
             this._normalMatrix.transpose();
 
@@ -155,7 +155,7 @@ namespace shader{
             this.scale.z =z;
             this._modelMatrix.scale(x,y,z);
             
-            this._mvpMatrix.set(sceneInfo.projViewMatrix).multiply(this._modelMatrix);
+            this._mvpMatrix.set(camera.projViewMatrix).multiply(this._modelMatrix);
             this._normalMatrix.setInverseOf(this._modelMatrix);
             this._normalMatrix.transpose();
 
@@ -178,7 +178,7 @@ namespace shader{
             if(z != 0){
                 this._modelMatrix.rotate(z,0,0,1);
             }
-            this._mvpMatrix.set(sceneInfo.projViewMatrix).multiply(this._modelMatrix);
+            this._mvpMatrix.set(camera.projViewMatrix).multiply(this._modelMatrix);
             this._normalMatrix.setInverseOf(this._modelMatrix);
             this._normalMatrix.transpose();
 
@@ -192,6 +192,7 @@ namespace shader{
             return this._modelMatrix;
         }
         getMvpMatrix():Matrix4{
+            this._mvpMatrix.set(camera.projViewMatrix).multiply(this._modelMatrix);
             return this._mvpMatrix;
         }
         getNormalMatrix():Matrix4{
@@ -234,7 +235,7 @@ namespace shader{
          * @param data 源数据
          * @param type 索引源数据类型
          */
-        initElementArrayBufferForLaterUse(gl:WebGLRenderingContext, data:Uint8Array, type:number){
+        initElementArrayBufferForLaterUse(gl:WebGLRenderingContext, data:Uint16Array, type:number){
             var eleBufferObj = {
                 buffer:null,
                 type:null,

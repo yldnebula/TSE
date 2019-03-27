@@ -2,7 +2,6 @@ namespace Core{
     export class Nebula{
         GL:WebGLRenderingContext = null;
         canvas:HTMLCanvasElement = null;
-        projectMatrix:Matrix4    = null;
         eye = {
             x:0,
             y:0,
@@ -62,34 +61,6 @@ namespace Core{
                 }
             }
             return null;
-        }
-        setEyePoint(x:number,y:number,z:number){
-            this.eye.x = x;
-            this.eye.y = y;
-            this.eye.z = z;
-        }
-        setAtCenter(x:number,y:number,z:number){
-            this.center.x = x;
-            this.center.y = y;
-            this.center.z = z;
-        }
-        /**
-         * 设置透视摄像机
-         */
-        setPerspectiveCamera(fovy:number, near:number, far:number){
-            this.projectMatrix = new Matrix4(null);
-            this.projectMatrix.setPerspective(fovy,canvas.width/canvas.height,near,far);
-            this.projectMatrix.lookAt(this.eye.x, this.eye.y, this.eye.z,this.center.x,this.center.y,this.center.z,0,1,0);
-            sceneInfo.projViewMatrix = this.projectMatrix;
-        }
-        /**
-         * 设置正视摄像机
-         */
-        setOrthoCamera(){
-
-        }
-        setLightTypeColorPoint(type:number, color:Vector4, point:Vector3){
-
         }
         /**
          * 导演函数director

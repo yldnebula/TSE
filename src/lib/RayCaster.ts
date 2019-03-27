@@ -50,6 +50,7 @@ namespace Lib{
             nNear[2] = (ez-sz)*far+sz;
             this.start = [sx,sy,sz];
             this.end = nNear;
+            console.log(this.start, this.end)
         }
         /**
          * 射线相交的物体

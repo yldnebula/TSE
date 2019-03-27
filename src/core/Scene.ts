@@ -30,6 +30,15 @@ namespace Core{
             GL.enable(GL.DEPTH_TEST);
         }
         /**
+         * 
+         * @param type 光照种类
+         * @param color 光照颜色
+         * @param point 光照起始点
+         */
+        setLightTypeColorPoint(type:number, color:Vector4, point:Vector3){
+
+        }
+        /**
          * 为场景添加一个孩子
          */
         addChild(object:NEObject){

@@ -44,7 +44,7 @@ namespace shader{
         
         vertices    :Float32Array   = null;
         colors      :Float32Array   = null;
-        indices     :Uint8Array     = null;
+        indices     :Uint16Array     = null;
         normals     :Float32Array   = null;
         gl          :WebGLRenderingContext=null;
         program     :WebGLProgram = null;
@@ -132,7 +132,7 @@ namespace shader{
                 GL.uniformMatrix4fv(u_NormalMatrix, false, this.getNormalMatrix().elements);
         
                 // Draw the cube
-                GL.drawElements(GL.TRIANGLES, this.cube.numIndices, GL.UNSIGNED_BYTE, 0);
+                GL.drawElements(GL.TRIANGLES, this.cube.numIndices, GL.UNSIGNED_SHORT, 0);
             }
         }
         getVertex():string{
@@ -182,7 +182,7 @@ namespace shader{
                 0.0, 0.0,-1.0,   0.0, 0.0,-1.0,   0.0, 0.0,-1.0,   0.0, 0.0,-1.0
             ]);
             //初始化顶点索引=>按照顶点数组的24个元素来设置,逆时针三角形
-            this.indices = new Uint8Array([
+            this.indices = new Uint16Array([
                 0, 1, 2,   0, 2, 3,    // front
                 4, 5, 6,   4, 6, 7,    // right
                 8, 9,10,   8,10,11,    // up
@@ -211,7 +211,7 @@ namespace shader{
          * @param program　对应的着色器程序 
          * @param indices 索引矩阵
          */
-        initVertexBuffer(vertices:Float32Array, colors:Float32Array,normals:Float32Array,program:WebGLProgram,indices:Uint8Array){
+        initVertexBuffer(vertices:Float32Array, colors:Float32Array,normals:Float32Array,program:WebGLProgram,indices:Uint16Array){
             var cubeObj = {
                 vertex:null,
                 color:null,
@@ -222,7 +222,7 @@ namespace shader{
             cubeObj.vertex = this.initArrayBufferForLaterUse(GL,vertices,3,GL.FLOAT);
             cubeObj.color  = this.initArrayBufferForLaterUse(GL,colors,4,GL.FLOAT);
             cubeObj.normal = this.initArrayBufferForLaterUse(GL,normals,3,GL.FLOAT);
-            cubeObj.index  = this.initElementArrayBufferForLaterUse(GL,indices,GL.UNSIGNED_BYTE);           
+            cubeObj.index  = this.initElementArrayBufferForLaterUse(GL,indices,GL.UNSIGNED_SHORT);           
             
             if(!cubeObj.vertex ||!cubeObj.color||!cubeObj.normal||!cubeObj.index){
                 console.log("failed to init buffer");return null;

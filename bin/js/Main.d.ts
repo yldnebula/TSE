@@ -297,7 +297,6 @@ declare namespace Core {
     class Nebula {
         GL: WebGLRenderingContext;
         canvas: HTMLCanvasElement;
-        projectMatrix: Matrix4;
         eye: {
             x: number;
             y: number;
@@ -323,17 +322,6 @@ declare namespace Core {
          * @param canvas 页面canvas元素
          */
         private create3DContext;
-        setEyePoint(x: number, y: number, z: number): void;
-        setAtCenter(x: number, y: number, z: number): void;
-        /**
-         * 设置透视摄像机
-         */
-        setPerspectiveCamera(fovy: number, near: number, far: number): void;
-        /**
-         * 设置正视摄像机
-         */
-        setOrthoCamera(): void;
-        setLightTypeColorPoint(type: number, color: Vector4, point: Vector3): void;
         /**
          * 导演函数director
          */
@@ -379,6 +367,13 @@ declare namespace Core {
          */
         initScene(): void;
         /**
+         *
+         * @param type 光照种类
+         * @param color 光照颜色
+         * @param point 光照起始点
+         */
+        setLightTypeColorPoint(type: number, color: Vector4, point: Vector3): void;
+        /**
          * 为场景添加一个孩子
          */
         addChild(object: NEObject): void;
@@ -406,6 +401,39 @@ declare namespace Core {
          * //也可以考虑在每个NEObject中定义注册函数，形成自下而上的行为
          */
         traverseScene(parent: Scene | NEObject, callBack: (parent: any) => void): void;
+    }
+}
+declare namespace Core {
+    class Camera {
+        coordinate: {
+            x: number;
+            y: number;
+            z: number;
+        };
+        center: {
+            x: number;
+            y: number;
+            z: number;
+        };
+        projectMatrix: Matrix4;
+        projViewMatrix: Matrix4;
+        constructor(fovy: number, aspect: number, near: number, far: number);
+        setCoordinatePoint(x: number, y: number, z: number): void;
+        setCenter(x: number, y: number, z: number): void;
+        /**
+         * 设置透视摄像机
+         */
+        setPerspectiveCamera(fovy: number, aspect: number, near: number, far: number): void;
+        updateGLIFCamera(factor: any): void;
+        /**
+         * 设置正视摄像机,暂时不用开发
+         */
+        setOrthoCamera(): void;
+        /**
+         * 获取视线方向向量
+         * @param ratio 对方向向量的扩大缩小比率，不改为１
+         */
+        getSightDirection(ratio: number): number[];
     }
 }
 declare namespace Core {
@@ -477,7 +505,7 @@ declare namespace Lib {
 declare namespace Lib {
     class BoundingBox {
         vertices: Float32Array;
-        indices: Uint8Array;
+        indices: Uint16Array;
         target: NEObject;
         maxX: number;
         maxY: number;
@@ -571,7 +599,7 @@ declare namespace shader {
          * @param data 源数据
          * @param type 索引源数据类型
          */
-        initElementArrayBufferForLaterUse(gl: WebGLRenderingContext, data: Uint8Array, type: number): {
+        initElementArrayBufferForLaterUse(gl: WebGLRenderingContext, data: Uint16Array, type: number): {
             buffer: any;
             type: any;
         };
@@ -590,7 +618,7 @@ declare namespace shader {
         fragment: string;
         vertices: Float32Array;
         colors: Float32Array;
-        indices: Uint8Array;
+        indices: Uint16Array;
         normals: Float32Array;
         gl: WebGLRenderingContext;
         program: WebGLProgram;
@@ -623,7 +651,7 @@ declare namespace shader {
          * @param program　对应的着色器程序
          * @param indices 索引矩阵
          */
-        initVertexBuffer(vertices: Float32Array, colors: Float32Array, normals: Float32Array, program: WebGLProgram, indices: Uint8Array): {
+        initVertexBuffer(vertices: Float32Array, colors: Float32Array, normals: Float32Array, program: WebGLProgram, indices: Uint16Array): {
             vertex: any;
             color: any;
             normal: any;
@@ -638,7 +666,7 @@ declare namespace shader {
         fragment: string;
         vertices: Float32Array;
         colors: Float32Array;
-        indices: Uint8Array;
+        indices: Uint16Array;
         normals: Float32Array;
         gl: WebGLRenderingContext;
         program: WebGLProgram;
@@ -671,7 +699,7 @@ declare namespace shader {
          * @param program　对应的着色器程序
          * @param indices 索引矩阵
          */
-        initVertexBuffer(vertices: Float32Array, colors: Float32Array, normals: Float32Array, program: WebGLProgram, indices: Uint8Array): {
+        initVertexBuffer(vertices: Float32Array, colors: Float32Array, normals: Float32Array, program: WebGLProgram, indices: Uint16Array): {
             vertex: any;
             color: any;
             normal: any;
@@ -682,6 +710,7 @@ declare namespace shader {
 }
 import Nebula = Core.Nebula;
 import Scene = Core.Scene;
+import Camera = Core.Camera;
 import shaderUtils = Utils.ShaderUtils;
 import Matrix4 = Utils.Matrix4;
 import Vector3 = Utils.Vector3;
@@ -701,13 +730,9 @@ declare const canvas: {
 };
 declare var ne: Nebula;
 declare var sceneInfo: Scene;
+declare var camera: Camera;
 declare var render: Render;
 declare function main(): void;
-declare namespace Core {
-    class Camera {
-        constructor();
-    }
-}
 declare const zero_guard = 0.00001;
 declare function rayPickLog(val: any): void;
 declare function test1(): void;

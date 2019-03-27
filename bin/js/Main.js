@@ -907,7 +907,7 @@ var Utils;
             var vertices = new Float32Array(numVertices * 3);
             var normals = new Float32Array(numVertices * 3);
             var colors = new Float32Array(numVertices * 4);
-            var indices = new Uint8Array(numIndices);
+            var indices = new Uint16Array(numIndices);
             // Set vertex, normal and color
             var index_indices = 0;
             for (var i = 0; i < this.objects.length; i++) {
@@ -1304,7 +1304,6 @@ var Core;
         function Nebula(id, width, height) {
             this.GL = null;
             this.canvas = null;
-            this.projectMatrix = null;
             this.eye = {
                 x: 0,
                 y: 0,
@@ -1362,32 +1361,6 @@ var Core;
                 }
             }
             return null;
-        };
-        Nebula.prototype.setEyePoint = function (x, y, z) {
-            this.eye.x = x;
-            this.eye.y = y;
-            this.eye.z = z;
-        };
-        Nebula.prototype.setAtCenter = function (x, y, z) {
-            this.center.x = x;
-            this.center.y = y;
-            this.center.z = z;
-        };
-        /**
-         * 设置透视摄像机
-         */
-        Nebula.prototype.setPerspectiveCamera = function (fovy, near, far) {
-            this.projectMatrix = new Matrix4(null);
-            this.projectMatrix.setPerspective(fovy, canvas.width / canvas.height, near, far);
-            this.projectMatrix.lookAt(this.eye.x, this.eye.y, this.eye.z, this.center.x, this.center.y, this.center.z, 0, 1, 0);
-            sceneInfo.projViewMatrix = this.projectMatrix;
-        };
-        /**
-         * 设置正视摄像机
-         */
-        Nebula.prototype.setOrthoCamera = function () {
-        };
-        Nebula.prototype.setLightTypeColorPoint = function (type, color, point) {
         };
         /**
          * 导演函数director
@@ -1476,6 +1449,14 @@ var Core;
             GL.enable(GL.DEPTH_TEST);
         };
         /**
+         *
+         * @param type 光照种类
+         * @param color 光照颜色
+         * @param point 光照起始点
+         */
+        Scene.prototype.setLightTypeColorPoint = function (type, color, point) {
+        };
+        /**
          * 为场景添加一个孩子
          */
         Scene.prototype.addChild = function (object) {
@@ -1540,6 +1521,65 @@ var Core;
         return Scene;
     }());
     Core.Scene = Scene;
+})(Core || (Core = {}));
+var Core;
+(function (Core) {
+    var Camera = /** @class */ (function () {
+        function Camera(fovy, aspect, near, far) {
+            this.coordinate = {
+                x: 0, y: 8, z: 14
+            };
+            this.center = {
+                x: 0, y: 0, z: 0
+            };
+            this.projectMatrix = new Matrix4(null);
+            this.projViewMatrix = new Matrix4(null);
+            this.setPerspectiveCamera(fovy, aspect, near, far);
+        }
+        Camera.prototype.setCoordinatePoint = function (x, y, z) {
+            this.coordinate.x = x;
+            this.coordinate.y = y;
+            this.coordinate.z = z;
+        };
+        Camera.prototype.setCenter = function (x, y, z) {
+            this.center.x = x;
+            this.center.y = y;
+            this.center.z = z;
+        };
+        /**
+         * 设置透视摄像机
+         */
+        Camera.prototype.setPerspectiveCamera = function (fovy, aspect, near, far) {
+            this.projectMatrix = new Matrix4(null);
+            this.projectMatrix.setPerspective(fovy, aspect, near, far);
+            this.projectMatrix.lookAt(this.coordinate.x, this.coordinate.y, this.coordinate.z, this.center.x, this.center.y, this.center.z, 0, 1, 0);
+            this.projViewMatrix = this.projectMatrix;
+        };
+        Camera.prototype.updateGLIFCamera = function (factor) {
+            var nowN = camera.getSightDirection(1);
+            nowN = camera.getSightDirection(1 + factor);
+            camera.setCoordinatePoint(camera.center.x - nowN[0], camera.center.y - nowN[1], camera.center.z - nowN[2]);
+            camera.setPerspectiveCamera(85, canvas.width / canvas.height, 1, 100);
+        };
+        /**
+         * 设置正视摄像机,暂时不用开发
+         */
+        Camera.prototype.setOrthoCamera = function () {
+        };
+        /**
+         * 获取视线方向向量
+         * @param ratio 对方向向量的扩大缩小比率，不改为１
+         */
+        Camera.prototype.getSightDirection = function (ratio) {
+            var ret = [];
+            ret[0] = (this.center.x - this.coordinate.x) * ratio;
+            ret[1] = (this.center.y - this.coordinate.y) * ratio;
+            ret[2] = (this.center.z - this.coordinate.z) * ratio;
+            return ret;
+        };
+        return Camera;
+    }());
+    Core.Camera = Camera;
 })(Core || (Core = {}));
 var Core;
 (function (Core) {
@@ -1635,6 +1675,7 @@ var Lib;
             nNear[2] = (ez - sz) * far + sz;
             this.start = [sx, sy, sz];
             this.end = nNear;
+            console.log(this.start, this.end);
         };
         /**
          * 射线相交的物体
@@ -2111,7 +2152,7 @@ var Lib;
                 minX, minY, minZ, maxX, minY, minZ, maxX, minY, maxZ, maxX, minY, maxZ,
                 maxX, minY, minZ, minX, minY, minZ, minX, maxY, minZ, maxX, maxY, minZ //背面
             ]);
-            this.indices = new Uint8Array([
+            this.indices = new Uint16Array([
                 0, 1, 2, 0, 2, 3,
                 4, 5, 6, 4, 6, 7,
                 8, 9, 10, 8, 10, 11,
@@ -2283,7 +2324,7 @@ var shader;
             this.coordinate.y += y;
             this.coordinate.z += z;
             this._modelMatrix.translate(x, y, z);
-            this._mvpMatrix.set(sceneInfo.projViewMatrix).multiply(this._modelMatrix);
+            this._mvpMatrix.set(camera.projViewMatrix).multiply(this._modelMatrix);
             this._normalMatrix.setInverseOf(this._modelMatrix);
             this._normalMatrix.transpose();
             this.boundingBox.updateBoundingBox();
@@ -2297,7 +2338,7 @@ var shader;
             this.scale.y = y;
             this.scale.z = z;
             this._modelMatrix.scale(x, y, z);
-            this._mvpMatrix.set(sceneInfo.projViewMatrix).multiply(this._modelMatrix);
+            this._mvpMatrix.set(camera.projViewMatrix).multiply(this._modelMatrix);
             this._normalMatrix.setInverseOf(this._modelMatrix);
             this._normalMatrix.transpose();
             this.boundingBox.updateBoundingBox();
@@ -2319,7 +2360,7 @@ var shader;
             if (z != 0) {
                 this._modelMatrix.rotate(z, 0, 0, 1);
             }
-            this._mvpMatrix.set(sceneInfo.projViewMatrix).multiply(this._modelMatrix);
+            this._mvpMatrix.set(camera.projViewMatrix).multiply(this._modelMatrix);
             this._normalMatrix.setInverseOf(this._modelMatrix);
             this._normalMatrix.transpose();
             this.boundingBox.updateBoundingBox();
@@ -2332,6 +2373,7 @@ var shader;
             return this._modelMatrix;
         };
         NEObject.prototype.getMvpMatrix = function () {
+            this._mvpMatrix.set(camera.projViewMatrix).multiply(this._modelMatrix);
             return this._mvpMatrix;
         };
         NEObject.prototype.getNormalMatrix = function () {
@@ -2524,7 +2566,7 @@ var shader;
                 // Pass the matrix to transform the normal based on the model matrix to u_NormalMatrix
                 GL.uniformMatrix4fv(u_NormalMatrix, false, this.getNormalMatrix().elements);
                 // Draw the cube
-                GL.drawElements(GL.TRIANGLES, this.cube.numIndices, GL.UNSIGNED_BYTE, 0);
+                GL.drawElements(GL.TRIANGLES, this.cube.numIndices, GL.UNSIGNED_SHORT, 0);
             }
         };
         Cube.prototype.getVertex = function () {
@@ -2573,7 +2615,7 @@ var shader;
                 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0
             ]);
             //初始化顶点索引=>按照顶点数组的24个元素来设置,逆时针三角形
-            this.indices = new Uint8Array([
+            this.indices = new Uint16Array([
                 0, 1, 2, 0, 2, 3,
                 4, 5, 6, 4, 6, 7,
                 8, 9, 10, 8, 10, 11,
@@ -2612,7 +2654,7 @@ var shader;
             cubeObj.vertex = this.initArrayBufferForLaterUse(GL, vertices, 3, GL.FLOAT);
             cubeObj.color = this.initArrayBufferForLaterUse(GL, colors, 4, GL.FLOAT);
             cubeObj.normal = this.initArrayBufferForLaterUse(GL, normals, 3, GL.FLOAT);
-            cubeObj.index = this.initElementArrayBufferForLaterUse(GL, indices, GL.UNSIGNED_BYTE);
+            cubeObj.index = this.initElementArrayBufferForLaterUse(GL, indices, GL.UNSIGNED_SHORT);
             if (!cubeObj.vertex || !cubeObj.color || !cubeObj.normal || !cubeObj.index) {
                 console.log("failed to init buffer");
                 return null;
@@ -2747,7 +2789,7 @@ var shader;
                 // Pass the matrix to transform the normal based on the model matrix to u_NormalMatrix
                 GL.uniformMatrix4fv(u_NormalMatrix, false, this.getNormalMatrix().elements);
                 // Draw the Cylinder
-                GL.drawElements(GL.TRIANGLES, this.Cylinder.numIndices, GL.UNSIGNED_BYTE, 0);
+                GL.drawElements(GL.TRIANGLES, this.Cylinder.numIndices, GL.UNSIGNED_SHORT, 0);
             }
         };
         Cylinder.prototype.getVertex = function () {
@@ -2760,8 +2802,8 @@ var shader;
          * 生成单位立方体，位于原点
          */
         Cylinder.prototype.initCylinderInfo = function () {
-            var obp = new OBJParser('./resources/cylinder.obj');
-            obp.readOBJFile('./resources/cylinder.obj', 1, true, function () {
+            var obp = new OBJParser('./resources/1/4.obj');
+            obp.readOBJFile('./resources/1/4.obj', 0.1, true, function () {
                 this.info = obp.getDrawingInfo();
                 this.vertices = this.info.vertices;
                 this.normals = this.info.normals;
@@ -2791,7 +2833,7 @@ var shader;
             CylinderObj.vertex = this.initArrayBufferForLaterUse(GL, vertices, 3, GL.FLOAT);
             CylinderObj.color = this.initArrayBufferForLaterUse(GL, colors, 4, GL.FLOAT);
             CylinderObj.normal = this.initArrayBufferForLaterUse(GL, normals, 3, GL.FLOAT);
-            CylinderObj.index = this.initElementArrayBufferForLaterUse(GL, indices, GL.UNSIGNED_BYTE);
+            CylinderObj.index = this.initElementArrayBufferForLaterUse(GL, indices, GL.UNSIGNED_SHORT);
             if (!CylinderObj.vertex || !CylinderObj.color || !CylinderObj.normal || !CylinderObj.index) {
                 console.log("failed to init buffer");
                 return null;
@@ -2807,6 +2849,7 @@ var shader;
 })(shader || (shader = {}));
 ///<reference path="./core/Engine.ts" />
 ///<reference path="./core/Scene.ts" />
+///<reference path="./core/Camera.ts" />
 ///<reference path="./core/Render.ts" />
 ///<reference path="./lib/RayCaster.ts" />
 ///<reference path="./lib/BoundingBox.ts" />
@@ -2817,6 +2860,7 @@ var shader;
 ///<reference path="../lib/parse-utils/objParse.ts" />
 var Nebula = Core.Nebula;
 var Scene = Core.Scene;
+var Camera = Core.Camera;
 var shaderUtils = Utils.ShaderUtils;
 var Matrix4 = Utils.Matrix4;
 var Vector3 = Utils.Vector3;
@@ -2837,17 +2881,20 @@ var canvas = {
 };
 var ne = new Nebula('canvas', canvas.width, canvas.height); //gl作为全局变量
 GL = ne.GL;
+//场景信息
 var sceneInfo = new Scene(0);
 ne.addScene(sceneInfo);
 ne.setScene(0);
-ne.setPerspectiveCamera(85, 1, 100);
 sceneInfo.initScene();
+//摄像机信息
+var camera = new Camera(85, canvas.width / canvas.height, 1, 100);
+//初始化主控渲染器
 var render = new Render();
-//************ */
+//******************************************* */
 main();
 function main() {
     var Cube = new cube();
-    Cube.setTranslate(3, 0, 0);
+    // Cube.setTranslate(3,0,0);
     var cylinder = new Cylinder();
     cylinder.setParent(Cube);
     Cube.setParent(ne.getScene());
@@ -2859,6 +2906,7 @@ function main() {
     var isDrag = false;
     var lastX = -1;
     var lastY = -1;
+    var testCamera = false;
     ca.onmousedown = function (ev) {
         var x = ev.layerX, y = ev.layerY;
         if (ev.layerX <= canvas.width && ev.layerX >= 0 && ev.layerY >= 0 && ev.layerY <= canvas.height) {
@@ -2870,11 +2918,11 @@ function main() {
         var _mousey = -(ev.layerY / canvas.height) * 2 + 1;
         // console.log(_mousex,_mousey);
         var pointOnCanvasToNear = new Vector4([_mousex, _mousey, -1.0, 1.0]);
-        var positionN = new Matrix4(null).setInverseOf(sceneInfo.projViewMatrix).multiplyVector4(pointOnCanvasToNear);
-        RayCaster1.initCameraRay(0, 0, 14, positionN.elements[0], positionN.elements[1], positionN.elements[2], 100);
+        var positionN = new Matrix4(null).setInverseOf(camera.projViewMatrix).multiplyVector4(pointOnCanvasToNear);
+        RayCaster1.initCameraRay(camera.coordinate.x, camera.coordinate.y, camera.coordinate.z, positionN.elements[0], positionN.elements[1], positionN.elements[2], 100);
         var obj = RayCaster1.intersectObjects(ne.getScene().Child, true);
         console.log(obj);
-        // console.log(positionN);
+        console.log(positionN);
     };
     ca.onmouseup = function (ev) {
         isDrag = false;
@@ -2889,24 +2937,34 @@ function main() {
             var dx = factor * (x - lastX);
             var dy = factor * (y - lastY);
             Cube.boundingBox.updateBoundingBox();
+            if (testCamera) {
+                camera.setCoordinatePoint(-dy / 10, -dx / 10, 14);
+                camera.setPerspectiveCamera(85, canvas.width / canvas.height, 1, 100);
+                lastX = x;
+                lastY = y;
+                return;
+            }
             Cube.setTranslate(-dy / 40, 0, 0);
             // Cube.setRotation(0, dx,0);
-            cylinder.setTranslate(0, -dy / 40, 0);
+            cylinder.setRotation(0, dx, 0);
             // cylinder.setScale(1,Math.max(1,Math.min(2,dx/10)),1)
         }
         lastX = x;
         lastY = y;
     };
-}
-var Core;
-(function (Core) {
-    var Camera = /** @class */ (function () {
-        function Camera() {
+    // ca.onkeydown= function(e){
+    //     console.log(e)
+    // }
+    window.onmousewheel = function (e) {
+        var factor = 0.1;
+        if (e.deltaY < 0) { //zoom in
+            camera.updateGLIFCamera(-factor);
         }
-        return Camera;
-    }());
-    Core.Camera = Camera;
-})(Core || (Core = {}));
+        else { //zoom out
+            camera.updateGLIFCamera(factor);
+        }
+    }; //IE/Opera/Chrome/Safari
+}
 var zero_guard = 0.00001;
 function rayPickLog(val) {
     //return;

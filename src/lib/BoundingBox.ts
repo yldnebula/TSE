@@ -1,7 +1,7 @@
 namespace Lib{
     export class BoundingBox{//包含aabb包围盒和obb包围盒,暂时先实现aabb
         vertices:Float32Array = null;
-        indices:Uint8Array = null;
+        indices:Uint16Array = null;
         target:NEObject = null;
         maxX:number = null;
         maxY:number = null;
@@ -66,7 +66,7 @@ namespace Lib{
                 minX,minY,minZ, maxX,minY,minZ, maxX,minY,maxZ, maxX,minY,maxZ,
                 maxX,minY,minZ, minX,minY,minZ, minX,maxY,minZ, maxX,maxY,minZ//背面
             ])
-            this.indices = new Uint8Array([
+            this.indices = new Uint16Array([
                 0, 1, 2,   0, 2, 3,    // front
                 4, 5, 6,   4, 6, 7,    // right
                 8, 9,10,   8,10,11,    // up

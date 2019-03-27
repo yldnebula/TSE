@@ -44,7 +44,7 @@ namespace shader{
         
         vertices    :Float32Array   = null;
         colors      :Float32Array   = null;
-        indices     :Uint8Array     = null;
+        indices     :Uint16Array     = null;
         normals     :Float32Array   = null;
         gl          :WebGLRenderingContext=null;
         program     :WebGLProgram = null;
@@ -131,7 +131,7 @@ namespace shader{
                 GL.uniformMatrix4fv(u_NormalMatrix, false, this.getNormalMatrix().elements);
         
                 // Draw the Cylinder
-                GL.drawElements(GL.TRIANGLES, this.Cylinder.numIndices, GL.UNSIGNED_BYTE, 0);
+                GL.drawElements(GL.TRIANGLES, this.Cylinder.numIndices, GL.UNSIGNED_SHORT, 0);
             }
         }
         getVertex():string{
@@ -144,8 +144,8 @@ namespace shader{
          * 生成单位立方体，位于原点
          */
         initCylinderInfo(){
-            var obp = new OBJParser('./resources/cylinder.obj');
-            obp.readOBJFile('./resources/cylinder.obj',1,true,function(){
+            var obp = new OBJParser('./resources/1/4.obj');
+            obp.readOBJFile('./resources/1/4.obj',0.1,true,function(){
                 this.info = obp.getDrawingInfo();
                 this.vertices = this.info.vertices;
                 this.normals  = this.info.normals;
@@ -164,7 +164,7 @@ namespace shader{
          * @param program　对应的着色器程序 
          * @param indices 索引矩阵
          */
-        initVertexBuffer(vertices:Float32Array, colors:Float32Array,normals:Float32Array,program:WebGLProgram,indices:Uint8Array){
+        initVertexBuffer(vertices:Float32Array, colors:Float32Array,normals:Float32Array,program:WebGLProgram,indices:Uint16Array){
             var CylinderObj = {
                 vertex:null,
                 color:null,
@@ -175,7 +175,7 @@ namespace shader{
             CylinderObj.vertex = this.initArrayBufferForLaterUse(GL,vertices,3,GL.FLOAT);
             CylinderObj.color  = this.initArrayBufferForLaterUse(GL,colors,4,GL.FLOAT);
             CylinderObj.normal = this.initArrayBufferForLaterUse(GL,normals,3,GL.FLOAT);
-            CylinderObj.index  = this.initElementArrayBufferForLaterUse(GL,indices,GL.UNSIGNED_BYTE);           
+            CylinderObj.index  = this.initElementArrayBufferForLaterUse(GL,indices,GL.UNSIGNED_SHORT);           
             
             if(!CylinderObj.vertex ||!CylinderObj.color||!CylinderObj.normal||!CylinderObj.index){
                 console.log("failed to init buffer");return null;
