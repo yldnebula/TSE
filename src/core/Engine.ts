@@ -4,8 +4,8 @@ namespace Core{
         canvas:HTMLCanvasElement = null;
         projectMatrix:Matrix4    = null;
         eye = {
-            x:6,
-            y:6,
+            x:0,
+            y:0,
             z:14
         };
         center = {

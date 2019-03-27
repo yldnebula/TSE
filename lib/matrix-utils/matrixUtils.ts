@@ -248,7 +248,7 @@ namespace Utils{
          * @param fovy 视锥体上下两侧的角度
          * @param aspect 视锥体的横纵比，使用canvas.width/canvas.height
          * @param near 视点到近剪裁面的距离，为正值
-         * @param far 视点到源建材面的距离，为正值
+         * @param far 视点到远剪裁面的距离，为正值
          */
         setPerspective(fovy:number, aspect:number, near:number, far:number){
             var e:Float32Array, rd:number, s:number, ct:number;
@@ -573,6 +573,36 @@ namespace Utils{
              g = 1/g;
              v[0] = c*g; v[1] = d*g; v[2] = e*g;
              return this;
+        }
+        /**
+         * 三维向量乘以一个数
+         */
+        mutiply(m:number){
+          var v = this.elements;
+          v[0]*=m;
+          v[1]*=m;
+          v[2]*=m;
+          return this;
+        }
+        /**
+         * 三维向量减去另一个三维向量
+         */
+        minus(m:Vector3){
+          var v = this.elements;
+          v[0]-=m[0];
+          v[1]-=m[1];
+          v[2]-=m[2];
+          return this;
+        }
+        /**
+         * 三维向量加上另一个三维向量
+         */
+        add(m:Vector3){
+          var v = this.elements;
+          v[0]+=m[0];
+          v[1]+=m[1];
+          v[2]+=m[2];
+          return this;
         }
     }
     /**

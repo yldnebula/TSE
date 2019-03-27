@@ -66,6 +66,7 @@ namespace shader{
         public name  = '';
         public Child = [];
         public parent:NEObject | Scene = null;
+        public boundingBox:BoundingBox = null;
         constructor(){
             
             this.onLoad();
@@ -142,6 +143,8 @@ namespace shader{
             this._normalMatrix.setInverseOf(this._modelMatrix);
             this._normalMatrix.transpose();
 
+            this.boundingBox.updateBoundingBox();
+
             for(var child of this.Child){
                 child.setTranslate(x,y,z)
             }
@@ -155,6 +158,9 @@ namespace shader{
             this._mvpMatrix.set(sceneInfo.projViewMatrix).multiply(this._modelMatrix);
             this._normalMatrix.setInverseOf(this._modelMatrix);
             this._normalMatrix.transpose();
+
+            this.boundingBox.updateBoundingBox();
+
             for(var child of this.Child){
                 child.setScale(x,y,z)
             }
@@ -175,6 +181,9 @@ namespace shader{
             this._mvpMatrix.set(sceneInfo.projViewMatrix).multiply(this._modelMatrix);
             this._normalMatrix.setInverseOf(this._modelMatrix);
             this._normalMatrix.transpose();
+
+            this.boundingBox.updateBoundingBox();
+
             for(var child of this.Child){
                 child.setRotation(x,y,z)
             }

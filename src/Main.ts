@@ -38,7 +38,7 @@ var sceneInfo = new Scene(0);
 ne.addScene(sceneInfo);
 ne.setScene(0);
 
-ne.setPerspectiveCamera(30,1,100);
+ne.setPerspectiveCamera(85,1,100);
 sceneInfo.initScene();
 
 var render = new Render();
@@ -47,11 +47,12 @@ main();
 function main(){
     var Cube = new cube(); 
     Cube.setTranslate(3,0,0);
+    
     var cylinder = new Cylinder();
 
 
-    cylinder.setParent(ne.getScene());
-    Cube.setParent(cylinder);
+    cylinder.setParent(Cube);
+    Cube.setParent(ne.getScene());
 
     render.render(sceneInfo);
 
@@ -59,14 +60,13 @@ function main(){
     render.main();
 
     var RayCaster1 = new RayCaster();
-    var bb = new BoundingBox(Cube);
+
     var ca = document.getElementById('canvas');
 
     var isDrag:boolean = false;
     var lastX:number = -1;
     var lastY:number = -1;
-    var currentAngle:number[] = [0.0, 0.0];
-    var isPick = 0;
+
     ca.onmousedown=function(ev){
         var x = ev.layerX,y = ev.layerY;
         if(ev.layerX <= canvas.width && ev.layerX >= 0 && ev.layerY >=0 && ev.layerY <=canvas.height){
@@ -78,16 +78,14 @@ function main(){
         var _mousex = ( ev.layerX / canvas.width ) * 2 - 1;
         var _mousey = - ( ev.layerY / canvas.height ) * 2 + 1;
         // console.log(_mousex,_mousey);
-        var pointOnCanvasE = new Vector4([_mousex,_mousey,-1.0,1.0]);
-        var pointOnCanvasF = new Vector4([_mousex,_mousey,1.0,1.0]);
-        var position1 = new Matrix4(null).setInverseOf(sceneInfo.projViewMatrix).multiplyVector4(pointOnCanvasE);
-        var position2 = new Matrix4(null).setInverseOf(sceneInfo.projViewMatrix).multiplyVector4(pointOnCanvasF);
+        var pointOnCanvasToNear = new Vector4([_mousex,_mousey,-1.0,1.0]);
+        var positionN = new Matrix4(null).setInverseOf(sceneInfo.projViewMatrix).multiplyVector4(pointOnCanvasToNear);
+        RayCaster1.initCameraRay(0,0,14,positionN.elements[0],positionN.elements[1],positionN.elements[2],100);
         var obj =RayCaster1.intersectObjects(ne.getScene().Child,true);
         console.log(obj)
-        console.log(position1,position2);
+        // console.log(positionN);
     }
     ca.onmouseup=function(ev){
-        var x = ev.clientX,y = ev.clientY;
         isDrag = false;
     }
     ca.onmousemove=function(ev){
@@ -99,7 +97,9 @@ function main(){
             var factor = 300/canvas.height;
             var dx = factor*(x - lastX);
             var dy = factor*(y - lastY);
-            Cube.setRotation(0, dx,0);
+            Cube.boundingBox.updateBoundingBox();
+            Cube.setTranslate(-dy/40, 0,0);
+            // Cube.setRotation(0, dx,0);
             cylinder.setTranslate(0, -dy/40,0);
             // cylinder.setScale(1,Math.max(1,Math.min(2,dx/10)),1)
         }

@@ -73,6 +73,7 @@ namespace shader{
             }
             this.program = obj.program;
             this.initCubeInfo();
+
         }
         /**
          * 生命周期函数
@@ -190,13 +191,15 @@ namespace shader{
                 20,21,22,  20,22,23     // back
             ]);
             var obp = new OBJParser('./resources/cube.obj');
-            obp.readOBJFile('./resources/cube.obj',0.5,true,function(){
+            obp.readOBJFile('./resources/cube.obj',1,true,function(){
                 this.info = obp.getDrawingInfo();
                 this.vertices = this.info.vertices;
                 this.normals  = this.info.normals;
                 this.colors   = this.info.colors;
                 this.indices  = this.info.indices;
                 this.cube = this.initVertexBuffer(this.vertices,this.colors,this.normals,this.program,this.indices);  
+                
+                this.boundingBox = new BoundingBox(this);
                 // console.log(this.info);
             }.bind(this));
         }

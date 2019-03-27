@@ -1,33 +1,34 @@
 namespace Lib{
     export class RayCaster{
-
+        start:number[] = null;
+        end:number[] = null;
         constructor(){//start:Vector4, end:Vector4, near:number, far:number
 
         }
         test2(){
-            const pA = new Vector4(null);
-            const pB = new Vector4(null);
-            const pC = new Vector4(null);
-            const endA = new Vector4(null);
-            const endB = new Vector4(null);
-            const out = new Vector4(null);
+            const pA = [];
+            const pB = [];
+            const pC = [];
+            const endA = [];
+            const endB = [];
+            const out = [];
 
-            pA[0] = 2;
+            pA[0] = 0;
             pA[1] = 0;
-            pA[2] = 1;
-
+            pA[2] = 0;
+            
             pB[0] = 2;
             pB[1] = 0;
             pB[2] = 2;
-
+            
             pC[0] = 0;
             pC[1] = 2;
             pC[2] = 2;
-
+            
             endA[0] = 0;
             endA[1] = 0;
             endA[2] = 2;
-
+            
             endB[0] = 2;
             endB[1] = 2;
             endB[2] = 0;
@@ -40,13 +41,45 @@ namespace Lib{
             return out;
         }
         /**
+         * 初始化射线,可以通过摄像机位置和屏幕触点，或者任意射线都可以
+         */
+        initCameraRay(sx,sy,sz,ex,ey,ez,far){
+            var nNear = [];
+            nNear[0] = (ex-sx)*far+sx;
+            nNear[1] = (ey-sy)*far+sy;
+            nNear[2] = (ez-sz)*far+sz;
+            this.start = [sx,sy,sz];
+            this.end = nNear;
+        }
+        /**
          * 射线相交的物体
          * @param objects 检查的物体
          * @param testChild 是否检查子物体
          */
         intersectObjects(objects:NEObject[], testChild:boolean):NEObject[]{
-            var ret:NEObject[];
-            
+            this.test2();
+            var ret:NEObject[] = [];
+            var out = [];
+            for(var i = 0; i < objects.length;i++){
+                console.log("***********************name:"+objects[i].name);
+                var triArr = objects[i].boundingBox.generateTestTriangle();
+                for(var tri of triArr){
+                    if(this.intersectSurfaceLine(tri[0].elements,tri[1].elements,tri[2].elements,this.start,this.end,out)){
+                        ret.push(objects[i]);
+                        break;
+                    }
+                }
+                if(testChild){
+                    var length = objects[i].Child.length;
+                    if(length>0){
+                        var childObj = this.intersectObjects.bind(this)(objects[i].Child,true);//递归检测\
+                        for(var child of childObj){
+                            ret.push(child);
+                        }
+                    }
+                }
+            }
+            // console.log(ret);
             return ret;
         }
         /**
@@ -58,13 +91,13 @@ namespace Lib{
          * @param endB 线段b点
          * @param out 交点，如果有
          */
-        intersectSurfaceLine(pA:Vector4, pB:Vector4, pC:Vector4, endA:Vector4, endB:Vector4, out:Vector4):boolean{
+        intersectSurfaceLine(pA, pB, pC, endA, endB, out):boolean{
             var ret = false;
-            const surfaceNornal = new Vector4(null);
-            const side0 = new Vector4(null);
-            const side1 = new Vector4(null);
+            const surfaceNornal = [];
+            const side0 = [];
+            const side1 = [];
             
-            const nLine = new Vector4(null);
+            const nLine = [];
 
             this.getNormal(pA, pB, side0);
             this.getNormal(pA, pC, side1);
@@ -121,7 +154,7 @@ namespace Lib{
             out[1] = pB[1] - pA[1];
             out[2] = pB[2] - pA[2];
         }
-        getBaseScale(nAB:Vector4){
+        getBaseScale(nAB){
             //找到不为0的偏量
             var baseScale = null;  //0 for x; 1 for y, 2 for z;
             while(1) {
@@ -300,10 +333,10 @@ namespace Lib{
             return ret;
         }
         xyPointInSurface2D(pA, pB, pC, p){
-            var pointA = new Vector4(null);
-            var pointB = new Vector4(null);
-            var pointC = new Vector4(null);
-            var point  = new Vector4(null);
+            var pointA = [];
+            var pointB = [];
+            var pointC = [];
+            var point  = [];
             
             pointA[0] = pA[0];
             pointA[1] = pA[1];
@@ -320,10 +353,10 @@ namespace Lib{
             return this.pointInSurface2D(pointA, pointB, pointC, point);
         }
         yzPointInSurface2D(pA, pB, pC, p){
-            var pointA = new Vector4(null);
-            var pointB = new Vector4(null);
-            var pointC = new Vector4(null);
-            var point  = new Vector4(null);
+            var pointA = [];
+            var pointB = [];
+            var pointC = [];
+            var point  = [];
             
             pointA[0] = pA[1];
             pointA[1] = pA[2];
@@ -341,10 +374,10 @@ namespace Lib{
         }
 
         xzPointInSurface2D(pA, pB, pC, p){
-            var pointA = new Vector4(null);
-            var pointB = new Vector4(null);
-            var pointC = new Vector4(null);
-            var point  = new Vector4(null);
+            var pointA = [];
+            var pointB = [];
+            var pointC = [];
+            var point  = [];
             
             pointA[0] = pA[0];
             pointA[1] = pA[2];
@@ -366,9 +399,9 @@ namespace Lib{
             this.rayPickLog("pointInSurface2D pC:" + pC);
             this.rayPickLog("pointInSurface2D p:" + p);
             
-            var AB = new Vector4(null);
-            var AC = new Vector4(null);
-            var AP = new Vector4(null);
+            var AB = [];
+            var AC = [];
+            var AP = [];
             var k = 0;
             var t = 0;
             

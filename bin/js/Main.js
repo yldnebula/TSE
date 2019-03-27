@@ -255,7 +255,7 @@ var Utils;
          * @param fovy 视锥体上下两侧的角度
          * @param aspect 视锥体的横纵比，使用canvas.width/canvas.height
          * @param near 视点到近剪裁面的距离，为正值
-         * @param far 视点到源建材面的距离，为正值
+         * @param far 视点到远剪裁面的距离，为正值
          */
         Matrix4.prototype.setPerspective = function (fovy, aspect, near, far) {
             var e, rd, s, ct;
@@ -621,6 +621,36 @@ var Utils;
             v[0] = c * g;
             v[1] = d * g;
             v[2] = e * g;
+            return this;
+        };
+        /**
+         * 三维向量乘以一个数
+         */
+        Vector3.prototype.mutiply = function (m) {
+            var v = this.elements;
+            v[0] *= m;
+            v[1] *= m;
+            v[2] *= m;
+            return this;
+        };
+        /**
+         * 三维向量减去另一个三维向量
+         */
+        Vector3.prototype.minus = function (m) {
+            var v = this.elements;
+            v[0] -= m[0];
+            v[1] -= m[1];
+            v[2] -= m[2];
+            return this;
+        };
+        /**
+         * 三维向量加上另一个三维向量
+         */
+        Vector3.prototype.add = function (m) {
+            var v = this.elements;
+            v[0] += m[0];
+            v[1] += m[1];
+            v[2] += m[2];
             return this;
         };
         return Vector3;
@@ -1276,8 +1306,8 @@ var Core;
             this.canvas = null;
             this.projectMatrix = null;
             this.eye = {
-                x: 6,
-                y: 6,
+                x: 0,
+                y: 0,
                 z: 14
             };
             this.center = {
@@ -1562,17 +1592,19 @@ var Lib;
 (function (Lib) {
     var RayCaster = /** @class */ (function () {
         function RayCaster() {
+            this.start = null;
+            this.end = null;
         }
         RayCaster.prototype.test2 = function () {
-            var pA = new Vector4(null);
-            var pB = new Vector4(null);
-            var pC = new Vector4(null);
-            var endA = new Vector4(null);
-            var endB = new Vector4(null);
-            var out = new Vector4(null);
-            pA[0] = 2;
+            var pA = [];
+            var pB = [];
+            var pC = [];
+            var endA = [];
+            var endB = [];
+            var out = [];
+            pA[0] = 0;
             pA[1] = 0;
-            pA[2] = 1;
+            pA[2] = 0;
             pB[0] = 2;
             pB[1] = 0;
             pB[2] = 2;
@@ -1594,12 +1626,47 @@ var Lib;
             return out;
         };
         /**
+         * 初始化射线,可以通过摄像机位置和屏幕触点，或者任意射线都可以
+         */
+        RayCaster.prototype.initCameraRay = function (sx, sy, sz, ex, ey, ez, far) {
+            var nNear = [];
+            nNear[0] = (ex - sx) * far + sx;
+            nNear[1] = (ey - sy) * far + sy;
+            nNear[2] = (ez - sz) * far + sz;
+            this.start = [sx, sy, sz];
+            this.end = nNear;
+        };
+        /**
          * 射线相交的物体
          * @param objects 检查的物体
          * @param testChild 是否检查子物体
          */
         RayCaster.prototype.intersectObjects = function (objects, testChild) {
-            var ret;
+            this.test2();
+            var ret = [];
+            var out = [];
+            for (var i = 0; i < objects.length; i++) {
+                console.log("***********************name:" + objects[i].name);
+                var triArr = objects[i].boundingBox.generateTestTriangle();
+                for (var _i = 0, triArr_1 = triArr; _i < triArr_1.length; _i++) {
+                    var tri = triArr_1[_i];
+                    if (this.intersectSurfaceLine(tri[0].elements, tri[1].elements, tri[2].elements, this.start, this.end, out)) {
+                        ret.push(objects[i]);
+                        break;
+                    }
+                }
+                if (testChild) {
+                    var length = objects[i].Child.length;
+                    if (length > 0) {
+                        var childObj = this.intersectObjects.bind(this)(objects[i].Child, true); //递归检测\
+                        for (var _a = 0, childObj_1 = childObj; _a < childObj_1.length; _a++) {
+                            var child = childObj_1[_a];
+                            ret.push(child);
+                        }
+                    }
+                }
+            }
+            // console.log(ret);
             return ret;
         };
         /**
@@ -1613,10 +1680,10 @@ var Lib;
          */
         RayCaster.prototype.intersectSurfaceLine = function (pA, pB, pC, endA, endB, out) {
             var ret = false;
-            var surfaceNornal = new Vector4(null);
-            var side0 = new Vector4(null);
-            var side1 = new Vector4(null);
-            var nLine = new Vector4(null);
+            var surfaceNornal = [];
+            var side0 = [];
+            var side1 = [];
+            var nLine = [];
             this.getNormal(pA, pB, side0);
             this.getNormal(pA, pC, side1);
             this.cross(surfaceNornal, side0, side1);
@@ -1809,10 +1876,10 @@ var Lib;
             return ret;
         };
         RayCaster.prototype.xyPointInSurface2D = function (pA, pB, pC, p) {
-            var pointA = new Vector4(null);
-            var pointB = new Vector4(null);
-            var pointC = new Vector4(null);
-            var point = new Vector4(null);
+            var pointA = [];
+            var pointB = [];
+            var pointC = [];
+            var point = [];
             pointA[0] = pA[0];
             pointA[1] = pA[1];
             pointB[0] = pB[0];
@@ -1824,10 +1891,10 @@ var Lib;
             return this.pointInSurface2D(pointA, pointB, pointC, point);
         };
         RayCaster.prototype.yzPointInSurface2D = function (pA, pB, pC, p) {
-            var pointA = new Vector4(null);
-            var pointB = new Vector4(null);
-            var pointC = new Vector4(null);
-            var point = new Vector4(null);
+            var pointA = [];
+            var pointB = [];
+            var pointC = [];
+            var point = [];
             pointA[0] = pA[1];
             pointA[1] = pA[2];
             pointB[0] = pB[1];
@@ -1839,10 +1906,10 @@ var Lib;
             return this.pointInSurface2D(pointA, pointB, pointC, point);
         };
         RayCaster.prototype.xzPointInSurface2D = function (pA, pB, pC, p) {
-            var pointA = new Vector4(null);
-            var pointB = new Vector4(null);
-            var pointC = new Vector4(null);
-            var point = new Vector4(null);
+            var pointA = [];
+            var pointB = [];
+            var pointC = [];
+            var point = [];
             pointA[0] = pA[0];
             pointA[1] = pA[2];
             pointB[0] = pB[0];
@@ -1858,9 +1925,9 @@ var Lib;
             this.rayPickLog("pointInSurface2D pB:" + pB);
             this.rayPickLog("pointInSurface2D pC:" + pC);
             this.rayPickLog("pointInSurface2D p:" + p);
-            var AB = new Vector4(null);
-            var AC = new Vector4(null);
-            var AP = new Vector4(null);
+            var AB = [];
+            var AC = [];
+            var AP = [];
             var k = 0;
             var t = 0;
             AB[0] = pB[0] - pA[0];
@@ -1980,13 +2047,16 @@ var Lib;
             this.minY = null;
             this.minZ = null;
             this.target = object;
-            this.handleObject();
+            this.handleObject(this.target.vertices);
             this.setVertices(this.maxX, this.minX, this.maxY, this.minY, this.maxZ, this.minZ);
-            this.generateTestTriangle();
+            this.updateBoundingBox();
         }
-        BoundingBox.prototype.handleObject = function () {
+        BoundingBox.prototype.updateBoundingBox = function () {
+            this.generateTestTriangle();
+        };
+        BoundingBox.prototype.handleObject = function (vertices) {
             var flag = 0; //0-x,1-y,2-z(三维坐标)
-            var vertices = this.target.vertices;
+            var vertices = vertices;
             for (var i = 0; i < vertices.length; i++) {
                 if (flag == 0) {
                     if (this.maxX == null)
@@ -2052,24 +2122,28 @@ var Lib;
         };
         BoundingBox.prototype.generateTestTriangle = function () {
             var ret = [];
+            var modelMatrix = this.target.getModelMatrix();
             var vertices = this.vertices;
             var indices = this.indices;
             for (var i = 0; i < indices.length; i += 3) {
-                ret.push([new Vector3([
+                ret.push([modelMatrix.multiplyVector4(new Vector4([
                         vertices[indices[i] * 3 + 0],
                         vertices[indices[i] * 3 + 1],
                         vertices[indices[i] * 3 + 2],
-                    ]), new Vector3([
+                        1,
+                    ])), modelMatrix.multiplyVector4(new Vector4([
                         vertices[(indices[i + 1]) * 3 + 0],
                         vertices[(indices[i + 1]) * 3 + 1],
                         vertices[(indices[i + 1]) * 3 + 2],
-                    ]), new Vector3([
+                        1
+                    ])), modelMatrix.multiplyVector4(new Vector4([
                         vertices[(indices[i + 2]) * 3 + 0],
                         vertices[(indices[i + 2]) * 3 + 1],
                         vertices[(indices[i + 2]) * 3 + 2],
-                    ])]);
+                        1
+                    ]))]);
             }
-            console.log(ret);
+            // console.log(ret)
             return ret;
         };
         return BoundingBox;
@@ -2144,6 +2218,7 @@ var shader;
             this.name = '';
             this.Child = [];
             this.parent = null;
+            this.boundingBox = null;
             this.onLoad();
             this.onStart();
             // var nowScene = ne.getScene();
@@ -2211,6 +2286,7 @@ var shader;
             this._mvpMatrix.set(sceneInfo.projViewMatrix).multiply(this._modelMatrix);
             this._normalMatrix.setInverseOf(this._modelMatrix);
             this._normalMatrix.transpose();
+            this.boundingBox.updateBoundingBox();
             for (var _i = 0, _a = this.Child; _i < _a.length; _i++) {
                 var child = _a[_i];
                 child.setTranslate(x, y, z);
@@ -2224,6 +2300,7 @@ var shader;
             this._mvpMatrix.set(sceneInfo.projViewMatrix).multiply(this._modelMatrix);
             this._normalMatrix.setInverseOf(this._modelMatrix);
             this._normalMatrix.transpose();
+            this.boundingBox.updateBoundingBox();
             for (var _i = 0, _a = this.Child; _i < _a.length; _i++) {
                 var child = _a[_i];
                 child.setScale(x, y, z);
@@ -2245,6 +2322,7 @@ var shader;
             this._mvpMatrix.set(sceneInfo.projViewMatrix).multiply(this._modelMatrix);
             this._normalMatrix.setInverseOf(this._modelMatrix);
             this._normalMatrix.transpose();
+            this.boundingBox.updateBoundingBox();
             for (var _i = 0, _a = this.Child; _i < _a.length; _i++) {
                 var child = _a[_i];
                 child.setRotation(x, y, z);
@@ -2504,13 +2582,14 @@ var shader;
                 20, 21, 22, 20, 22, 23 // back
             ]);
             var obp = new OBJParser('./resources/cube.obj');
-            obp.readOBJFile('./resources/cube.obj', 0.5, true, function () {
+            obp.readOBJFile('./resources/cube.obj', 1, true, function () {
                 this.info = obp.getDrawingInfo();
                 this.vertices = this.info.vertices;
                 this.normals = this.info.normals;
                 this.colors = this.info.colors;
                 this.indices = this.info.indices;
                 this.cube = this.initVertexBuffer(this.vertices, this.colors, this.normals, this.program, this.indices);
+                this.boundingBox = new BoundingBox(this);
                 // console.log(this.info);
             }.bind(this));
         };
@@ -2689,6 +2768,7 @@ var shader;
                 this.colors = this.info.colors;
                 this.indices = this.info.indices;
                 this.Cylinder = this.initVertexBuffer(this.vertices, this.colors, this.normals, this.program, this.indices);
+                this.boundingBox = new BoundingBox(this);
                 // console.log(this.Cylinder);
             }.bind(this));
         };
@@ -2760,7 +2840,7 @@ GL = ne.GL;
 var sceneInfo = new Scene(0);
 ne.addScene(sceneInfo);
 ne.setScene(0);
-ne.setPerspectiveCamera(30, 1, 100);
+ne.setPerspectiveCamera(85, 1, 100);
 sceneInfo.initScene();
 var render = new Render();
 //************ */
@@ -2769,19 +2849,16 @@ function main() {
     var Cube = new cube();
     Cube.setTranslate(3, 0, 0);
     var cylinder = new Cylinder();
-    cylinder.setParent(ne.getScene());
-    Cube.setParent(cylinder);
+    cylinder.setParent(Cube);
+    Cube.setParent(ne.getScene());
     render.render(sceneInfo);
     render.stopped = false; //将来可以改变为资源加载完成后自动改为false，开始update
     render.main();
     var RayCaster1 = new RayCaster();
-    var bb = new BoundingBox(Cube);
     var ca = document.getElementById('canvas');
     var isDrag = false;
     var lastX = -1;
     var lastY = -1;
-    var currentAngle = [0.0, 0.0];
-    var isPick = 0;
     ca.onmousedown = function (ev) {
         var x = ev.layerX, y = ev.layerY;
         if (ev.layerX <= canvas.width && ev.layerX >= 0 && ev.layerY >= 0 && ev.layerY <= canvas.height) {
@@ -2792,16 +2869,14 @@ function main() {
         var _mousex = (ev.layerX / canvas.width) * 2 - 1;
         var _mousey = -(ev.layerY / canvas.height) * 2 + 1;
         // console.log(_mousex,_mousey);
-        var pointOnCanvasE = new Vector4([_mousex, _mousey, -1.0, 1.0]);
-        var pointOnCanvasF = new Vector4([_mousex, _mousey, 1.0, 1.0]);
-        var position1 = new Matrix4(null).setInverseOf(sceneInfo.projViewMatrix).multiplyVector4(pointOnCanvasE);
-        var position2 = new Matrix4(null).setInverseOf(sceneInfo.projViewMatrix).multiplyVector4(pointOnCanvasF);
+        var pointOnCanvasToNear = new Vector4([_mousex, _mousey, -1.0, 1.0]);
+        var positionN = new Matrix4(null).setInverseOf(sceneInfo.projViewMatrix).multiplyVector4(pointOnCanvasToNear);
+        RayCaster1.initCameraRay(0, 0, 14, positionN.elements[0], positionN.elements[1], positionN.elements[2], 100);
         var obj = RayCaster1.intersectObjects(ne.getScene().Child, true);
         console.log(obj);
-        console.log(position1, position2);
+        // console.log(positionN);
     };
     ca.onmouseup = function (ev) {
-        var x = ev.clientX, y = ev.clientY;
         isDrag = false;
     };
     ca.onmousemove = function (ev) {
@@ -2813,7 +2888,9 @@ function main() {
             var factor = 300 / canvas.height;
             var dx = factor * (x - lastX);
             var dy = factor * (y - lastY);
-            Cube.setRotation(0, dx, 0);
+            Cube.boundingBox.updateBoundingBox();
+            Cube.setTranslate(-dy / 40, 0, 0);
+            // Cube.setRotation(0, dx,0);
             cylinder.setTranslate(0, -dy / 40, 0);
             // cylinder.setScale(1,Math.max(1,Math.min(2,dx/10)),1)
         }

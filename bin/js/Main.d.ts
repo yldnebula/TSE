@@ -58,7 +58,7 @@ declare namespace Utils {
          * @param fovy 视锥体上下两侧的角度
          * @param aspect 视锥体的横纵比，使用canvas.width/canvas.height
          * @param near 视点到近剪裁面的距离，为正值
-         * @param far 视点到源建材面的距离，为正值
+         * @param far 视点到远剪裁面的距离，为正值
          */
         setPerspective(fovy: number, aspect: number, near: number, far: number): this;
         /**
@@ -124,6 +124,18 @@ declare namespace Utils {
          * 标准化三维向量
          */
         normalize(): this;
+        /**
+         * 三维向量乘以一个数
+         */
+        mutiply(m: number): this;
+        /**
+         * 三维向量减去另一个三维向量
+         */
+        minus(m: Vector3): this;
+        /**
+         * 三维向量加上另一个三维向量
+         */
+        add(m: Vector3): this;
     }
     /**
      * 四维向量类
@@ -417,8 +429,14 @@ declare namespace Core {
 }
 declare namespace Lib {
     class RayCaster {
+        start: number[];
+        end: number[];
         constructor();
-        test2(): Vector4;
+        test2(): any[];
+        /**
+         * 初始化射线,可以通过摄像机位置和屏幕触点，或者任意射线都可以
+         */
+        initCameraRay(sx: any, sy: any, sz: any, ex: any, ey: any, ez: any, far: any): void;
         /**
          * 射线相交的物体
          * @param objects 检查的物体
@@ -434,7 +452,7 @@ declare namespace Lib {
          * @param endB 线段b点
          * @param out 交点，如果有
          */
-        intersectSurfaceLine(pA: Vector4, pB: Vector4, pC: Vector4, endA: Vector4, endB: Vector4, out: Vector4): boolean;
+        intersectSurfaceLine(pA: any, pB: any, pC: any, endA: any, endB: any, out: any): boolean;
         /**
          * 获取法向量
          * @param pA a点
@@ -442,7 +460,7 @@ declare namespace Lib {
          * @param out 计算后的法向量
          */
         getNormal(pA: any, pB: any, out: any): void;
-        getBaseScale(nAB: Vector4): any;
+        getBaseScale(nAB: any): any;
         intersect(nSurface: any, point: any, nLine: any, linePoint: any, baseScale: any, out: any): boolean;
         xBaseInsect(nSurface: any, point: any, nLine: any, linePoint: any, out: any): boolean;
         yBaseInsect(nSurface: any, point: any, nLine: any, linePoint: any, out: any): boolean;
@@ -468,7 +486,8 @@ declare namespace Lib {
         minY: number;
         minZ: number;
         constructor(object: NEObject);
-        handleObject(): void;
+        updateBoundingBox(): void;
+        handleObject(vertices: any): void;
         setVertices(maxX: any, minX: any, maxY: any, minY: any, maxZ: any, minZ: any): void;
         generateTestTriangle(): any[];
     }
@@ -502,6 +521,7 @@ declare namespace shader {
         name: string;
         Child: any[];
         parent: NEObject | Scene;
+        boundingBox: BoundingBox;
         constructor();
         onLoad(): void;
         onStart(): void;

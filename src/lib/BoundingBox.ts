@@ -11,13 +11,16 @@ namespace Lib{
         minZ:number = null;
         constructor(object:NEObject){
             this.target = object;
-            this.handleObject();
+            this.handleObject(this.target.vertices);
             this.setVertices(this.maxX,this.minX,this.maxY,this.minY,this.maxZ,this.minZ);
+            this.updateBoundingBox();
+        }
+        updateBoundingBox(){
             this.generateTestTriangle();
         }
-        handleObject(){
+        handleObject(vertices){
             var flag = 0;//0-x,1-y,2-z(三维坐标)
-            var vertices = this.target.vertices;
+            var vertices = vertices;
             for(var i = 0; i < vertices.length; i++){
                 if(flag == 0){
                     if(this.maxX == null)this.maxX = vertices[i];
@@ -75,24 +78,28 @@ namespace Lib{
         }
         generateTestTriangle(){
             var ret = [];
+            var modelMatrix = this.target.getModelMatrix();
             var vertices = this.vertices;
             var indices = this.indices;
             for(var i = 0; i < indices.length; i+=3){
-                ret.push([new Vector3([
+                ret.push([modelMatrix.multiplyVector4(new Vector4([
                     vertices[indices[i]*3+0],
                     vertices[indices[i]*3+1],
                     vertices[indices[i]*3+2],
-                ]),new Vector3([
+                    1,
+                ])),modelMatrix.multiplyVector4(new Vector4([
                     vertices[(indices[i+1])*3+0],
                     vertices[(indices[i+1])*3+1],
                     vertices[(indices[i+1])*3+2],
-                ]),new Vector3([
+                    1
+                ])),modelMatrix.multiplyVector4(new Vector4([
                     vertices[(indices[i+2])*3+0],
                     vertices[(indices[i+2])*3+1],
                     vertices[(indices[i+2])*3+2],
-                ])])
+                    1
+                ]))])
             }
-            console.log(ret);
+            // console.log(ret)
             return ret;
         }
     }
