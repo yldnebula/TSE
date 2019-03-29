@@ -1,7 +1,7 @@
 namespace Core{
     export class Camera{
         coordinate={
-            x:0,y:8,z:14
+            x:0,y:0,z:14
         };
         center={
             x:0,y:0,z:0

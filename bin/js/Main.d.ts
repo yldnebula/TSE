@@ -146,6 +146,53 @@ declare namespace Utils {
     }
 }
 declare namespace Utils {
+    class GLIFParser {
+        startPoint: number[];
+        IWD: number;
+        Node: any;
+        constructor();
+        readGilfFile(fileName: any, callback: any): void;
+        onReadFile(fileString: any): void;
+        parse(fileString: string): boolean;
+        /**
+         * 解析弯单元信息
+         */
+        parseBentUnitInfo(line: string[]): void;
+        /**
+         * 解析空间起始位置
+         */
+        parseStartPoint(line: string[]): void;
+        /**
+         * 从第一个10开始的所有空间节点数据
+         */
+        parse3DInfo(nodeInfo: string[][]): any[];
+        /**
+         * 判定当前行是否是节点内的内容，60,61可以出现在节点内
+         */
+        isNodeInfo(nowLine: string[]): boolean;
+        /**
+         * 10开头的一段数据,希望参数为整段数据,或者为260,70,90开头的数据
+         * 10,7,8,81
+                1,1,1,0.000,-0.441,-0.066
+                0,1,1,0.457,81.494,1
+                1,1,1,0.000,0.000,-2.618
+                4,1,1,0.000,0.000,-0.500,477.9,0.000
+                1,1,1,0.000,0.000,-0.700
+         *　例子
+         */
+        parseNode(lines: string[][]): void;
+        /**
+         * 60,61开头的一段数据
+         */
+        parsePipeInfo(line: string[]): void;
+        /**
+         * 自定义输出
+         * @param val
+         */
+        parseLog(val: any): void;
+    }
+}
+declare namespace Utils {
     class ObjParser {
         fileName: any;
         mtls: any;
@@ -545,6 +592,8 @@ declare namespace shader {
         private _modelMatrix;
         private _mvpMatrix;
         private _normalMatrix;
+        program: WebGLProgram;
+        OBJInfo: any;
         vertices: any;
         name: string;
         Child: any[];
@@ -557,7 +606,7 @@ declare namespace shader {
          * 帧刷新函数，每帧调用
          */
         onUpdate(dt: number): void;
-        _draw(): void;
+        _draw(program: any, OBJ: any): void;
         _loop(dt: any): void;
         onDestroy(): void;
         /**
@@ -573,9 +622,11 @@ declare namespace shader {
         /**
          * 模型变换函数
          */
+        setPosition(x: number, y: number, z: number): void;
+        setRotation(x: number, y: number, z: number): void;
         setTranslate(x: number, y: number, z: number): void;
         setScale(x: number, y: number, z: number): void;
-        setRotation(x: number, y: number, z: number): void;
+        Rotate(x: number, y: number, z: number): void;
         getModelMatrix(): Matrix4;
         getMvpMatrix(): Matrix4;
         getNormalMatrix(): Matrix4;
@@ -610,6 +661,23 @@ declare namespace shader {
          * @param buffer 缓冲区数据
          */
         initAttributeVariable(gl: WebGLRenderingContext, a_attribute: any, bufferObj: any): void;
+        /**
+         * 初始化obj数据，全局只需绑定一次
+         * @param vertices 顶点矩阵
+         * @param colors 颜色矩阵
+         * @param normals 法向量矩阵
+         * @param program　对应的着色器程序
+         * @param indices 索引矩阵
+         */
+        initVertexBuffer(vertices: Float32Array, colors: Float32Array, normals: Float32Array, indices: Uint16Array): {
+            vertex: any;
+            color: any;
+            normal: any;
+            index: any;
+            numIndices: any;
+        };
+        initShader(target: any): void;
+        initOBJInfo(target: any, path: any): void;
     }
 }
 declare namespace shader {
@@ -643,21 +711,63 @@ declare namespace shader {
          * 生成单位立方体，位于原点
          */
         initCubeInfo(): void;
+    }
+}
+declare namespace shader {
+    interface ISIE {
+        IS: number;
+        IE: number;
+    }
+    /**
+     * 4弯头
+     * 3三通
+     * 2阀门
+     * 1管道
+     */
+    class Pipe extends NEObject implements ISIE {
+        IS: number;
+        IE: number;
+        position: Vector3;
+        direct: Vector3;
+        length: number;
+        constructor();
+        onLoad(): void;
         /**
-         * 初始化obj数据，全局只需绑定一次
-         * @param vertices 顶点矩阵
-         * @param colors 颜色矩阵
-         * @param normals 法向量矩阵
-         * @param program　对应的着色器程序
-         * @param indices 索引矩阵
+         * 根据输入数据计算管道长度
+         * 再知道起点即可绘制空间管道
          */
-        initVertexBuffer(vertices: Float32Array, colors: Float32Array, normals: Float32Array, program: WebGLProgram, indices: Uint16Array): {
-            vertex: any;
-            color: any;
-            normal: any;
-            index: any;
-            numIndices: any;
-        };
+        calculate(x: number, y: number, z: number): void;
+        onUpdate(dt: any): void;
+    }
+    class Tee extends NEObject implements ISIE {
+        IS: number;
+        IE: number;
+        constructor();
+        onLoad(): void;
+        onUpdate(dt: any): void;
+    }
+    class Elbow extends NEObject implements ISIE {
+        IS: number;
+        IE: number;
+        RR: number;
+        RA: number;
+        IA: number;
+        constructor();
+        onLoad(): void;
+        onUpdate(dt: any): void;
+    }
+    class Valve extends NEObject implements ISIE {
+        IS: number;
+        IE: number;
+        constructor();
+        onLoad(): void;
+        onUpdate(dt: any): void;
+    }
+    class GLIFNode {
+        ISN: number;
+        IEN: number;
+        ITY: number;
+        constructor(isn: any, ien: any, ity: any);
     }
 }
 declare namespace shader {
@@ -691,21 +801,6 @@ declare namespace shader {
          * 生成单位立方体，位于原点
          */
         initCylinderInfo(): void;
-        /**
-         * 初始化obj数据，全局只需绑定一次
-         * @param vertices 顶点矩阵
-         * @param colors 颜色矩阵
-         * @param normals 法向量矩阵
-         * @param program　对应的着色器程序
-         * @param indices 索引矩阵
-         */
-        initVertexBuffer(vertices: Float32Array, colors: Float32Array, normals: Float32Array, program: WebGLProgram, indices: Uint16Array): {
-            vertex: any;
-            color: any;
-            normal: any;
-            index: any;
-            numIndices: any;
-        };
     }
 }
 import Nebula = Core.Nebula;
@@ -722,6 +817,11 @@ import OBJParser = Utils.ObjParser;
 import Render = Core.Render;
 import RayCaster = Lib.RayCaster;
 import BoundingBox = Lib.BoundingBox;
+import GLIFParser = Utils.GLIFParser;
+import Pipe = shader.Pipe;
+import Tee = shader.Tee;
+import Elbow = shader.Elbow;
+import Valve = shader.Valve;
 declare const shaderTool: shaderUtils;
 declare var GL: WebGLRenderingContext;
 declare const canvas: {
@@ -732,6 +832,7 @@ declare var ne: Nebula;
 declare var sceneInfo: Scene;
 declare var camera: Camera;
 declare var render: Render;
+declare var gp: GLIFParser;
 declare function main(): void;
 declare const zero_guard = 0.00001;
 declare function rayPickLog(val: any): void;

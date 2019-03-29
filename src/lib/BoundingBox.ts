@@ -11,11 +11,13 @@ namespace Lib{
         minZ:number = null;
         constructor(object:NEObject){
             this.target = object;
+            if(this.target == null)return;
             this.handleObject(this.target.vertices);
             this.setVertices(this.maxX,this.minX,this.maxY,this.minY,this.maxZ,this.minZ);
             this.updateBoundingBox();
         }
         updateBoundingBox(){
+            if(this.target == null)return;
             this.generateTestTriangle();
         }
         handleObject(vertices){

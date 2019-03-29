@@ -677,6 +677,238 @@ var Utils;
 })(Utils || (Utils = {}));
 var Utils;
 (function (Utils) {
+    var GLIFParser = /** @class */ (function () {
+        function GLIFParser() {
+            this.IWD = 2; //弯单元缺省值,包含弯单元半斤；１表示不包含
+            this.Node = null;
+        }
+        GLIFParser.prototype.readGilfFile = function (fileName, callback) {
+            var request = new XMLHttpRequest();
+            request.onreadystatechange = function () {
+                if (request.readyState == 4) {
+                    if (request.status != 404) {
+                        this.onReadFile(request.responseText);
+                        if (typeof callback === 'function')
+                            callback();
+                    }
+                }
+            }.bind(this);
+            request.open('GET', fileName, true); // Create a request to acquire the file
+            request.send();
+        };
+        GLIFParser.prototype.onReadFile = function (fileString) {
+            var result = this.parse(fileString); // Parse the file
+            if (!result) {
+                console.log("GLIF file parsing error.");
+                return;
+            }
+        };
+        GLIFParser.prototype.parse = function (fileString) {
+            var ret = true;
+            // console.log(fileString);
+            var line = fileString.split('\n');
+            var vaildLine = [];
+            for (var _i = 0, line_1 = line; _i < line_1.length; _i++) {
+                var l = line_1[_i];
+                l = l.trim();
+                vaildLine.push(l.split(','));
+            }
+            this.parseLog("startParse");
+            var count = 0;
+            var nowLine = vaildLine[count];
+            while (!!nowLine[0]) {
+                var nowLine = vaildLine[count];
+                var tag = nowLine[0];
+                // this.parseLog(nowLine);
+                switch (tag) {
+                    case "-1":
+                        this.parseBentUnitInfo(nowLine);
+                        count++;
+                        break; //是否包含弯管半径
+                    case "100":
+                        this.parseStartPoint(nowLine);
+                        count++;
+                        break; //空间起始位置
+                    case "10":
+                        //从这里开始的要全部读入数组中
+                        var nodeInfo = [];
+                        var partCount = count;
+                        // while(!!vaildLine[partCount]){
+                        //     var partTag = vaildLine[partCount][0]
+                        //     if(
+                        //         partTag == "10" || partTag == "0"||
+                        //         partTag == "1" || partTag == "2" ||
+                        //         partTag == "3" || partTag == "4" ||
+                        //         partTag == "5" || partTag == "6" ||
+                        //         partTag == "61" || partTag == "60"){
+                        //             nodeInfo.push(vaildLine[partCount++]);
+                        //     }else{
+                        //         break;
+                        //     }
+                        // }
+                        while (!!vaildLine[partCount][0]) {
+                            nodeInfo.push(vaildLine[partCount++]);
+                        }
+                        this.Node = this.parse3DInfo(nodeInfo);
+                        count = partCount;
+                        break; //读取管道节点
+                    case "60":
+                        this.parsePipeInfo(nowLine);
+                        count++;
+                        break; //管道外径和厚度
+                    case "61":
+                        this.parsePipeInfo(nowLine);
+                        count++;
+                        break;
+                    default: count++;
+                }
+            }
+            for (var i = 0; i < this.Node.length; i++) {
+                this.parseNode(this.Node[i]);
+            }
+            return ret;
+        };
+        /**
+         * 解析弯单元信息
+         */
+        GLIFParser.prototype.parseBentUnitInfo = function (line) {
+            this.parseLog("弯单元数据");
+            this.parseLog(line);
+            if (line.length == 1) { //设置默认值２
+                return;
+            }
+            else {
+                this.IWD = parseInt(line[1]);
+            }
+        };
+        /**
+         * 解析空间起始位置
+         */
+        GLIFParser.prototype.parseStartPoint = function (line) {
+            var x = parseFloat(line[1]), y = parseFloat(line[2]), z = parseFloat(line[3]);
+            this.startPoint = [x, y, z];
+            this.parseLog("起始点");
+            this.parseLog(this.startPoint);
+        };
+        /**
+         * 从第一个10开始的所有空间节点数据
+         */
+        GLIFParser.prototype.parse3DInfo = function (nodeInfo) {
+            this.parseLog(nodeInfo);
+            var nodes = []; //元素为一个节点数据，并且严格遵守顺序
+            var oneNode = [];
+            for (var i = 0; i < nodeInfo.length; i++) {
+                var nowLine = nodeInfo[i];
+                if (!this.isNodeInfo(nowLine)) {
+                    //表示一个新的节点或者,一条约束,如10,或者260,70,90
+                    if (nowLine[0] == "10") {
+                        oneNode.push(nowLine);
+                        var innerCount = i + 1;
+                        while (innerCount < nodeInfo.length) {
+                            if (this.isNodeInfo(nodeInfo[innerCount])) {
+                                oneNode.push(nodeInfo[innerCount]);
+                                innerCount++;
+                            }
+                            else {
+                                i = innerCount - 1;
+                                break;
+                            }
+                        }
+                        nodes.push(oneNode);
+                        oneNode = [];
+                    }
+                    else {
+                        nodes.push([nowLine]); //如果非10，算作一个节点信息，无论是不是节点附加属性
+                    }
+                }
+            }
+            this.parseLog("格式化节点数据");
+            this.parseLog(nodes);
+            return nodes;
+        };
+        /**
+         * 判定当前行是否是节点内的内容，60,61可以出现在节点内
+         */
+        GLIFParser.prototype.isNodeInfo = function (nowLine) {
+            if (nowLine[0] == "0" || nowLine[0] == "1" || nowLine[0] == "2" ||
+                nowLine[0] == "3" || nowLine[0] == "4" || nowLine[0] == "5" ||
+                nowLine[0] == "6" || nowLine[0] == "61" || nowLine[0] == "60") {
+                return true; //是节点外的内容
+            }
+            else {
+                return false; //节点内的内容
+            }
+        };
+        /**
+         * 10开头的一段数据,希望参数为整段数据,或者为260,70,90开头的数据
+         * 10,7,8,81
+                1,1,1,0.000,-0.441,-0.066
+                0,1,1,0.457,81.494,1
+                1,1,1,0.000,0.000,-2.618
+                4,1,1,0.000,0.000,-0.500,477.9,0.000
+                1,1,1,0.000,0.000,-0.700
+         *　例子
+         */
+        GLIFParser.prototype.parseNode = function (lines) {
+            if (lines[0][0] == "10") {
+                // this.parseLog("节点段数据");
+                // this.parseLog(lines);
+                var pipes = lines;
+                var lastNode = parseInt(pipes[0][1]);
+                var nextNode = parseInt(pipes[0][2]);
+                var restraint = parseInt(pipes[0][3]);
+                for (var i = 1; i < pipes.length; i++) {
+                    var tag = pipes[i][0];
+                    switch (tag) {
+                        case "0": //处理弯单元
+                            break;
+                        case "1":
+                            break;
+                        case "2":
+                            break;
+                        case "3":
+                            break;
+                        case "4":
+                            break;
+                        case "5":
+                            break;
+                        case "6":
+                            break;
+                        case "60":
+                            this.parsePipeInfo(pipes[i]);
+                            break;
+                        case "61":
+                            this.parsePipeInfo(pipes[i]);
+                            break;
+                        default: console.error("cannot parse '10'tag node");
+                    }
+                }
+            }
+            else {
+                //260,70,90信息，undo
+                this.parseLog(lines);
+            }
+        };
+        /**
+         * 60,61开头的一段数据
+         */
+        GLIFParser.prototype.parsePipeInfo = function (line) {
+            this.parseLog("６０数据");
+            this.parseLog(line);
+        };
+        /**
+         * 自定义输出
+         * @param val
+         */
+        GLIFParser.prototype.parseLog = function (val) {
+            console.log(val);
+        };
+        return GLIFParser;
+    }());
+    Utils.GLIFParser = GLIFParser;
+})(Utils || (Utils = {}));
+var Utils;
+(function (Utils) {
     var ObjParser = /** @class */ (function () {
         function ObjParser(fileName) {
             this.fileName = null;
@@ -1527,7 +1759,7 @@ var Core;
     var Camera = /** @class */ (function () {
         function Camera(fovy, aspect, near, far) {
             this.coordinate = {
-                x: 0, y: 8, z: 14
+                x: 0, y: 0, z: 14
             };
             this.center = {
                 x: 0, y: 0, z: 0
@@ -1675,7 +1907,7 @@ var Lib;
             nNear[2] = (ez - sz) * far + sz;
             this.start = [sx, sy, sz];
             this.end = nNear;
-            console.log(this.start, this.end);
+            // console.log(this.start, this.end)
         };
         /**
          * 射线相交的物体
@@ -1687,7 +1919,7 @@ var Lib;
             var ret = [];
             var out = [];
             for (var i = 0; i < objects.length; i++) {
-                console.log("***********************name:" + objects[i].name);
+                // console.log("***********************name:"+objects[i].name);
                 var triArr = objects[i].boundingBox.generateTestTriangle();
                 for (var _i = 0, triArr_1 = triArr; _i < triArr_1.length; _i++) {
                     var tri = triArr_1[_i];
@@ -1707,6 +1939,14 @@ var Lib;
                     }
                 }
             }
+            // var retObj = null;
+            // var distance = 999;
+            // for(var point of ret){
+            //     var dis = Math.sqrt(point.coordinate.x*point.coordinate.x+point.coordinate.x*point.coordinate.x+point.coordinate.x*point.coordinate.x)
+            //     if(dis < distance){
+            //         retObj = point;
+            //     }
+            // }
             // console.log(ret);
             return ret;
         };
@@ -2088,11 +2328,15 @@ var Lib;
             this.minY = null;
             this.minZ = null;
             this.target = object;
+            if (this.target == null)
+                return;
             this.handleObject(this.target.vertices);
             this.setVertices(this.maxX, this.minX, this.maxY, this.minY, this.maxZ, this.minZ);
             this.updateBoundingBox();
         }
         BoundingBox.prototype.updateBoundingBox = function () {
+            if (this.target == null)
+                return;
             this.generateTestTriangle();
         };
         BoundingBox.prototype.handleObject = function (vertices) {
@@ -2256,10 +2500,12 @@ var shader;
             this._modelMatrix = new Matrix4(null); //模型矩阵
             this._mvpMatrix = new Matrix4(null); //模型视图投影矩阵
             this._normalMatrix = new Matrix4(null); //法向量变换矩阵
+            this.program = null;
+            this.OBJInfo = null;
             this.name = '';
             this.Child = [];
             this.parent = null;
-            this.boundingBox = null;
+            this.boundingBox = new BoundingBox(null);
             this.onLoad();
             this.onStart();
             // var nowScene = ne.getScene();
@@ -2278,7 +2524,45 @@ var shader;
         NEObject.prototype.onUpdate = function (dt) {
             // this._draw();
         };
-        NEObject.prototype._draw = function () {
+        NEObject.prototype._draw = function (program, OBJ) {
+            if (program && OBJ) {
+                GL.useProgram(program);
+                var a_Position = GL.getAttribLocation(program, 'a_Position');
+                var a_Color = GL.getAttribLocation(program, 'a_Color');
+                var a_Normal = GL.getAttribLocation(program, 'a_Normal');
+                var u_ModelMatrix = GL.getUniformLocation(program, 'u_ModelMatrix');
+                var u_MvpMatrix = GL.getUniformLocation(program, 'u_MvpMatrix');
+                var u_NormalMatrix = GL.getUniformLocation(program, 'u_NormalMatrix');
+                var u_LightColor = GL.getUniformLocation(program, 'u_LightColor');
+                var u_LightPosition = GL.getUniformLocation(program, 'u_LightPosition');
+                var u_AmbientLight = GL.getUniformLocation(program, 'u_AmbientLight');
+                if (a_Position < 0 || a_Color < 0 || a_Normal < 0) {
+                    console.log('Failed to get the attribute storage location');
+                    return;
+                }
+                if (!u_ModelMatrix || !u_MvpMatrix || !u_NormalMatrix || !u_LightColor || !u_LightPosition || !u_AmbientLight) {
+                    console.log('Failed to get the unifrom storage location');
+                    return;
+                }
+                this.initAttributeVariable(GL, a_Position, OBJ.vertex);
+                this.initAttributeVariable(GL, a_Color, OBJ.color);
+                this.initAttributeVariable(GL, a_Normal, OBJ.normal);
+                GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, OBJ.index.buffer);
+                // Set the light color (white)
+                GL.uniform3fv(u_LightColor, sceneInfo.LigthColor);
+                // Set the light direction (in the world coordinate)
+                GL.uniform3fv(u_LightPosition, sceneInfo.LigthPoint);
+                // Set the ambient light
+                GL.uniform3fv(u_AmbientLight, sceneInfo.AmbientLight);
+                // Pass the model matrix to u_ModelMatrix
+                GL.uniformMatrix4fv(u_ModelMatrix, false, this.getModelMatrix().elements);
+                // Pass the model view projection matrix to u_MvpMatrix
+                GL.uniformMatrix4fv(u_MvpMatrix, false, this.getMvpMatrix().elements);
+                // Pass the matrix to transform the normal based on the model matrix to u_NormalMatrix
+                GL.uniformMatrix4fv(u_NormalMatrix, false, this.getNormalMatrix().elements);
+                // Draw the Cylinder
+                GL.drawElements(GL.TRIANGLES, OBJ.numIndices, GL.UNSIGNED_SHORT, 0);
+            }
         };
         NEObject.prototype._loop = function (dt) {
             this.onUpdate(dt);
@@ -2319,6 +2603,18 @@ var shader;
         /**
          * 模型变换函数
          */
+        NEObject.prototype.setPosition = function (x, y, z) {
+            var dx = x - this.coordinate.x;
+            var dy = y - this.coordinate.y;
+            var dz = z - this.coordinate.z;
+            this.setTranslate(dx, dy, dz);
+        };
+        NEObject.prototype.setRotation = function (x, y, z) {
+            var dx = x - this.rotation.x;
+            var dy = y - this.rotation.y;
+            var dz = z - this.rotation.z;
+            this.Rotate(dx, dy, dz);
+        };
         NEObject.prototype.setTranslate = function (x, y, z) {
             this.coordinate.x += x;
             this.coordinate.y += y;
@@ -2347,7 +2643,7 @@ var shader;
                 child.setScale(x, y, z);
             }
         };
-        NEObject.prototype.setRotation = function (x, y, z) {
+        NEObject.prototype.Rotate = function (x, y, z) {
             this.rotation.x += x;
             this.rotation.y += y;
             this.rotation.z += z;
@@ -2439,6 +2735,55 @@ var shader;
             gl.bindBuffer(gl.ARRAY_BUFFER, bufferObj.buffer);
             gl.vertexAttribPointer(a_attribute, bufferObj.num, bufferObj.type, false, 0, 0);
             gl.enableVertexAttribArray(a_attribute);
+        };
+        /**
+         * 初始化obj数据，全局只需绑定一次
+         * @param vertices 顶点矩阵
+         * @param colors 颜色矩阵
+         * @param normals 法向量矩阵
+         * @param program　对应的着色器程序
+         * @param indices 索引矩阵
+         */
+        NEObject.prototype.initVertexBuffer = function (vertices, colors, normals, indices) {
+            var OBJ = {
+                vertex: null,
+                color: null,
+                normal: null,
+                index: null,
+                numIndices: null,
+            };
+            OBJ.vertex = this.initArrayBufferForLaterUse(GL, vertices, 3, GL.FLOAT);
+            OBJ.color = this.initArrayBufferForLaterUse(GL, colors, 4, GL.FLOAT);
+            OBJ.normal = this.initArrayBufferForLaterUse(GL, normals, 3, GL.FLOAT);
+            OBJ.index = this.initElementArrayBufferForLaterUse(GL, indices, GL.UNSIGNED_SHORT);
+            if (!OBJ.vertex || !OBJ.color || !OBJ.normal || !OBJ.index) {
+                console.log("failed to init buffer");
+                return null;
+            }
+            OBJ.numIndices = indices.length;
+            GL.bindBuffer(GL.ARRAY_BUFFER, null);
+            GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, null);
+            return OBJ;
+        };
+        NEObject.prototype.initShader = function (target) {
+            var shadertool = new shaderUtils();
+            var obj = shadertool.initShaders(GL, target.vertex, target.fragment);
+            if (!obj.status) {
+                console.log("failed to init shader");
+                return;
+            }
+            target.program = obj.program;
+        };
+        NEObject.prototype.initOBJInfo = function (target, path) {
+            var obp = new OBJParser(path);
+            obp.readOBJFile(path, 0.1, true, function () {
+                var info = obp.getDrawingInfo();
+                console.log(target);
+                target.vertices = info.vertices;
+                target.OBJInfo = target.initVertexBuffer(info.vertices, info.colors, info.normals, info.indices);
+                target.boundingBox = new BoundingBox(target);
+                // console.log(this.Pipe);
+            }.bind(target));
         };
         return NEObject;
     }());
@@ -2630,43 +2975,107 @@ var shader;
                 this.normals = this.info.normals;
                 this.colors = this.info.colors;
                 this.indices = this.info.indices;
-                this.cube = this.initVertexBuffer(this.vertices, this.colors, this.normals, this.program, this.indices);
+                this.cube = this.initVertexBuffer(this.vertices, this.colors, this.normals, this.indices);
                 this.boundingBox = new BoundingBox(this);
                 // console.log(this.info);
             }.bind(this));
         };
-        /**
-         * 初始化obj数据，全局只需绑定一次
-         * @param vertices 顶点矩阵
-         * @param colors 颜色矩阵
-         * @param normals 法向量矩阵
-         * @param program　对应的着色器程序
-         * @param indices 索引矩阵
-         */
-        Cube.prototype.initVertexBuffer = function (vertices, colors, normals, program, indices) {
-            var cubeObj = {
-                vertex: null,
-                color: null,
-                normal: null,
-                index: null,
-                numIndices: null,
-            };
-            cubeObj.vertex = this.initArrayBufferForLaterUse(GL, vertices, 3, GL.FLOAT);
-            cubeObj.color = this.initArrayBufferForLaterUse(GL, colors, 4, GL.FLOAT);
-            cubeObj.normal = this.initArrayBufferForLaterUse(GL, normals, 3, GL.FLOAT);
-            cubeObj.index = this.initElementArrayBufferForLaterUse(GL, indices, GL.UNSIGNED_SHORT);
-            if (!cubeObj.vertex || !cubeObj.color || !cubeObj.normal || !cubeObj.index) {
-                console.log("failed to init buffer");
-                return null;
-            }
-            cubeObj.numIndices = indices.length;
-            GL.bindBuffer(GL.ARRAY_BUFFER, null);
-            GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, null);
-            return cubeObj;
-        };
         return Cube;
     }(shader.NEObject));
     shader.Cube = Cube;
+})(shader || (shader = {}));
+///<reference path="./Object.ts" />
+var shader;
+(function (shader) {
+    /**
+     * 4弯头
+     * 3三通
+     * 2阀门
+     * 1管道
+     */
+    var Pipe = /** @class */ (function (_super) {
+        __extends(Pipe, _super);
+        function Pipe() {
+            var _this = _super.call(this) || this;
+            _this.position = new Vector3([0, 0, 0]);
+            return _this;
+        }
+        Pipe.prototype.onLoad = function () {
+            this.name = 'Pipe';
+            this.initShader(this);
+            this.initOBJInfo(this, './resources/1/1.obj');
+        };
+        /**
+         * 根据输入数据计算管道长度
+         * 再知道起点即可绘制空间管道
+         */
+        Pipe.prototype.calculate = function (x, y, z) {
+            this.length = Math.sqrt(x * x + y * y + z * z);
+            this.direct = new Vector3([x, y, z]).normalize();
+        };
+        Pipe.prototype.onUpdate = function (dt) {
+            this._draw(this.program, this.OBJInfo);
+        };
+        return Pipe;
+    }(shader.NEObject));
+    shader.Pipe = Pipe;
+    var Tee = /** @class */ (function (_super) {
+        __extends(Tee, _super);
+        function Tee() {
+            return _super.call(this) || this;
+        }
+        Tee.prototype.onLoad = function () {
+            this.name = 'Tee';
+            this.initShader(this);
+            this.initOBJInfo(this, './resources/1/3.obj');
+        };
+        Tee.prototype.onUpdate = function (dt) {
+            this._draw(this.program, this.OBJInfo);
+        };
+        return Tee;
+    }(shader.NEObject));
+    shader.Tee = Tee;
+    var Elbow = /** @class */ (function (_super) {
+        __extends(Elbow, _super);
+        function Elbow() {
+            return _super.call(this) || this;
+        }
+        Elbow.prototype.onLoad = function () {
+            this.name = 'Elbow';
+            this.initShader(this);
+            this.initOBJInfo(this, './resources/1/4.obj');
+        };
+        Elbow.prototype.onUpdate = function (dt) {
+            this._draw(this.program, this.OBJInfo);
+        };
+        return Elbow;
+    }(shader.NEObject));
+    shader.Elbow = Elbow;
+    var Valve = /** @class */ (function (_super) {
+        __extends(Valve, _super);
+        function Valve() {
+            return _super.call(this) || this;
+        }
+        Valve.prototype.onLoad = function () {
+            this.name = 'Valve';
+            this.initShader(this);
+            this.initOBJInfo(this, './resources/1/2.obj');
+        };
+        Valve.prototype.onUpdate = function (dt) {
+            this._draw(this.program, this.OBJInfo);
+        };
+        return Valve;
+    }(shader.NEObject));
+    shader.Valve = Valve;
+    var GLIFNode = /** @class */ (function () {
+        function GLIFNode(isn, ien, ity) {
+            this.IEN = ien;
+            this.ISN = isn;
+            this.ITY = ity;
+        }
+        return GLIFNode;
+    }());
+    shader.GLIFNode = GLIFNode;
 })(shader || (shader = {}));
 ///<reference path="./Object.ts" />
 var shader;
@@ -2802,8 +3211,8 @@ var shader;
          * 生成单位立方体，位于原点
          */
         Cylinder.prototype.initCylinderInfo = function () {
-            var obp = new OBJParser('./resources/1/4.obj');
-            obp.readOBJFile('./resources/1/4.obj', 0.1, true, function () {
+            var obp = new OBJParser('./resources/1/2.obj');
+            obp.readOBJFile('./resources/1/2.obj', 0.1, true, function () {
                 this.info = obp.getDrawingInfo();
                 this.vertices = this.info.vertices;
                 this.normals = this.info.normals;
@@ -2813,35 +3222,6 @@ var shader;
                 this.boundingBox = new BoundingBox(this);
                 // console.log(this.Cylinder);
             }.bind(this));
-        };
-        /**
-         * 初始化obj数据，全局只需绑定一次
-         * @param vertices 顶点矩阵
-         * @param colors 颜色矩阵
-         * @param normals 法向量矩阵
-         * @param program　对应的着色器程序
-         * @param indices 索引矩阵
-         */
-        Cylinder.prototype.initVertexBuffer = function (vertices, colors, normals, program, indices) {
-            var CylinderObj = {
-                vertex: null,
-                color: null,
-                normal: null,
-                index: null,
-                numIndices: null,
-            };
-            CylinderObj.vertex = this.initArrayBufferForLaterUse(GL, vertices, 3, GL.FLOAT);
-            CylinderObj.color = this.initArrayBufferForLaterUse(GL, colors, 4, GL.FLOAT);
-            CylinderObj.normal = this.initArrayBufferForLaterUse(GL, normals, 3, GL.FLOAT);
-            CylinderObj.index = this.initElementArrayBufferForLaterUse(GL, indices, GL.UNSIGNED_SHORT);
-            if (!CylinderObj.vertex || !CylinderObj.color || !CylinderObj.normal || !CylinderObj.index) {
-                console.log("failed to init buffer");
-                return null;
-            }
-            CylinderObj.numIndices = indices.length;
-            GL.bindBuffer(GL.ARRAY_BUFFER, null);
-            GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, null);
-            return CylinderObj;
         };
         return Cylinder;
     }(shader.NEObject));
@@ -2856,8 +3236,10 @@ var shader;
 ///<reference path="../lib/shader-utils/shaderUtils.ts" />
 ///<reference path="../lib/matrix-utils/matrixUtils.ts" />
 ///<reference path="./shader/Cube.ts" />
+///<reference path="./shader/Pipe.ts" />
 ///<reference path="./shader/Cylinder.ts" />
 ///<reference path="../lib/parse-utils/objParse.ts" />
+///<reference path="../lib/parse-utils/GLIFParser.ts" />
 var Nebula = Core.Nebula;
 var Scene = Core.Scene;
 var Camera = Core.Camera;
@@ -2872,6 +3254,11 @@ var OBJParser = Utils.ObjParser;
 var Render = Core.Render;
 var RayCaster = Lib.RayCaster;
 var BoundingBox = Lib.BoundingBox;
+var GLIFParser = Utils.GLIFParser;
+var Pipe = shader.Pipe;
+var Tee = shader.Tee;
+var Elbow = shader.Elbow;
+var Valve = shader.Valve;
 //************全局变量Global****************** */
 var shaderTool = new shaderUtils();
 var GL = null;
@@ -2890,14 +3277,21 @@ sceneInfo.initScene();
 var camera = new Camera(85, canvas.width / canvas.height, 1, 100);
 //初始化主控渲染器
 var render = new Render();
+//初始化GLIF解析器
+var gp = new GLIFParser();
+gp.readGilfFile('./glif/inp1.TXT', "");
 //******************************************* */
 main();
 function main() {
-    var Cube = new cube();
+    var Cube = new Valve();
     // Cube.setTranslate(3,0,0);
-    var cylinder = new Cylinder();
-    cylinder.setParent(Cube);
+    var Pipe1 = new Pipe();
+    // var cylinder = new Cylinder();
+    // cylinder.setParent(Cube);
     Cube.setParent(ne.getScene());
+    Pipe1.setParent(ne.getScene());
+    // Pipe1.setRotation(0,0,90);
+    // Cube.setRotation(0,90,0);
     render.render(sceneInfo);
     render.stopped = false; //将来可以改变为资源加载完成后自动改为false，开始update
     render.main();
@@ -2906,6 +3300,11 @@ function main() {
     var isDrag = false;
     var lastX = -1;
     var lastY = -1;
+    //被选中的物体
+    var objClicked = null;
+    var setX = false;
+    var setY = false;
+    var setZ = false;
     var testCamera = false;
     ca.onmousedown = function (ev) {
         var x = ev.layerX, y = ev.layerY;
@@ -2921,8 +3320,14 @@ function main() {
         var positionN = new Matrix4(null).setInverseOf(camera.projViewMatrix).multiplyVector4(pointOnCanvasToNear);
         RayCaster1.initCameraRay(camera.coordinate.x, camera.coordinate.y, camera.coordinate.z, positionN.elements[0], positionN.elements[1], positionN.elements[2], 100);
         var obj = RayCaster1.intersectObjects(ne.getScene().Child, true);
+        if (obj.length > 0) {
+            objClicked = obj[0];
+        }
+        else {
+            objClicked = null;
+        }
         console.log(obj);
-        console.log(positionN);
+        // console.log(positionN);
     };
     ca.onmouseup = function (ev) {
         isDrag = false;
@@ -2944,10 +3349,17 @@ function main() {
                 lastY = y;
                 return;
             }
-            Cube.setTranslate(-dy / 40, 0, 0);
-            // Cube.setRotation(0, dx,0);
-            cylinder.setRotation(0, dx, 0);
-            // cylinder.setScale(1,Math.max(1,Math.min(2,dx/10)),1)
+            if (!!objClicked) {
+                if (setX) {
+                    objClicked.setTranslate(dx / 20, 0, 0);
+                }
+                else if (setY) {
+                    objClicked.setTranslate(0, -dy / 20, 0);
+                }
+                else if (setZ) {
+                    objClicked.setTranslate(0, 0, dy / 20);
+                }
+            }
         }
         lastX = x;
         lastY = y;
@@ -2955,6 +3367,7 @@ function main() {
     // ca.onkeydown= function(e){
     //     console.log(e)
     // }
+    //此处需要考虑不同浏览器的兼容性
     window.onmousewheel = function (e) {
         var factor = 0.1;
         if (e.deltaY < 0) { //zoom in
@@ -2964,6 +3377,26 @@ function main() {
             camera.updateGLIFCamera(factor);
         }
     }; //IE/Opera/Chrome/Safari
+    //暂时使用键位来设置空间xyz位移
+    window.onkeydown = function (e) {
+        switch (e.code) {
+            case "KeyZ":
+                setX = true;
+                setY = false;
+                setZ = false;
+                break;
+            case "KeyX":
+                setY = true;
+                setZ = false;
+                setX = false;
+                break;
+            case "KeyC":
+                setZ = true;
+                setY = false;
+                setX = false;
+                break;
+        }
+    };
 }
 var zero_guard = 0.00001;
 function rayPickLog(val) {

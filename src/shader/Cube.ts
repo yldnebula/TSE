@@ -197,43 +197,43 @@ namespace shader{
                 this.normals  = this.info.normals;
                 this.colors   = this.info.colors;
                 this.indices  = this.info.indices;
-                this.cube = this.initVertexBuffer(this.vertices,this.colors,this.normals,this.program,this.indices);  
+                this.cube = this.initVertexBuffer(this.vertices,this.colors,this.normals,this.indices);  
                 
                 this.boundingBox = new BoundingBox(this);
                 // console.log(this.info);
             }.bind(this));
         }
-        /**
-         * 初始化obj数据，全局只需绑定一次
-         * @param vertices 顶点矩阵
-         * @param colors 颜色矩阵
-         * @param normals 法向量矩阵
-         * @param program　对应的着色器程序 
-         * @param indices 索引矩阵
-         */
-        initVertexBuffer(vertices:Float32Array, colors:Float32Array,normals:Float32Array,program:WebGLProgram,indices:Uint16Array){
-            var cubeObj = {
-                vertex:null,
-                color:null,
-                normal:null,
-                index:null,
-                numIndices:null,
-            };
-            cubeObj.vertex = this.initArrayBufferForLaterUse(GL,vertices,3,GL.FLOAT);
-            cubeObj.color  = this.initArrayBufferForLaterUse(GL,colors,4,GL.FLOAT);
-            cubeObj.normal = this.initArrayBufferForLaterUse(GL,normals,3,GL.FLOAT);
-            cubeObj.index  = this.initElementArrayBufferForLaterUse(GL,indices,GL.UNSIGNED_SHORT);           
+        // /**
+        //  * 初始化obj数据，全局只需绑定一次
+        //  * @param vertices 顶点矩阵
+        //  * @param colors 颜色矩阵
+        //  * @param normals 法向量矩阵
+        //  * @param program　对应的着色器程序 
+        //  * @param indices 索引矩阵
+        //  */
+        // initVertexBuffer(vertices:Float32Array, colors:Float32Array,normals:Float32Array,program:WebGLProgram,indices:Uint16Array){
+        //     var cubeObj = {
+        //         vertex:null,
+        //         color:null,
+        //         normal:null,
+        //         index:null,
+        //         numIndices:null,
+        //     };
+        //     cubeObj.vertex = this.initArrayBufferForLaterUse(GL,vertices,3,GL.FLOAT);
+        //     cubeObj.color  = this.initArrayBufferForLaterUse(GL,colors,4,GL.FLOAT);
+        //     cubeObj.normal = this.initArrayBufferForLaterUse(GL,normals,3,GL.FLOAT);
+        //     cubeObj.index  = this.initElementArrayBufferForLaterUse(GL,indices,GL.UNSIGNED_SHORT);           
             
-            if(!cubeObj.vertex ||!cubeObj.color||!cubeObj.normal||!cubeObj.index){
-                console.log("failed to init buffer");return null;
-            }
-            cubeObj.numIndices = indices.length;
+        //     if(!cubeObj.vertex ||!cubeObj.color||!cubeObj.normal||!cubeObj.index){
+        //         console.log("failed to init buffer");return null;
+        //     }
+        //     cubeObj.numIndices = indices.length;
 
-            GL.bindBuffer(GL.ARRAY_BUFFER, null);
-            GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, null);
+        //     GL.bindBuffer(GL.ARRAY_BUFFER, null);
+        //     GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, null);
 
-            return cubeObj;
-        }
+        //     return cubeObj;
+        // }
     }
         
 }

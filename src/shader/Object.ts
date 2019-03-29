@@ -62,11 +62,13 @@ namespace shader{
         private _mvpMatrix:Matrix4   = new Matrix4(null);//模型视图投影矩阵
         private _normalMatrix:Matrix4= new Matrix4(null);//法向量变换矩阵
 
+        public program     :WebGLProgram = null;
+        public OBJInfo  = null;
         public vertices;
         public name  = '';
         public Child = [];
         public parent:NEObject | Scene = null;
-        public boundingBox:BoundingBox = null;
+        public boundingBox:BoundingBox = new BoundingBox(null);
         constructor(){
             
             this.onLoad();
@@ -90,8 +92,56 @@ namespace shader{
         onUpdate(dt:number){
             // this._draw();
         }
-        _draw(){
+        _draw(program,OBJ){
+            if(program && OBJ){
+                GL.useProgram(program);
 
+                var a_Position      = GL.getAttribLocation(program, 'a_Position');
+                var a_Color         = GL.getAttribLocation(program, 'a_Color');
+                var a_Normal        = GL.getAttribLocation(program, 'a_Normal');
+    
+                var u_ModelMatrix   = GL.getUniformLocation(program, 'u_ModelMatrix');
+                var u_MvpMatrix     = GL.getUniformLocation(program, 'u_MvpMatrix');
+                var u_NormalMatrix  = GL.getUniformLocation(program, 'u_NormalMatrix');
+                var u_LightColor    = GL.getUniformLocation(program, 'u_LightColor');
+                var u_LightPosition = GL.getUniformLocation(program, 'u_LightPosition');
+                var u_AmbientLight  = GL.getUniformLocation(program, 'u_AmbientLight');
+    
+                if (a_Position < 0 || a_Color<0 || a_Normal<0) {
+                    console.log('Failed to get the attribute storage location');
+                    return;
+                }
+    
+                if (!u_ModelMatrix||!u_MvpMatrix || !u_NormalMatrix || !u_LightColor || !u_LightPosition　|| !u_AmbientLight ) {
+                    console.log('Failed to get the unifrom storage location');
+                    return;
+                }
+    
+                this.initAttributeVariable(GL,a_Position,OBJ.vertex);
+                this.initAttributeVariable(GL,a_Color,OBJ.color);
+                this.initAttributeVariable(GL,a_Normal,OBJ.normal);
+                GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, OBJ.index.buffer)
+    
+    
+    
+    
+                // Set the light color (white)
+                GL.uniform3fv(u_LightColor,sceneInfo.LigthColor);
+                // Set the light direction (in the world coordinate)
+                GL.uniform3fv(u_LightPosition,sceneInfo.LigthPoint);
+                // Set the ambient light
+                GL.uniform3fv(u_AmbientLight,sceneInfo.AmbientLight);
+    
+                // Pass the model matrix to u_ModelMatrix
+                GL.uniformMatrix4fv(u_ModelMatrix, false, this.getModelMatrix().elements);
+                // Pass the model view projection matrix to u_MvpMatrix
+                GL.uniformMatrix4fv(u_MvpMatrix, false, this.getMvpMatrix().elements);
+                // Pass the matrix to transform the normal based on the model matrix to u_NormalMatrix
+                GL.uniformMatrix4fv(u_NormalMatrix, false, this.getNormalMatrix().elements);
+        
+                // Draw the Cylinder
+                GL.drawElements(GL.TRIANGLES, OBJ.numIndices, GL.UNSIGNED_SHORT, 0);
+            }
         }
         _loop(dt){
             this.onUpdate(dt);
@@ -133,6 +183,20 @@ namespace shader{
         /**
          * 模型变换函数
          */
+        setPosition(x:number,y:number,z:number){
+            var dx = x - this.coordinate.x;
+            var dy = y - this.coordinate.y;
+            var dz = z - this.coordinate.z;
+
+            this.setTranslate(dx,dy,dz);
+        }
+        setRotation(x:number,y:number,z:number){
+            var dx = x - this.rotation.x;
+            var dy = y - this.rotation.y;
+            var dz = z - this.rotation.z;
+
+            this.Rotate(dx,dy,dz);
+        }
         setTranslate(x:number,y:number,z:number){
             this.coordinate.x +=x;
             this.coordinate.y +=y;
@@ -165,7 +229,7 @@ namespace shader{
                 child.setScale(x,y,z)
             }
         }
-        setRotation(x:number,y:number,z:number){//注意此处的x,y,z是角度增量，而非最终角度，调用时候请注意
+        Rotate(x:number,y:number,z:number){//注意此处的x,y,z是角度增量，而非最终角度，调用时候请注意
             this.rotation.x +=x;
             this.rotation.y +=y;
             this.rotation.z +=z;
@@ -262,6 +326,57 @@ namespace shader{
             gl.bindBuffer(gl.ARRAY_BUFFER,bufferObj.buffer);
             gl.vertexAttribPointer(a_attribute, bufferObj.num, bufferObj.type, false, 0,0);
             gl.enableVertexAttribArray(a_attribute);
+        }
+        /**
+         * 初始化obj数据，全局只需绑定一次
+         * @param vertices 顶点矩阵
+         * @param colors 颜色矩阵
+         * @param normals 法向量矩阵
+         * @param program　对应的着色器程序 
+         * @param indices 索引矩阵
+         */
+        initVertexBuffer(vertices:Float32Array, colors:Float32Array,normals:Float32Array,indices:Uint16Array){
+            var OBJ = {
+                vertex:null,
+                color:null,
+                normal:null,
+                index:null,
+                numIndices:null,
+            };
+            OBJ.vertex = this.initArrayBufferForLaterUse(GL,vertices,3,GL.FLOAT);
+            OBJ.color  = this.initArrayBufferForLaterUse(GL,colors,4,GL.FLOAT);
+            OBJ.normal = this.initArrayBufferForLaterUse(GL,normals,3,GL.FLOAT);
+            OBJ.index  = this.initElementArrayBufferForLaterUse(GL,indices,GL.UNSIGNED_SHORT);           
+            
+            if(!OBJ.vertex ||!OBJ.color||!OBJ.normal||!OBJ.index){
+                console.log("failed to init buffer");return null;
+            }
+            OBJ.numIndices = indices.length;
+
+            GL.bindBuffer(GL.ARRAY_BUFFER, null);
+            GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, null);
+
+            return OBJ;
+        }
+        initShader(target){
+            var shadertool = new shaderUtils();
+            var obj = shadertool.initShaders(GL,target.vertex,target.fragment);
+            if(!obj.status){
+                console.log("failed to init shader");
+                return;
+            }
+            target.program = obj.program;
+        }
+        initOBJInfo(target,path){
+            var obp = new OBJParser(path);
+            obp.readOBJFile(path,0.1,true,function(){
+                var info = obp.getDrawingInfo();
+                console.log(target)
+                target.vertices = info.vertices;
+                target.OBJInfo = target.initVertexBuffer(info.vertices,info.colors,info.normals,info.indices);  
+                target.boundingBox = new BoundingBox(target);
+                // console.log(this.Pipe);
+            }.bind(target));
         }
     }
 }

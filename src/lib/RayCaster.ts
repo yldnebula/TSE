@@ -50,7 +50,7 @@ namespace Lib{
             nNear[2] = (ez-sz)*far+sz;
             this.start = [sx,sy,sz];
             this.end = nNear;
-            console.log(this.start, this.end)
+            // console.log(this.start, this.end)
         }
         /**
          * 射线相交的物体
@@ -62,7 +62,7 @@ namespace Lib{
             var ret:NEObject[] = [];
             var out = [];
             for(var i = 0; i < objects.length;i++){
-                console.log("***********************name:"+objects[i].name);
+                // console.log("***********************name:"+objects[i].name);
                 var triArr = objects[i].boundingBox.generateTestTriangle();
                 for(var tri of triArr){
                     if(this.intersectSurfaceLine(tri[0].elements,tri[1].elements,tri[2].elements,this.start,this.end,out)){
@@ -80,6 +80,14 @@ namespace Lib{
                     }
                 }
             }
+            // var retObj = null;
+            // var distance = 999;
+            // for(var point of ret){
+            //     var dis = Math.sqrt(point.coordinate.x*point.coordinate.x+point.coordinate.x*point.coordinate.x+point.coordinate.x*point.coordinate.x)
+            //     if(dis < distance){
+            //         retObj = point;
+            //     }
+            // }
             // console.log(ret);
             return ret;
         }

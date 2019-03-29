@@ -7,8 +7,11 @@
 ///<reference path="../lib/shader-utils/shaderUtils.ts" />
 ///<reference path="../lib/matrix-utils/matrixUtils.ts" />
 ///<reference path="./shader/Cube.ts" />
+///<reference path="./shader/Pipe.ts" />
 ///<reference path="./shader/Cylinder.ts" />
 ///<reference path="../lib/parse-utils/objParse.ts" />
+///<reference path="../lib/parse-utils/GLIFParser.ts" />
+
 
 import Nebula       = Core.Nebula;
 import Scene        = Core.Scene;
@@ -24,6 +27,11 @@ import OBJParser    = Utils.ObjParser;
 import Render       =Core.Render;
 import RayCaster    = Lib.RayCaster;
 import BoundingBox  = Lib.BoundingBox;
+import GLIFParser   = Utils.GLIFParser;
+import Pipe         = shader.Pipe;
+import Tee         = shader.Tee;
+import Elbow         = shader.Elbow;
+import Valve         = shader.Valve;
 
 //************全局变量Global****************** */
 
@@ -44,18 +52,23 @@ sceneInfo.initScene();
 var camera = new Camera(85,canvas.width/canvas.height,1,100)
 //初始化主控渲染器
 var render = new Render();
+//初始化GLIF解析器
+var gp = new GLIFParser();
+gp.readGilfFile('./glif/inp1.TXT',"");
 //******************************************* */
 main();
 function main(){
-    var Cube = new cube(); 
+    var Cube = new Valve(); 
     // Cube.setTranslate(3,0,0);
-    
-    var cylinder = new Cylinder();
+    var Pipe1 = new Pipe();
+    // var cylinder = new Cylinder();
 
 
-    cylinder.setParent(Cube);
+    // cylinder.setParent(Cube);
     Cube.setParent(ne.getScene());
-
+    Pipe1.setParent(ne.getScene())
+    // Pipe1.setRotation(0,0,90);
+    // Cube.setRotation(0,90,0);
     render.render(sceneInfo);
 
     render.stopped = false;//将来可以改变为资源加载完成后自动改为false，开始update
@@ -68,6 +81,13 @@ function main(){
     var isDrag:boolean = false;
     var lastX:number = -1;
     var lastY:number = -1;
+
+    
+    //被选中的物体
+    var objClicked = null;
+    var setX = false;
+    var setY = false;
+    var setZ = false;
 
     var testCamera = false;
     ca.onmousedown=function(ev){
@@ -85,8 +105,13 @@ function main(){
         var positionN = new Matrix4(null).setInverseOf(camera.projViewMatrix).multiplyVector4(pointOnCanvasToNear);
         RayCaster1.initCameraRay(camera.coordinate.x,camera.coordinate.y,camera.coordinate.z,positionN.elements[0],positionN.elements[1],positionN.elements[2],100);
         var obj =RayCaster1.intersectObjects(ne.getScene().Child,true);
+        if(obj.length>0){
+            objClicked = obj[0];
+        }else{
+            objClicked = null;
+        }
         console.log(obj)
-        console.log(positionN);
+        // console.log(positionN);
     }
     ca.onmouseup=function(ev){
         isDrag = false;
@@ -109,18 +134,24 @@ function main(){
                 lastY = y;
                 return;
             }
-            Cube.setTranslate(-dy/40, 0,0);
-            // Cube.setRotation(0, dx,0);
-            cylinder.setRotation(0, dx,0);
-            // cylinder.setScale(1,Math.max(1,Math.min(2,dx/10)),1)
+            if(!!objClicked){
+                if(setX){
+                    objClicked.setTranslate(dx/20, 0,0);
+                }else if(setY){
+                    objClicked.setTranslate(0, -dy/20,0);
+                }else if(setZ){
+                    objClicked.setTranslate(0, 0,dy/20);
+                }
+            }
         }
         lastX = x;
         lastY = y;
     }
+    
     // ca.onkeydown= function(e){
     //     console.log(e)
     // }
-
+    //此处需要考虑不同浏览器的兼容性
     window.onmousewheel = function (e) {
         var factor = 0.1;
         if(e.deltaY < 0){//zoom in
@@ -130,4 +161,15 @@ function main(){
         }
 
     };//IE/Opera/Chrome/Safari
+    //暂时使用键位来设置空间xyz位移
+    window.onkeydown = function(e){
+        switch(e.code){
+            case "KeyZ":setX = true;setY = false;setZ = false;
+                break;
+            case "KeyX":setY = true;setZ = false; setX = false;
+                break;
+            case "KeyC":setZ = true;setY = false;setX = false;
+                break;
+        }
+    }
 }
