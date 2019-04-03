@@ -197,6 +197,18 @@ namespace shader{
 
             this.Rotate(dx,dy,dz);
         }
+        setRotationFromQuaternion(axis:Vector3,angle:number,isRadian:boolean){//看看能不能做，从旋转矩阵读取当前xyz轴旋转角度?
+            this._modelMatrix.setRotateFromQuaternion(axis,angle,isRadian);
+
+            this._mvpMatrix.set(camera.projViewMatrix).multiply(this._modelMatrix);
+            this._normalMatrix.setInverseOf(this._modelMatrix);
+            this._normalMatrix.transpose();
+            this.boundingBox.updateBoundingBox();
+
+            for(var child of this.Child){
+                child.setRotationFromQuaternion(axis,angle,isRadian)
+            }
+        }
         setTranslate(x:number,y:number,z:number){
             this.coordinate.x +=x;
             this.coordinate.y +=y;
@@ -369,9 +381,9 @@ namespace shader{
         }
         initOBJInfo(target,path){
             var obp = new OBJParser(path);
-            obp.readOBJFile(path,0.1,true,function(){
+            obp.readOBJFile(path,1/60,true,function(){
                 var info = obp.getDrawingInfo();
-                console.log(target)
+                // console.log(target)
                 target.vertices = info.vertices;
                 target.OBJInfo = target.initVertexBuffer(info.vertices,info.colors,info.normals,info.indices);  
                 target.boundingBox = new BoundingBox(target);

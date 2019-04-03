@@ -35,7 +35,7 @@ namespace Core{
             nowN = camera.getSightDirection(1+factor);
 
             camera.setCoordinatePoint(camera.center.x-nowN[0],camera.center.y-nowN[1],camera.center.z-nowN[2])
-            camera.setPerspectiveCamera(85,canvas.width/canvas.height,1,100)
+            camera.setPerspectiveCamera(85,canvas.width/canvas.height,1,1000)
         }
         /**
          * 设置正视摄像机,暂时不用开发

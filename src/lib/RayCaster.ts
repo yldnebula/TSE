@@ -57,7 +57,7 @@ namespace Lib{
          * @param objects 检查的物体
          * @param testChild 是否检查子物体
          */
-        intersectObjects(objects:NEObject[], testChild:boolean):NEObject[]{
+        intersectObjects(objects:NEObject[], testChild:boolean):NEObject{
             this.test2();
             var ret:NEObject[] = [];
             var out = [];
@@ -89,7 +89,7 @@ namespace Lib{
             //     }
             // }
             // console.log(ret);
-            return ret;
+            return ret[0];
         }
         /**
          * 判断点在面中

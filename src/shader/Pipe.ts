@@ -23,21 +23,68 @@ namespace shader{
         onLoad(){
             this.name = 'Pipe';
             this.initShader(this);
-            this.initOBJInfo(this,'./resources/1/1.obj');
+            this.initOBJInfo(this,'./resources/1/pipe.obj');
+        }
+
+        calculate(x:number, y:number, z:number, startPoint:Vector3):Vector3{
+            this.length = Math.sqrt(x*x+y*y+z*z);
+            this.direct = new Vector3([x,y,z]);
+            
+            this.setPosition(startPoint.elements[0],startPoint.elements[1],startPoint.elements[2]);
+            var endPoint = this.direct.add(startPoint);
+            var angle1:number;
+            var angle2:number;
+            if(x!=0.000 && y != 0.000 && z != 0.000){
+                angle1 = Math.atan(y/x);
+                angle2 = Math.atan(z/(Math.sqrt(x*x+y*y)));
+                //计算基准轴向，ｘｙ向量的法向量
+                var axis = new Vector3([-y/x,1,0]).normalize();
+
+                this.setRotationFromQuaternion(new Vector3([0,0,1]),angle1,true);
+                this.setRotationFromQuaternion(axis,-angle2,true);
+
+            }else if(x==0.000 && y != 0.000 && z != 0.000){
+                angle1 = y>0?Math.PI/2:-Math.PI/2;
+                angle2 = Math.atan(y/z);
+
+                this.setRotationFromQuaternion(new Vector3([0,0,1]),angle1,true);
+                this.setRotationFromQuaternion(new Vector3([1,0,0]),angle2,true);
+
+
+            }else if(x!=0.000 && y == 0.000 && z != 0.000){
+                angle1 = Math.atan(z/x);
+                this.setRotationFromQuaternion(new Vector3([0,1,0]),-angle1,true);
+
+            }else if(x!=0.000 && y != 0.000 && z == 0.000){
+                angle1 = Math.atan(y/x);
+                this.setRotationFromQuaternion(new Vector3([0,0,1]),angle1,true);
+
+            }else if(x==0.000 && y != 0.000 && z == 0.000){
+                this.setRotationFromQuaternion(new Vector3([0,0,1]),Math.PI/2,true);
+
+            }else if(x!=0.000 && y == 0.000 && z == 0.000){
+                //nothing
+            }else if(x==0.000 && y == 0.000 && z != 0.000){
+                this.setRotationFromQuaternion(new Vector3([0,1,0]),-Math.PI/2,true);
+            }else if(x==0.000 && y == 0.000 && z == 0.000){
+                //nothing
+            }
+            console.log(this.rotation);
+
+            return endPoint;
         }
         /**
-         * 根据输入数据计算管道长度
-         * 再知道起点即可绘制空间管道
+         * 设置轴朝向
+         * @param which　哪个轴为朝向，暂不实现，先用四元数
          */
-        calculate(x:number, y:number, z:number){
-            this.length = Math.sqrt(x*x+y*y+z*z);
-            this.direct = new Vector3([x,y,z]).normalize();
-            
+        setAxisDirection(which){
+
         }
         onUpdate(dt){
             this._draw(this.program,this.OBJInfo);
         }
     }
+    
     export class Tee extends NEObject implements ISIE{
         IS:number;
         IE:number;
@@ -47,7 +94,7 @@ namespace shader{
         onLoad(){
             this.name = 'Tee';
             this.initShader(this);
-            this.initOBJInfo(this,'./resources/1/3.obj');
+            this.initOBJInfo(this,'./resources/1/tee.obj');
         }
         onUpdate(dt){
             this._draw(this.program,this.OBJInfo);
@@ -65,7 +112,7 @@ namespace shader{
         onLoad(){
             this.name = 'Elbow';
             this.initShader(this);
-            this.initOBJInfo(this,'./resources/1/4.obj');
+            this.initOBJInfo(this,'./resources/1/elbow.obj');
         }
         onUpdate(dt){
             this._draw(this.program,this.OBJInfo);
@@ -80,7 +127,7 @@ namespace shader{
         onLoad(){
             this.name = 'Valve';
             this.initShader(this);
-            this.initOBJInfo(this,'./resources/1/2.obj');
+            this.initOBJInfo(this,'./resources/1/valve.obj');
         }
         onUpdate(dt){
             this._draw(this.program,this.OBJInfo);
@@ -91,6 +138,8 @@ namespace shader{
         IEN:number;//分支结束节点号
         ITY:number;//分支节点约束类型
         
+        UnitPool:NEObject[]=[];
+        startPoint = [];//存储该节点的开始位置
         constructor(isn,ien,ity){
             this.IEN = ien;
             this.ISN = isn;

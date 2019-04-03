@@ -93,6 +93,16 @@ declare namespace Utils {
         setRotate(angle: number, x: number, y: number, z: number): this;
         rotate(angle: number, x: number, y: number, z: number): this;
         /**
+         * 四元数设置旋转矩阵
+         * @param axis  轴向
+         * @param angle 绕轴旋转角度
+         */
+        setRotateFromQuaternion(axis: Vector3, angle: number, isRadian: boolean): this;
+        /**
+         * 四元数旋转矩阵
+         */
+        rotateByQuaternion(axis: Vector3, angle: number, isRadian: boolean): this;
+        /**
          *
          * @param eyeX 视点x坐标
          * @param eyeY 视点y坐标
@@ -125,6 +135,10 @@ declare namespace Utils {
          */
         normalize(): this;
         /**
+         * 得到三维空间法向量,以原点为起点
+         */
+        getNormal(): void;
+        /**
          * 三维向量乘以一个数
          */
         mutiply(m: number): this;
@@ -145,12 +159,15 @@ declare namespace Utils {
         constructor(opt_src: Float32Array | number[] | Vector4 | null);
     }
 }
+declare function matIV(): void;
+declare function qtnIV(): void;
 declare namespace Utils {
     class GLIFParser {
-        startPoint: number[];
+        startPoint: Vector3;
         IWD: number;
         Node: any;
-        constructor();
+        Scene: any;
+        constructor(scene: Scene);
         readGilfFile(fileName: any, callback: any): void;
         onReadFile(fileString: any): void;
         parse(fileString: string): boolean;
@@ -185,6 +202,15 @@ declare namespace Utils {
          * 60,61开头的一段数据
          */
         parsePipeInfo(line: string[]): void;
+        /**
+         * 处理直单元
+         * @param info
+         */
+        parseDirectUnit(info: string[], scene: Scene): Pipe;
+        /**
+         * 处理弯单元
+         */
+        parseBendingUnit(info: any, scene: any): Elbow;
         /**
          * 自定义输出
          * @param val
@@ -517,7 +543,7 @@ declare namespace Lib {
          * @param objects 检查的物体
          * @param testChild 是否检查子物体
          */
-        intersectObjects(objects: NEObject[], testChild: boolean): NEObject[];
+        intersectObjects(objects: NEObject[], testChild: boolean): NEObject;
         /**
          * 判断点在面中
          * @param pA 三角形a点
@@ -624,6 +650,7 @@ declare namespace shader {
          */
         setPosition(x: number, y: number, z: number): void;
         setRotation(x: number, y: number, z: number): void;
+        setRotationFromQuaternion(axis: Vector3, angle: number, isRadian: boolean): void;
         setTranslate(x: number, y: number, z: number): void;
         setScale(x: number, y: number, z: number): void;
         Rotate(x: number, y: number, z: number): void;
@@ -732,11 +759,12 @@ declare namespace shader {
         length: number;
         constructor();
         onLoad(): void;
+        calculate(x: number, y: number, z: number, startPoint: Vector3): Vector3;
         /**
-         * 根据输入数据计算管道长度
-         * 再知道起点即可绘制空间管道
+         * 设置轴朝向
+         * @param which　哪个轴为朝向，暂不实现，先用四元数
          */
-        calculate(x: number, y: number, z: number): void;
+        setAxisDirection(which: any): void;
         onUpdate(dt: any): void;
     }
     class Tee extends NEObject implements ISIE {
@@ -767,6 +795,8 @@ declare namespace shader {
         ISN: number;
         IEN: number;
         ITY: number;
+        UnitPool: NEObject[];
+        startPoint: any[];
         constructor(isn: any, ien: any, ity: any);
     }
 }
@@ -822,6 +852,7 @@ import Pipe = shader.Pipe;
 import Tee = shader.Tee;
 import Elbow = shader.Elbow;
 import Valve = shader.Valve;
+import GLIFNode = shader.GLIFNode;
 declare const shaderTool: shaderUtils;
 declare var GL: WebGLRenderingContext;
 declare const canvas: {

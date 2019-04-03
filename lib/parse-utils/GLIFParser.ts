@@ -1,10 +1,15 @@
+
+
 namespace Utils{
     export class GLIFParser{
-        startPoint:number[];
+
+        startPoint:Vector3;
         IWD:number = 2;//弯单元缺省值,包含弯单元半斤；１表示不包含
         Node = null;
-        constructor(){
 
+        Scene = null;
+        constructor(scene:Scene){
+            this.Scene = scene;
         }
 
         readGilfFile(fileName,callback){
@@ -92,6 +97,8 @@ namespace Utils{
             for(var i = 0; i < this.Node.length;i++){
                 this.parseNode(this.Node[i]);
             }
+            render.render(ne.getScene())
+            render.main()
             return ret;
         }
         /**
@@ -112,7 +119,7 @@ namespace Utils{
          */
         parseStartPoint(line:string[]){
             var x = parseFloat(line[1]), y= parseFloat(line[2]),z=parseFloat(line[3]);
-            this.startPoint = [x,y,z];
+            this.startPoint = new Vector3([x,y,z]);
             this.parseLog("起始点");
             this.parseLog(this.startPoint);
 
@@ -184,16 +191,17 @@ namespace Utils{
                 var lastNode = parseInt(pipes[0][1]);
                 var nextNode = parseInt(pipes[0][2]);
                 var restraint = parseInt(pipes[0][3]);
-    
+                var GlifNode = new GLIFNode(lastNode,nextNode,restraint)
+                console.log(this.startPoint)
                 for(var i = 1; i < pipes.length; i++){
                     var tag = pipes[i][0];
                     switch(tag){
                         case "0"://处理弯单元
-                            
+                            GlifNode.UnitPool.push(this.parseBendingUnit(pipes[i],this.Scene))
                         break;
-                        case "1":
-                        
-                        break;
+                        case "1"://处理直单元
+                            GlifNode.UnitPool.push(this.parseDirectUnit(pipes[i],this.Scene))
+                            break;
                         case "2":
                         
                         break;
@@ -218,6 +226,7 @@ namespace Utils{
                         default:console.error("cannot parse '10'tag node");
                     }
                 }
+                this.parseLog(GlifNode.UnitPool)
             }else{
                 //260,70,90信息，undo
                 this.parseLog(lines);
@@ -229,16 +238,55 @@ namespace Utils{
          * 60,61开头的一段数据
          */
         parsePipeInfo(line:string[]){
-            this.parseLog("６０数据");
-            this.parseLog(line);
+            // this.parseLog("６０数据");
+            // this.parseLog(line);
 
+        }
+        /**
+         * 处理直单元
+         * @param info 
+         */
+        parseDirectUnit(info:string[], scene:Scene){
+            if(!!scene){
+                var pipe = new Pipe();
+                pipe.IS = parseInt(info[1]);
+                pipe.IE = parseInt(info[2]);
+                this.startPoint = pipe.calculate(parseFloat(info[3]), parseFloat(info[4]), 
+                    parseFloat(info[5]),this.startPoint);//计算新的管道，并且更新新的起始位置
+                
+                
+                
+                scene.addChild(pipe);
+                // render.render(scene);
+                return pipe;
+            }
+        }
+        /**
+         * 处理弯单元
+         */
+        parseBendingUnit(info, scene){
+            if(!!scene){
+                var elbow = new Elbow();
+                elbow.IS = info[1];
+                elbow.IE = info[2];
+                elbow.RR = info[3];
+                elbow.RA = info[4];
+                elbow.IA = info[5];
+                
+                
+                
+                scene.addChild(elbow);
+                // render.render(scene);
+                // render.main();
+                return elbow;
+            }
         }
         /**
          * 自定义输出
          * @param val 
          */
         parseLog(val){
-            console.log(val)
+            //console.log(val)
         }
     }
 }
