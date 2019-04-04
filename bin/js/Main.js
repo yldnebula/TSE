@@ -1370,10 +1370,11 @@ var Utils;
          */
         GLIFParser.prototype.parseDirectUnit = function (info, scene) {
             if (!!scene) {
-                var pipe = new Pipe();
+                var pipe = new Pipe(parseFloat(info[3]), parseFloat(info[4]), parseFloat(info[5]), this.startPoint);
                 pipe.IS = parseInt(info[1]);
                 pipe.IE = parseInt(info[2]);
-                this.startPoint = pipe.calculate(parseFloat(info[3]), parseFloat(info[4]), parseFloat(info[5]), this.startPoint); //计算新的管道，并且更新新的起始位置
+                this.startPoint = new Utils.Vector3([parseFloat(info[3]), parseFloat(info[4]),
+                    parseFloat(info[5])]).add(this.startPoint); //计算新的管道，并且更新新的起始位置
                 scene.addChild(pipe);
                 // render.render(scene);
                 return pipe;
@@ -3126,6 +3127,17 @@ var shader;
                 child.setRotationFromQuaternion(axis, angle, isRadian);
             }
         };
+        NEObject.prototype.rotateByQuaternion = function (axis, angle, isRadian) {
+            this._modelMatrix.rotateByQuaternion(axis, angle, isRadian);
+            this._mvpMatrix.set(camera.projViewMatrix).multiply(this._modelMatrix);
+            this._normalMatrix.setInverseOf(this._modelMatrix);
+            this._normalMatrix.transpose();
+            this.boundingBox.updateBoundingBox();
+            for (var _i = 0, _a = this.Child; _i < _a.length; _i++) {
+                var child = _a[_i];
+                child.rotateByQuaternion(axis, angle, isRadian);
+            }
+        };
         NEObject.prototype.setTranslate = function (x, y, z) {
             this.coordinate.x += x;
             this.coordinate.y += y;
@@ -3144,6 +3156,7 @@ var shader;
             this.scale.x = x;
             this.scale.y = y;
             this.scale.z = z;
+            // this._modelMatrix = new Matrix4(null);
             this._modelMatrix.scale(x, y, z);
             this._mvpMatrix.set(camera.projViewMatrix).multiply(this._modelMatrix);
             this._normalMatrix.setInverseOf(this._modelMatrix);
@@ -3285,7 +3298,7 @@ var shader;
             }
             target.program = obj.program;
         };
-        NEObject.prototype.initOBJInfo = function (target, path) {
+        NEObject.prototype.initOBJInfo = function (target, path, callBack) {
             var obp = new OBJParser(path);
             obp.readOBJFile(path, 1 / 60, true, function () {
                 var info = obp.getDrawingInfo();
@@ -3294,6 +3307,8 @@ var shader;
                 target.OBJInfo = target.initVertexBuffer(info.vertices, info.colors, info.normals, info.indices);
                 target.boundingBox = new BoundingBox(target);
                 // console.log(this.Pipe);
+                if (typeof callBack == "function")
+                    callBack();
             }.bind(target));
         };
         return NEObject;
@@ -3506,20 +3521,24 @@ var shader;
      */
     var Pipe = /** @class */ (function (_super) {
         __extends(Pipe, _super);
-        function Pipe() {
+        function Pipe(x, y, z, startPoint) {
             var _this = _super.call(this) || this;
             _this.position = new Vector3([0, 0, 0]);
+            _this.initShader(_this);
+            _this.initOBJInfo(_this, './resources/1/pipe.obj', function () {
+                this.length = Math.sqrt(x * x + y * y + z * z);
+                // this.setScale(this.length,1,1)
+                this.calculate(x, y, z, startPoint);
+            }.bind(_this));
             return _this;
         }
         Pipe.prototype.onLoad = function () {
             this.name = 'Pipe';
-            this.initShader(this);
-            this.initOBJInfo(this, './resources/1/pipe.obj');
         };
         Pipe.prototype.calculate = function (x, y, z, startPoint) {
-            this.length = Math.sqrt(x * x + y * y + z * z);
             this.direct = new Vector3([x, y, z]);
             this.setPosition(startPoint.elements[0], startPoint.elements[1], startPoint.elements[2]);
+            // this.setScale(1,1,1)
             var endPoint = this.direct.add(startPoint);
             var angle1;
             var angle2;
@@ -3528,36 +3547,38 @@ var shader;
                 angle2 = Math.atan(z / (Math.sqrt(x * x + y * y)));
                 //计算基准轴向，ｘｙ向量的法向量
                 var axis = new Vector3([-y / x, 1, 0]).normalize();
-                this.setRotationFromQuaternion(new Vector3([0, 0, 1]), angle1, true);
-                this.setRotationFromQuaternion(axis, -angle2, true);
+                this.rotateByQuaternion(new Vector3([0, 0, 1]), angle1, true);
+                this.rotateByQuaternion(axis, -angle2, true);
             }
             else if (x == 0.000 && y != 0.000 && z != 0.000) {
+                // console.log("1");
                 angle1 = y > 0 ? Math.PI / 2 : -Math.PI / 2;
                 angle2 = Math.atan(y / z);
-                this.setRotationFromQuaternion(new Vector3([0, 0, 1]), angle1, true);
-                this.setRotationFromQuaternion(new Vector3([1, 0, 0]), angle2, true);
+                this.rotateByQuaternion(new Vector3([0, 0, 1]), angle1, true);
+                this.rotateByQuaternion(new Vector3([0, 1, 0]), -angle2, true); //这个地方注意一下，旋转是按照本地坐标系旋转的,但是设置规模却是按照世界坐标系来的
+                // console.log(angle1,angle2)
             }
             else if (x != 0.000 && y == 0.000 && z != 0.000) {
                 angle1 = Math.atan(z / x);
-                this.setRotationFromQuaternion(new Vector3([0, 1, 0]), -angle1, true);
+                this.rotateByQuaternion(new Vector3([0, 1, 0]), -angle1, true);
             }
             else if (x != 0.000 && y != 0.000 && z == 0.000) {
                 angle1 = Math.atan(y / x);
-                this.setRotationFromQuaternion(new Vector3([0, 0, 1]), angle1, true);
+                this.rotateByQuaternion(new Vector3([0, 0, 1]), angle1, true);
             }
             else if (x == 0.000 && y != 0.000 && z == 0.000) {
-                this.setRotationFromQuaternion(new Vector3([0, 0, 1]), Math.PI / 2, true);
+                this.rotateByQuaternion(new Vector3([0, 0, 1]), Math.PI / 2, true);
             }
             else if (x != 0.000 && y == 0.000 && z == 0.000) {
                 //nothing
             }
             else if (x == 0.000 && y == 0.000 && z != 0.000) {
-                this.setRotationFromQuaternion(new Vector3([0, 1, 0]), -Math.PI / 2, true);
+                this.rotateByQuaternion(new Vector3([0, 1, 0]), -Math.PI / 2, true);
             }
             else if (x == 0.000 && y == 0.000 && z == 0.000) {
                 //nothing
             }
-            console.log(this.rotation);
+            console.log(startPoint.elements[0], startPoint.elements[1], startPoint.elements[2]);
             return endPoint;
         };
         /**
@@ -3580,10 +3601,12 @@ var shader;
         Tee.prototype.onLoad = function () {
             this.name = 'Tee';
             this.initShader(this);
-            this.initOBJInfo(this, './resources/1/tee.obj');
+            this.initOBJInfo(this, './resources/1/tee.obj', null);
         };
         Tee.prototype.onUpdate = function (dt) {
             this._draw(this.program, this.OBJInfo);
+        };
+        Tee.prototype.calculate = function () {
         };
         return Tee;
     }(shader.NEObject));
@@ -3596,7 +3619,7 @@ var shader;
         Elbow.prototype.onLoad = function () {
             this.name = 'Elbow';
             this.initShader(this);
-            this.initOBJInfo(this, './resources/1/elbow.obj');
+            this.initOBJInfo(this, './resources/1/elbow.obj', null);
         };
         Elbow.prototype.onUpdate = function (dt) {
             this._draw(this.program, this.OBJInfo);
@@ -3612,7 +3635,7 @@ var shader;
         Valve.prototype.onLoad = function () {
             this.name = 'Valve';
             this.initShader(this);
-            this.initOBJInfo(this, './resources/1/valve.obj');
+            this.initOBJInfo(this, './resources/1/valve.obj', null);
         };
         Valve.prototype.onUpdate = function (dt) {
             this._draw(this.program, this.OBJInfo);
@@ -3834,17 +3857,21 @@ var camera = new Camera(85, canvas.width / canvas.height, 1, 1000);
 //初始化主控渲染器
 var render = new Render();
 //初始化GLIF解析器
-var gp = new GLIFParser(ne.getScene());
-gp.readGilfFile('./glif/inp3.TXT', "");
+// var gp = new GLIFParser(ne.getScene());
+// gp.readGilfFile('./glif/inp2.TXT',"");
 //******************************************* */
-// var Cube = new Valve(); 
+var Cube = new Pipe(1, 1, 0, new Vector3([0, 0, 0]));
+// var cube = new Tee();
 main();
 function main() {
     // Cube.setTranslate(3,0,0);
     // var Pipe1 = new Pipe();
     // var cylinder = new Cylinder();
     // cylinder.setParent(Cube);
-    // Cube.setParent(ne.getScene());
+    Cube.setParent(ne.getScene());
+    // cube.setRotation(90,0,0)
+    // Cube.setScale(8,8,1);
+    // Cube.setScale(1,8,1)
     // Pipe1.setParent(ne.getScene())
     // Pipe1.setRotation(0,0,90);
     // Cube.setRotationFromQuaternion(new Vector3([1,0,0]),Math.PI/6,true);

@@ -248,11 +248,12 @@ namespace Utils{
          */
         parseDirectUnit(info:string[], scene:Scene){
             if(!!scene){
-                var pipe = new Pipe();
+                var pipe = new Pipe(parseFloat(info[3]), parseFloat(info[4]), 
+                parseFloat(info[5]),this.startPoint);
                 pipe.IS = parseInt(info[1]);
                 pipe.IE = parseInt(info[2]);
-                this.startPoint = pipe.calculate(parseFloat(info[3]), parseFloat(info[4]), 
-                    parseFloat(info[5]),this.startPoint);//计算新的管道，并且更新新的起始位置
+                this.startPoint = new Vector3([parseFloat(info[3]), parseFloat(info[4]), 
+                parseFloat(info[5])]).add(this.startPoint)//计算新的管道，并且更新新的起始位置
                 
                 
                 

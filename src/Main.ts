@@ -54,10 +54,12 @@ var camera = new Camera(85,canvas.width/canvas.height,1,1000)
 //初始化主控渲染器
 var render = new Render();
 //初始化GLIF解析器
-var gp = new GLIFParser(ne.getScene());
-gp.readGilfFile('./glif/inp3.TXT',"");
+// var gp = new GLIFParser(ne.getScene());
+// gp.readGilfFile('./glif/inp2.TXT',"");
+
 //******************************************* */
-// var Cube = new Valve(); 
+var Cube = new Pipe(1,1,0,new Vector3([0,0,0])); 
+// var cube = new Tee();
 
 main();
 function main(){
@@ -67,7 +69,11 @@ function main(){
 
 
     // cylinder.setParent(Cube);
-    // Cube.setParent(ne.getScene());
+    Cube.setParent(ne.getScene());
+    
+    // cube.setRotation(90,0,0)
+    // Cube.setScale(8,8,1);
+    // Cube.setScale(1,8,1)
     // Pipe1.setParent(ne.getScene())
     // Pipe1.setRotation(0,0,90);
     // Cube.setRotationFromQuaternion(new Vector3([1,0,0]),Math.PI/6,true);

@@ -17,20 +17,24 @@ namespace shader{
         position:Vector3 = new Vector3([0,0,0]);
         direct:Vector3;
         length:number;
-        constructor(){
+        constructor(x:number, y:number, z:number, startPoint:Vector3){
             super();
+            this.initShader(this);
+            this.initOBJInfo(this,'./resources/1/pipe.obj',function(){
+                this.length = Math.sqrt(x*x+y*y+z*z);
+                // this.setScale(this.length,1,1)
+                this.calculate(x, y, z, startPoint);
+            }.bind(this));
         }
         onLoad(){
             this.name = 'Pipe';
-            this.initShader(this);
-            this.initOBJInfo(this,'./resources/1/pipe.obj');
         }
 
         calculate(x:number, y:number, z:number, startPoint:Vector3):Vector3{
-            this.length = Math.sqrt(x*x+y*y+z*z);
             this.direct = new Vector3([x,y,z]);
             
             this.setPosition(startPoint.elements[0],startPoint.elements[1],startPoint.elements[2]);
+            // this.setScale(1,1,1)
             var endPoint = this.direct.add(startPoint);
             var angle1:number;
             var angle2:number;
@@ -40,36 +44,37 @@ namespace shader{
                 //计算基准轴向，ｘｙ向量的法向量
                 var axis = new Vector3([-y/x,1,0]).normalize();
 
-                this.setRotationFromQuaternion(new Vector3([0,0,1]),angle1,true);
-                this.setRotationFromQuaternion(axis,-angle2,true);
+                this.rotateByQuaternion(new Vector3([0,0,1]),angle1,true);
+                this.rotateByQuaternion(axis,-angle2,true);
 
             }else if(x==0.000 && y != 0.000 && z != 0.000){
+                // console.log("1");
                 angle1 = y>0?Math.PI/2:-Math.PI/2;
                 angle2 = Math.atan(y/z);
 
-                this.setRotationFromQuaternion(new Vector3([0,0,1]),angle1,true);
-                this.setRotationFromQuaternion(new Vector3([1,0,0]),angle2,true);
+                this.rotateByQuaternion(new Vector3([0,0,1]),angle1,true);
+                this.rotateByQuaternion(new Vector3([0,1,0]),-angle2,true);//这个地方注意一下，旋转是按照本地坐标系旋转的,但是设置规模却是按照世界坐标系来的
 
-
+                // console.log(angle1,angle2)
             }else if(x!=0.000 && y == 0.000 && z != 0.000){
                 angle1 = Math.atan(z/x);
-                this.setRotationFromQuaternion(new Vector3([0,1,0]),-angle1,true);
+                this.rotateByQuaternion(new Vector3([0,1,0]),-angle1,true);
 
             }else if(x!=0.000 && y != 0.000 && z == 0.000){
                 angle1 = Math.atan(y/x);
-                this.setRotationFromQuaternion(new Vector3([0,0,1]),angle1,true);
+                this.rotateByQuaternion(new Vector3([0,0,1]),angle1,true);
 
             }else if(x==0.000 && y != 0.000 && z == 0.000){
-                this.setRotationFromQuaternion(new Vector3([0,0,1]),Math.PI/2,true);
+                this.rotateByQuaternion(new Vector3([0,0,1]),Math.PI/2,true);
 
             }else if(x!=0.000 && y == 0.000 && z == 0.000){
                 //nothing
             }else if(x==0.000 && y == 0.000 && z != 0.000){
-                this.setRotationFromQuaternion(new Vector3([0,1,0]),-Math.PI/2,true);
+                this.rotateByQuaternion(new Vector3([0,1,0]),-Math.PI/2,true);
             }else if(x==0.000 && y == 0.000 && z == 0.000){
                 //nothing
             }
-            console.log(this.rotation);
+            console.log(startPoint.elements[0],startPoint.elements[1],startPoint.elements[2]);
 
             return endPoint;
         }
@@ -94,10 +99,13 @@ namespace shader{
         onLoad(){
             this.name = 'Tee';
             this.initShader(this);
-            this.initOBJInfo(this,'./resources/1/tee.obj');
+            this.initOBJInfo(this,'./resources/1/tee.obj',null);
         }
         onUpdate(dt){
             this._draw(this.program,this.OBJInfo);
+        }
+        calculate(){
+
         }
     }
     export class Elbow extends NEObject implements ISIE{
@@ -112,11 +120,12 @@ namespace shader{
         onLoad(){
             this.name = 'Elbow';
             this.initShader(this);
-            this.initOBJInfo(this,'./resources/1/elbow.obj');
+            this.initOBJInfo(this,'./resources/1/elbow.obj',null);
         }
         onUpdate(dt){
             this._draw(this.program,this.OBJInfo);
         }
+        
     }
     export class Valve extends NEObject implements ISIE{
         IS:number;
@@ -127,7 +136,7 @@ namespace shader{
         onLoad(){
             this.name = 'Valve';
             this.initShader(this);
-            this.initOBJInfo(this,'./resources/1/valve.obj');
+            this.initOBJInfo(this,'./resources/1/valve.obj',null);
         }
         onUpdate(dt){
             this._draw(this.program,this.OBJInfo);

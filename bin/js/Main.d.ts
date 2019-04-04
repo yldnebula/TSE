@@ -651,6 +651,7 @@ declare namespace shader {
         setPosition(x: number, y: number, z: number): void;
         setRotation(x: number, y: number, z: number): void;
         setRotationFromQuaternion(axis: Vector3, angle: number, isRadian: boolean): void;
+        rotateByQuaternion(axis: Vector3, angle: number, isRadian: boolean): void;
         setTranslate(x: number, y: number, z: number): void;
         setScale(x: number, y: number, z: number): void;
         Rotate(x: number, y: number, z: number): void;
@@ -704,7 +705,7 @@ declare namespace shader {
             numIndices: any;
         };
         initShader(target: any): void;
-        initOBJInfo(target: any, path: any): void;
+        initOBJInfo(target: any, path: any, callBack: any): void;
     }
 }
 declare namespace shader {
@@ -757,7 +758,7 @@ declare namespace shader {
         position: Vector3;
         direct: Vector3;
         length: number;
-        constructor();
+        constructor(x: number, y: number, z: number, startPoint: Vector3);
         onLoad(): void;
         calculate(x: number, y: number, z: number, startPoint: Vector3): Vector3;
         /**
@@ -773,6 +774,7 @@ declare namespace shader {
         constructor();
         onLoad(): void;
         onUpdate(dt: any): void;
+        calculate(): void;
     }
     class Elbow extends NEObject implements ISIE {
         IS: number;
@@ -863,7 +865,7 @@ declare var ne: Nebula;
 declare var sceneInfo: Scene;
 declare var camera: Camera;
 declare var render: Render;
-declare var gp: GLIFParser;
+declare var Cube: Pipe;
 declare function main(): void;
 declare const zero_guard = 0.00001;
 declare function rayPickLog(val: any): void;

@@ -70,7 +70,6 @@ namespace shader{
         public parent:NEObject | Scene = null;
         public boundingBox:BoundingBox = new BoundingBox(null);
         constructor(){
-            
             this.onLoad();
             this.onStart();
             // var nowScene = ne.getScene();
@@ -209,6 +208,18 @@ namespace shader{
                 child.setRotationFromQuaternion(axis,angle,isRadian)
             }
         }
+        rotateByQuaternion(axis:Vector3,angle:number,isRadian:boolean){
+            this._modelMatrix.rotateByQuaternion(axis,angle,isRadian);
+
+            this._mvpMatrix.set(camera.projViewMatrix).multiply(this._modelMatrix);
+            this._normalMatrix.setInverseOf(this._modelMatrix);
+            this._normalMatrix.transpose();
+            this.boundingBox.updateBoundingBox();
+
+            for(var child of this.Child){
+                child.rotateByQuaternion(axis,angle,isRadian)
+            }
+        }
         setTranslate(x:number,y:number,z:number){
             this.coordinate.x +=x;
             this.coordinate.y +=y;
@@ -229,6 +240,7 @@ namespace shader{
             this.scale.x =x;
             this.scale.y =y;
             this.scale.z =z;
+            // this._modelMatrix = new Matrix4(null);
             this._modelMatrix.scale(x,y,z);
             
             this._mvpMatrix.set(camera.projViewMatrix).multiply(this._modelMatrix);
@@ -379,7 +391,7 @@ namespace shader{
             }
             target.program = obj.program;
         }
-        initOBJInfo(target,path){
+        initOBJInfo(target,path,callBack){
             var obp = new OBJParser(path);
             obp.readOBJFile(path,1/60,true,function(){
                 var info = obp.getDrawingInfo();
@@ -388,6 +400,7 @@ namespace shader{
                 target.OBJInfo = target.initVertexBuffer(info.vertices,info.colors,info.normals,info.indices);  
                 target.boundingBox = new BoundingBox(target);
                 // console.log(this.Pipe);
+                if(typeof callBack == "function")callBack();
             }.bind(target));
         }
     }
