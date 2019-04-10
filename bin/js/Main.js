@@ -109,6 +109,13 @@ var Utils;
             return this;
         };
         /**
+         * 左乘一个四方矩阵
+         */
+        Matrix4.prototype.leftMultiply = function (other) {
+            var ret = new Matrix4(null);
+            return other.multiply(ret);
+        };
+        /**
          * 右乘一个三维矩阵，返回三维向量
          * @param pos 右乘的三维矩阵
          */
@@ -3001,6 +3008,11 @@ var shader;
             this._modelMatrix = new Matrix4(null); //模型矩阵
             this._mvpMatrix = new Matrix4(null); //模型视图投影矩阵
             this._normalMatrix = new Matrix4(null); //法向量变换矩阵
+            this._transMatrix = new Matrix4(null);
+            this._rotateMatrix = new Matrix4(null);
+            this._scaleMatrix = new Matrix4(null);
+            this._localMatrix = new Matrix4(null); //节点局部矩阵
+            this._worldMatrix = new Matrix4(null); //节点世界矩阵
             this.program = null;
             this.OBJInfo = null;
             this.name = '';
@@ -3117,7 +3129,9 @@ var shader;
             this.Rotate(dx, dy, dz);
         };
         NEObject.prototype.setRotationFromQuaternion = function (axis, angle, isRadian) {
-            this._modelMatrix.setRotateFromQuaternion(axis, angle, isRadian);
+            // this._modelMatrix.setRotateFromQuaternion(axis,angle,isRadian);
+            this._rotateMatrix.setRotateFromQuaternion(axis, angle, isRadian);
+            this._modelMatrix = (this._transMatrix.multiply(this._rotateMatrix)).multiply(this._scaleMatrix);
             this._mvpMatrix.set(camera.projViewMatrix).multiply(this._modelMatrix);
             this._normalMatrix.setInverseOf(this._modelMatrix);
             this._normalMatrix.transpose();
@@ -3128,7 +3142,9 @@ var shader;
             }
         };
         NEObject.prototype.rotateByQuaternion = function (axis, angle, isRadian) {
-            this._modelMatrix.rotateByQuaternion(axis, angle, isRadian);
+            // this._modelMatrix.rotateByQuaternion(axis,angle,isRadian);
+            this._rotateMatrix.rotateByQuaternion(axis, angle, isRadian);
+            this._modelMatrix = (this._transMatrix.multiply(this._rotateMatrix)).multiply(this._scaleMatrix);
             this._mvpMatrix.set(camera.projViewMatrix).multiply(this._modelMatrix);
             this._normalMatrix.setInverseOf(this._modelMatrix);
             this._normalMatrix.transpose();
@@ -3142,7 +3158,10 @@ var shader;
             this.coordinate.x += x;
             this.coordinate.y += y;
             this.coordinate.z += z;
-            this._modelMatrix.translate(x, y, z);
+            // this._modelMatrix.translate(x,y,z);
+            // this._worldMatrix.translate(x,y,z);//保存一下现在的世界坐标矩阵
+            this._transMatrix.translate(x, y, z);
+            this._modelMatrix = (this._transMatrix.multiply(this._rotateMatrix)).multiply(this._scaleMatrix);
             this._mvpMatrix.set(camera.projViewMatrix).multiply(this._modelMatrix);
             this._normalMatrix.setInverseOf(this._modelMatrix);
             this._normalMatrix.transpose();
@@ -3157,7 +3176,15 @@ var shader;
             this.scale.y = y;
             this.scale.z = z;
             // this._modelMatrix = new Matrix4(null);
-            this._modelMatrix.scale(x, y, z);
+            // console.log(this.getModelMatrix(), new Matrix4(null).setInverseOf(this.getModelMatrix()));
+            // return;
+            // var RS_matrix = this._modelMatrix.leftMultiply(new Matrix4(null).setInverseOf(this._worldMatrix));
+            // RS_matrix.multiply(new Matrix4(null).setScale(x,y,z));
+            // this._modelMatrix = RS_matrix.leftMultiply(this._worldMatrix)
+            // console.log(this._worldMatrix)
+            // this._modelMatrix.scale(x,y,z);
+            this._scaleMatrix.scale(x, y, z);
+            this._modelMatrix = (this._transMatrix.multiply(this._rotateMatrix)).multiply(this._scaleMatrix);
             this._mvpMatrix.set(camera.projViewMatrix).multiply(this._modelMatrix);
             this._normalMatrix.setInverseOf(this._modelMatrix);
             this._normalMatrix.transpose();
@@ -3170,16 +3197,17 @@ var shader;
         NEObject.prototype.Rotate = function (x, y, z) {
             this.rotation.x += x;
             this.rotation.y += y;
-            this.rotation.z += z;
+            this.rotation.z += z; //先计算RS矩阵，然后旋转为左乘，放缩为右乘
             if (x != 0) {
-                this._modelMatrix.rotate(x, 1, 0, 0);
+                this._rotateMatrix.rotate(x, 1, 0, 0);
             }
             if (y != 0) {
-                this._modelMatrix.rotate(y, 0, 1, 0);
+                this._rotateMatrix.rotate(y, 0, 1, 0);
             }
             if (z != 0) {
-                this._modelMatrix.rotate(z, 0, 0, 1);
+                this._rotateMatrix.rotate(z, 0, 0, 1);
             }
+            this._modelMatrix = (this._transMatrix.multiply(this._rotateMatrix)).multiply(this._scaleMatrix);
             this._mvpMatrix.set(camera.projViewMatrix).multiply(this._modelMatrix);
             this._normalMatrix.setInverseOf(this._modelMatrix);
             this._normalMatrix.transpose();
@@ -3188,6 +3216,9 @@ var shader;
                 var child = _a[_i];
                 child.setRotation(x, y, z);
             }
+        };
+        NEObject.prototype.getTRS = function () {
+            console.log(this._transMatrix, this._rotateMatrix, this._scaleMatrix, this._modelMatrix);
         };
         NEObject.prototype.getModelMatrix = function () {
             return this._modelMatrix;
@@ -3527,8 +3558,8 @@ var shader;
             _this.initShader(_this);
             _this.initOBJInfo(_this, './resources/1/pipe.obj', function () {
                 this.length = Math.sqrt(x * x + y * y + z * z);
-                // this.setScale(this.length,1,1)
-                this.calculate(x, y, z, startPoint);
+                //this.calculate(x, y, z, startPoint);
+                //this.setScale(this.length,1,1)
             }.bind(_this));
             return _this;
         }
@@ -3861,20 +3892,22 @@ var render = new Render();
 // gp.readGilfFile('./glif/inp2.TXT',"");
 //******************************************* */
 var Cube = new Pipe(1, 1, 0, new Vector3([0, 0, 0]));
-// var cube = new Tee();
+// var Cube = new Tee();
 main();
 function main() {
-    // Cube.setTranslate(3,0,0);
-    // var Pipe1 = new Pipe();
-    // var cylinder = new Cylinder();
-    // cylinder.setParent(Cube);
+    // Cube.setTranslate(0,5,0);
+    // Cube.Rotate(0,0,10)
+    // Cube.Rotate(10,0,0)
+    // Cube.setRotation(0,30,10)
+    Cube.setPosition(0, 2, 3);
+    Cube.rotateByQuaternion(new Vector3([0, 0, 1]), 10 / 180 * Math.PI, true);
+    Cube.rotateByQuaternion(new Vector3([0, 1, 1]), 20 / 180 * Math.PI, true);
+    Cube.rotateByQuaternion(new Vector3([1, 0, 0]), Math.PI / 2, true);
+    Cube.rotateByQuaternion(new Vector3([1, 1, 0]), Math.PI / 6, true);
+    Cube.rotateByQuaternion(new Vector3([0, 1, 1]), Math.PI / 6, true);
+    Cube.rotateByQuaternion(new Vector3([1, 1, 1]), Math.PI / 6, true);
+    Cube.setScale(5, 1, 1);
     Cube.setParent(ne.getScene());
-    // cube.setRotation(90,0,0)
-    // Cube.setScale(8,8,1);
-    // Cube.setScale(1,8,1)
-    // Pipe1.setParent(ne.getScene())
-    // Pipe1.setRotation(0,0,90);
-    // Cube.setRotationFromQuaternion(new Vector3([1,0,0]),Math.PI/6,true);
     render.render(sceneInfo);
     render.stopped = false; //将来可以改变为资源加载完成后自动改为false，开始update
     render.main();

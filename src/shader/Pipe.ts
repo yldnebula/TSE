@@ -22,8 +22,9 @@ namespace shader{
             this.initShader(this);
             this.initOBJInfo(this,'./resources/1/pipe.obj',function(){
                 this.length = Math.sqrt(x*x+y*y+z*z);
-                // this.setScale(this.length,1,1)
-                this.calculate(x, y, z, startPoint);
+                //this.calculate(x, y, z, startPoint);
+                //this.setScale(this.length,1,1)
+
             }.bind(this));
         }
         onLoad(){

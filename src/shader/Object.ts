@@ -62,6 +62,13 @@ namespace shader{
         private _mvpMatrix:Matrix4   = new Matrix4(null);//模型视图投影矩阵
         private _normalMatrix:Matrix4= new Matrix4(null);//法向量变换矩阵
 
+        private _transMatrix:Matrix4 = new Matrix4(null);
+        private _rotateMatrix:Matrix4= new Matrix4(null);
+        private _scaleMatrix:Matrix4 = new Matrix4(null);
+
+        private _localMatrix:Matrix4 = new Matrix4(null);//节点局部矩阵
+        private _worldMatrix:Matrix4 = new Matrix4(null);//节点世界矩阵
+
         public program     :WebGLProgram = null;
         public OBJInfo  = null;
         public vertices;
@@ -197,7 +204,11 @@ namespace shader{
             this.Rotate(dx,dy,dz);
         }
         setRotationFromQuaternion(axis:Vector3,angle:number,isRadian:boolean){//看看能不能做，从旋转矩阵读取当前xyz轴旋转角度?
-            this._modelMatrix.setRotateFromQuaternion(axis,angle,isRadian);
+            // this._modelMatrix.setRotateFromQuaternion(axis,angle,isRadian);
+
+            this._rotateMatrix.setRotateFromQuaternion(axis,angle,isRadian);
+
+            this._modelMatrix = (this._transMatrix.multiply(this._rotateMatrix)).multiply(this._scaleMatrix);
 
             this._mvpMatrix.set(camera.projViewMatrix).multiply(this._modelMatrix);
             this._normalMatrix.setInverseOf(this._modelMatrix);
@@ -209,7 +220,11 @@ namespace shader{
             }
         }
         rotateByQuaternion(axis:Vector3,angle:number,isRadian:boolean){
-            this._modelMatrix.rotateByQuaternion(axis,angle,isRadian);
+            // this._modelMatrix.rotateByQuaternion(axis,angle,isRadian);
+
+            this._rotateMatrix.rotateByQuaternion(axis,angle,isRadian);
+            this._modelMatrix = (this._transMatrix.multiply(this._rotateMatrix)).multiply(this._scaleMatrix);
+
 
             this._mvpMatrix.set(camera.projViewMatrix).multiply(this._modelMatrix);
             this._normalMatrix.setInverseOf(this._modelMatrix);
@@ -224,7 +239,11 @@ namespace shader{
             this.coordinate.x +=x;
             this.coordinate.y +=y;
             this.coordinate.z +=z;
-            this._modelMatrix.translate(x,y,z);
+            // this._modelMatrix.translate(x,y,z);
+            // this._worldMatrix.translate(x,y,z);//保存一下现在的世界坐标矩阵
+
+            this._transMatrix.translate(x,y,z);
+            this._modelMatrix = (this._transMatrix.multiply(this._rotateMatrix)).multiply(this._scaleMatrix);
 
             this._mvpMatrix.set(camera.projViewMatrix).multiply(this._modelMatrix);
             this._normalMatrix.setInverseOf(this._modelMatrix);
@@ -241,8 +260,17 @@ namespace shader{
             this.scale.y =y;
             this.scale.z =z;
             // this._modelMatrix = new Matrix4(null);
-            this._modelMatrix.scale(x,y,z);
+            // console.log(this.getModelMatrix(), new Matrix4(null).setInverseOf(this.getModelMatrix()));
+            // return;
+            // var RS_matrix = this._modelMatrix.leftMultiply(new Matrix4(null).setInverseOf(this._worldMatrix));
+            // RS_matrix.multiply(new Matrix4(null).setScale(x,y,z));
+            // this._modelMatrix = RS_matrix.leftMultiply(this._worldMatrix)
+            // console.log(this._worldMatrix)
+            // this._modelMatrix.scale(x,y,z);
             
+            this._scaleMatrix.scale(x,y,z);
+            this._modelMatrix = (this._transMatrix.multiply(this._rotateMatrix)).multiply(this._scaleMatrix);
+
             this._mvpMatrix.set(camera.projViewMatrix).multiply(this._modelMatrix);
             this._normalMatrix.setInverseOf(this._modelMatrix);
             this._normalMatrix.transpose();
@@ -256,16 +284,21 @@ namespace shader{
         Rotate(x:number,y:number,z:number){//注意此处的x,y,z是角度增量，而非最终角度，调用时候请注意
             this.rotation.x +=x;
             this.rotation.y +=y;
-            this.rotation.z +=z;
+            this.rotation.z +=z;//先计算RS矩阵，然后旋转为左乘，放缩为右乘
+
             if(x != 0){
-                this._modelMatrix.rotate(x,1,0,0);
+                this._rotateMatrix.rotate(x,1,0,0);
             }
             if(y != 0){
-                this._modelMatrix.rotate(y,0,1,0);
+                this._rotateMatrix.rotate(y,0,1,0);
             }
             if(z != 0){
-                this._modelMatrix.rotate(z,0,0,1);
+                this._rotateMatrix.rotate(z,0,0,1);
             }
+
+            this._modelMatrix = (this._transMatrix.multiply(this._rotateMatrix)).multiply(this._scaleMatrix);
+            
+
             this._mvpMatrix.set(camera.projViewMatrix).multiply(this._modelMatrix);
             this._normalMatrix.setInverseOf(this._modelMatrix);
             this._normalMatrix.transpose();
@@ -275,6 +308,12 @@ namespace shader{
             for(var child of this.Child){
                 child.setRotation(x,y,z)
             }
+        }
+        getTRS(){
+            console.log(this._transMatrix,
+                this._rotateMatrix,
+                this._scaleMatrix,
+                this._modelMatrix);
         }
         getModelMatrix():Matrix4{
             return this._modelMatrix;
@@ -391,7 +430,7 @@ namespace shader{
             }
             target.program = obj.program;
         }
-        initOBJInfo(target,path,callBack){
+        initOBJInfo(target:NEObject,path,callBack){
             var obp = new OBJParser(path);
             obp.readOBJFile(path,1/60,true,function(){
                 var info = obp.getDrawingInfo();

@@ -90,6 +90,13 @@ namespace Utils{
             return this;
         }
         /**
+         * 左乘一个四方矩阵
+         */
+        leftMultiply(other:Matrix4){
+          var ret = new Matrix4(null);
+          return other.multiply(ret);
+        }
+        /**
          * 右乘一个三维矩阵，返回三维向量
          * @param pos 右乘的三维矩阵
          */

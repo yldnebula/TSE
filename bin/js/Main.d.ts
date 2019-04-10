@@ -25,6 +25,10 @@ declare namespace Utils {
          */
         multiply(other: Matrix4): this;
         /**
+         * 左乘一个四方矩阵
+         */
+        leftMultiply(other: Matrix4): Matrix4;
+        /**
          * 右乘一个三维矩阵，返回三维向量
          * @param pos 右乘的三维矩阵
          */
@@ -618,6 +622,11 @@ declare namespace shader {
         private _modelMatrix;
         private _mvpMatrix;
         private _normalMatrix;
+        private _transMatrix;
+        private _rotateMatrix;
+        private _scaleMatrix;
+        private _localMatrix;
+        private _worldMatrix;
         program: WebGLProgram;
         OBJInfo: any;
         vertices: any;
@@ -655,6 +664,7 @@ declare namespace shader {
         setTranslate(x: number, y: number, z: number): void;
         setScale(x: number, y: number, z: number): void;
         Rotate(x: number, y: number, z: number): void;
+        getTRS(): void;
         getModelMatrix(): Matrix4;
         getMvpMatrix(): Matrix4;
         getNormalMatrix(): Matrix4;
@@ -705,7 +715,7 @@ declare namespace shader {
             numIndices: any;
         };
         initShader(target: any): void;
-        initOBJInfo(target: any, path: any, callBack: any): void;
+        initOBJInfo(target: NEObject, path: any, callBack: any): void;
     }
 }
 declare namespace shader {

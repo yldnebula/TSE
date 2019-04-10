@@ -59,24 +59,25 @@ var render = new Render();
 
 //******************************************* */
 var Cube = new Pipe(1,1,0,new Vector3([0,0,0])); 
-// var cube = new Tee();
+// var Cube = new Tee();
 
 main();
 function main(){
-    // Cube.setTranslate(3,0,0);
-    // var Pipe1 = new Pipe();
-    // var cylinder = new Cylinder();
-
-
-    // cylinder.setParent(Cube);
+    // Cube.setTranslate(0,5,0);
+    // Cube.Rotate(0,0,10)
+    // Cube.Rotate(10,0,0)
+    // Cube.setRotation(0,30,10)
+    Cube.setPosition(0,2,3)
+    Cube.rotateByQuaternion(new Vector3([0,0,1]),10/180*Math.PI,true);
+    Cube.rotateByQuaternion(new Vector3([0,1,1]),20/180*Math.PI,true);
+    Cube.rotateByQuaternion(new Vector3([1,0,0]),Math.PI/2,true);
+    Cube.rotateByQuaternion(new Vector3([1,1,0]),Math.PI/6,true);
+    Cube.rotateByQuaternion(new Vector3([0,1,1]),Math.PI/6,true);
+    Cube.rotateByQuaternion(new Vector3([1,1,1]),Math.PI/6,true);
+    Cube.setScale(5,1,1);
     Cube.setParent(ne.getScene());
-    
-    // cube.setRotation(90,0,0)
-    // Cube.setScale(8,8,1);
-    // Cube.setScale(1,8,1)
-    // Pipe1.setParent(ne.getScene())
-    // Pipe1.setRotation(0,0,90);
-    // Cube.setRotationFromQuaternion(new Vector3([1,0,0]),Math.PI/6,true);
+
+
     render.render(sceneInfo);
 
     render.stopped = false;//将来可以改变为资源加载完成后自动改为false，开始update
