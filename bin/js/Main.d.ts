@@ -1,4 +1,7 @@
 declare namespace Utils {
+    const DEG_TO_RAD: number;
+    const RAD_TO_DEG: number;
+    const INV_LOG2: number;
     /**
      * 四方矩阵类
      */
@@ -128,13 +131,16 @@ declare namespace Utils {
          */
         dropShadow(plane: number[], light: number[]): this;
         dropShadowDirectionally(normX: number, normY: number, normZ: number, planeX: number, planeY: number, planeZ: number, lightX: number, lightY: number, lightZ: number): this;
+        setTRS(t: Vector3, r: Quat, s: Vector3): this;
     }
     /**
      * 三维向量类
      */
     class Vector3 {
         elements: Float32Array;
-        constructor(opt_src: Float32Array | number[] | Vector3 | null);
+        constructor();
+        constructor(x: number, y: number, z: number);
+        constructor(x: [number, number, number]);
         /**
          * 标准化三维向量
          */
@@ -147,6 +153,7 @@ declare namespace Utils {
          * 三维向量乘以一个数
          */
         mutiply(m: number): this;
+        clone(): Vector3;
         /**
          * 三维向量减去另一个三维向量
          */
@@ -155,6 +162,12 @@ declare namespace Utils {
          * 三维向量加上另一个三维向量
          */
         add(m: Vector3): this;
+        copy(x: Vector3): this;
+        set(x: any, y: any, z: any): this;
+        scale(scalar: number): this;
+        x: number;
+        y: number;
+        z: number;
     }
     /**
      * 四维向量类
@@ -163,9 +176,40 @@ declare namespace Utils {
         elements: Float32Array;
         constructor(opt_src: Float32Array | number[] | Vector4 | null);
     }
+    /**
+     * 四元数类
+     */
+    class Quat {
+        x: number;
+        y: number;
+        z: number;
+        w: number;
+        constructor(x: number, y: number, z: number, w: number);
+        constructor(x: [number, number, number, number]);
+        constructor();
+        clone(): Quat;
+        conjugate(): this;
+        copy({ x, y, z, w }: Quat): this;
+        equals({ x, y, z, w }: Quat): boolean;
+        getAxisAngle(axis: Vector3): number;
+        getEulerAngles(eulers?: Vector3): Vector3;
+        invert(): this;
+        length(): number;
+        lengthSq(): number;
+        mul({ x, y, z, w }: Quat): this;
+        mul2(lhs: Quat, rhs: Quat): Quat;
+        normalize(): this;
+        set(x: number, y: number, z: number, w: number): this;
+        setFromAxisAngle({ x, y, z }: Vector3, angle: number): this;
+        setFromEulerAngles(ex: number, ey: number, ez: number): this;
+        setFromMat4(mat: Matrix4): this;
+        slerp(lhs: Quat, rhs: Quat, alpha: number): this;
+        transformVector(vec: Vector3, res?: Vector3): Vector3;
+        static readonly TEMP: Quat;
+        static readonly IDENTITY: Quat;
+        static readonly ZERO: Quat;
+    }
 }
-declare function matIV(): void;
-declare function qtnIV(): void;
 declare namespace Utils {
     class GLIFParser {
         startPoint: Vector3;
@@ -603,21 +647,6 @@ declare namespace shader {
      * 所有３维物体的子类，实现基本方法
      */
     class NEObject {
-        coordinate: {
-            x: number;
-            y: number;
-            z: number;
-        };
-        rotation: {
-            x: number;
-            y: number;
-            z: number;
-        };
-        scale: {
-            x: number;
-            y: number;
-            z: number;
-        };
         vertex: string;
         fragment: string;
         private _modelMatrix;
@@ -626,8 +655,10 @@ declare namespace shader {
         private _transMatrix;
         private _rotateMatrix;
         private _scaleMatrix;
-        private _localMatrix;
-        private _worldMatrix;
+        private _localTransForm;
+        scale: Vector3;
+        rotation: Quat;
+        position: Vector3;
         program: WebGLProgram;
         OBJInfo: any;
         vertices: any;
@@ -655,18 +686,23 @@ declare namespace shader {
          */
         setParent(object: Scene | NEObject): void;
         getParent(): Scene | NEObject;
+        setRotation(x: Quat): this;
+        setRotation(x: number, y: number, z: number, w: number): this;
+        setRotationFromAxis(axis: Vector3, angle: number, isRadian: boolean): this;
+        rotateLocal(x: Vector3): this;
+        rotateLocal(x: number, y: number, z: number): this;
+        rotateFromAxis(axis: Vector3, angle: number, isRadian: boolean): this;
+        setLocalEulerAngles(x: Vector3): this;
+        setLocalEulerAngles(x: number, y: number, z: number): this;
+        setLocalPosition(x: Vector3): this;
+        setLocalPosition(x: number, y: number, z: number): this;
+        setLocalScale(x: Vector3): this;
+        setLocalScale(x: number, y: number, z: number): this;
+        translate(x: Vector3): this;
+        translate(x: number, y: number, z: number): this;
         /**
          * 模型变换函数
          */
-        setPosition(x: number, y: number, z: number): void;
-        setRotation(x: number, y: number, z: number): void;
-        setRotationFromQuaternion(axis: Vector3, angle: number, isRadian: boolean): void;
-        rotateByQuaternion(axis: Vector3, angle: number, isRadian: boolean): void;
-        setTranslate(x: number, y: number, z: number): void;
-        setScale(x: number, y: number, z: number): void;
-        Rotate(x: number, y: number, z: number): void;
-        setTRS(T: Matrix4, R: Matrix4, S: Matrix4): Matrix4;
-        getTRS(): void;
         getModelMatrix(): Matrix4;
         getMvpMatrix(): Matrix4;
         getNormalMatrix(): Matrix4;
@@ -767,17 +803,11 @@ declare namespace shader {
     class Pipe extends NEObject implements ISIE {
         IS: number;
         IE: number;
-        position: Vector3;
         direct: Vector3;
         length: number;
         constructor(x: number, y: number, z: number, startPoint: Vector3);
         onLoad(): void;
         calculate1(x: number, y: number, z: number, startPoint: Vector3): Vector3;
-        calculate2(x: number, y: number, z: number, startPoint: Vector3): Vector3;
-        /**
-         * 设置轴朝向
-         * @param which　哪个轴为朝向，暂不实现，先用四元数
-         */
         setAxisDirection(which: any): void;
         onUpdate(dt: any): void;
     }
@@ -855,6 +885,7 @@ import shaderUtils = Utils.ShaderUtils;
 import Matrix4 = Utils.Matrix4;
 import Vector3 = Utils.Vector3;
 import Vector4 = Utils.Vector4;
+import Quat = Utils.Quat;
 import cube = shader.Cube;
 import Cylinder = shader.Cylinder;
 import NEObject = shader.NEObject;
@@ -878,6 +909,7 @@ declare var ne: Nebula;
 declare var sceneInfo: Scene;
 declare var camera: Camera;
 declare var render: Render;
+declare var gp: GLIFParser;
 declare var Cube: Pipe;
 declare function main(): void;
 declare const zero_guard = 0.00001;

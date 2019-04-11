@@ -20,6 +20,7 @@ import shaderUtils  = Utils.ShaderUtils;
 import Matrix4      = Utils.Matrix4;
 import Vector3      = Utils.Vector3;
 import Vector4      = Utils.Vector4;
+import Quat      = Utils.Quat;
 import cube         = shader.Cube;
 import Cylinder     = shader.Cylinder;
 import NEObject     = shader.NEObject;
@@ -54,27 +55,22 @@ var camera = new Camera(85,canvas.width/canvas.height,1,1000)
 //初始化主控渲染器
 var render = new Render();
 //初始化GLIF解析器
-// var gp = new GLIFParser(ne.getScene());
-// gp.readGilfFile('./glif/inp2.TXT',"");
+var gp = new GLIFParser(ne.getScene());
+gp.readGilfFile('./glif/inp2.TXT',"");
 
 //******************************************* */
-var Cube = new Pipe(-1,-1,-1,new Vector3([0,0,0])); 
+var Cube = new Pipe(1,-1,-1,new Vector3([0,0,0])); 
 // var Cube = new Tee();
 
 main();
 function main(){
-    // Cube.setTranslate(0,5,0);
-    // Cube.Rotate(0,0,10)
-    // Cube.Rotate(10,0,0)
-    // Cube.setRotation(0,30,10)
-    // Cube.setPosition(0,2,3)
-    // Cube.rotateByQuaternion(new Vector3([0,0,1]),10/180*Math.PI,true);
-    // Cube.rotateByQuaternion(new Vector3([0,1,1]),20/180*Math.PI,true);
-    // Cube.rotateByQuaternion(new Vector3([1,0,0]),Math.PI/2,true);
-    // Cube.rotateByQuaternion(new Vector3([1,1,0]),Math.PI/6,true);
-    // Cube.rotateByQuaternion(new Vector3([0,1,1]),Math.PI/6,true);
-    // Cube.rotateByQuaternion(new Vector3([1,1,1]),Math.PI/6,true);
-    // Cube.setScale(2,1,1);
+    // Cube.setLocalScale(2,1,1);
+    // Cube.setRotationFromAxis(new Vector3(0,0,1),90,false)
+    // Cube.rotateFromAxis(new Vector3(0,0,1),-90,false)
+    // Cube.setRotation(new Quat(0,0,Math.sqrt(2)/2,Math.sqrt(2)/2))
+    // Cube.setLocalScale(4,1,1)
+    // Cube.setLocalPosition(new Vector3(3,5,0))
+    // Cube.translate(new Vector3(-3,-5,0))
     Cube.setParent(ne.getScene());
 
 
@@ -148,11 +144,11 @@ function main(){
             }
             if(!!objClicked){
                 if(setX){
-                    objClicked.setTranslate(dx/20, 0,0);
+                    objClicked.translate(dx/20, 0,0);
                 }else if(setY){
-                    objClicked.setTranslate(0, -dy/20,0);
+                    objClicked.translate(0, -dy/20,0);
                 }else if(setZ){
-                    objClicked.setTranslate(0, 0,dy/20);
+                    objClicked.translate(0, 0,dy/20);
                 }
             }
         }
