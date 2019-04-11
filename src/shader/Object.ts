@@ -208,7 +208,7 @@ namespace shader{
 
             this._rotateMatrix.setRotateFromQuaternion(axis,angle,isRadian);
 
-            this._modelMatrix = (this._transMatrix.multiply(this._rotateMatrix)).multiply(this._scaleMatrix);
+            this._modelMatrix =this.setTRS(this._transMatrix,this._rotateMatrix,this._scaleMatrix);
 
             this._mvpMatrix.set(camera.projViewMatrix).multiply(this._modelMatrix);
             this._normalMatrix.setInverseOf(this._modelMatrix);
@@ -223,7 +223,7 @@ namespace shader{
             // this._modelMatrix.rotateByQuaternion(axis,angle,isRadian);
 
             this._rotateMatrix.rotateByQuaternion(axis,angle,isRadian);
-            this._modelMatrix = (this._transMatrix.multiply(this._rotateMatrix)).multiply(this._scaleMatrix);
+            this._modelMatrix =this.setTRS(this._transMatrix,this._rotateMatrix,this._scaleMatrix);
 
 
             this._mvpMatrix.set(camera.projViewMatrix).multiply(this._modelMatrix);
@@ -243,7 +243,7 @@ namespace shader{
             // this._worldMatrix.translate(x,y,z);//保存一下现在的世界坐标矩阵
 
             this._transMatrix.translate(x,y,z);
-            this._modelMatrix = (this._transMatrix.multiply(this._rotateMatrix)).multiply(this._scaleMatrix);
+            this._modelMatrix =this.setTRS(this._transMatrix,this._rotateMatrix,this._scaleMatrix);
 
             this._mvpMatrix.set(camera.projViewMatrix).multiply(this._modelMatrix);
             this._normalMatrix.setInverseOf(this._modelMatrix);
@@ -268,8 +268,10 @@ namespace shader{
             // console.log(this._worldMatrix)
             // this._modelMatrix.scale(x,y,z);
             
-            this._scaleMatrix.scale(x,y,z);
-            this._modelMatrix = (this._transMatrix.multiply(this._rotateMatrix)).multiply(this._scaleMatrix);
+            
+            this._scaleMatrix.setScale(x,y,z);
+            // console.log(this._scaleMatrix)
+            this._modelMatrix =this.setTRS(this._transMatrix,this._rotateMatrix,this._scaleMatrix);
 
             this._mvpMatrix.set(camera.projViewMatrix).multiply(this._modelMatrix);
             this._normalMatrix.setInverseOf(this._modelMatrix);
@@ -295,8 +297,7 @@ namespace shader{
             if(z != 0){
                 this._rotateMatrix.rotate(z,0,0,1);
             }
-
-            this._modelMatrix = (this._transMatrix.multiply(this._rotateMatrix)).multiply(this._scaleMatrix);
+            this._modelMatrix =this.setTRS(this._transMatrix,this._rotateMatrix,this._scaleMatrix);
             
 
             this._mvpMatrix.set(camera.projViewMatrix).multiply(this._modelMatrix);
@@ -308,6 +309,11 @@ namespace shader{
             for(var child of this.Child){
                 child.setRotation(x,y,z)
             }
+        }
+        setTRS(T:Matrix4, R:Matrix4, S:Matrix4){
+            var tr = T.multiply(R);
+            var ret = tr.multiply(S)
+            return ret;
         }
         getTRS(){
             console.log(this._transMatrix,

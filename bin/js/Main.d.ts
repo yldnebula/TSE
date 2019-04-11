@@ -101,6 +101,7 @@ declare namespace Utils {
          * @param axis  轴向
          * @param angle 绕轴旋转角度
          */
+        setRotateFromQuaternion1(axis: Vector3, angle: number, isRadian: boolean): this;
         setRotateFromQuaternion(axis: Vector3, angle: number, isRadian: boolean): this;
         /**
          * 四元数旋转矩阵
@@ -664,6 +665,7 @@ declare namespace shader {
         setTranslate(x: number, y: number, z: number): void;
         setScale(x: number, y: number, z: number): void;
         Rotate(x: number, y: number, z: number): void;
+        setTRS(T: Matrix4, R: Matrix4, S: Matrix4): Matrix4;
         getTRS(): void;
         getModelMatrix(): Matrix4;
         getMvpMatrix(): Matrix4;
@@ -770,7 +772,8 @@ declare namespace shader {
         length: number;
         constructor(x: number, y: number, z: number, startPoint: Vector3);
         onLoad(): void;
-        calculate(x: number, y: number, z: number, startPoint: Vector3): Vector3;
+        calculate1(x: number, y: number, z: number, startPoint: Vector3): Vector3;
+        calculate2(x: number, y: number, z: number, startPoint: Vector3): Vector3;
         /**
          * 设置轴朝向
          * @param which　哪个轴为朝向，暂不实现，先用四元数

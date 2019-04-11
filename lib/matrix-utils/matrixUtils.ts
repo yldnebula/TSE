@@ -447,7 +447,7 @@ namespace Utils{
          * @param axis  轴向
          * @param angle 绕轴旋转角度
          */
-        setRotateFromQuaternion(axis:Vector3, angle:number, isRadian:boolean){
+        setRotateFromQuaternion1(axis:Vector3, angle:number, isRadian:boolean){
           var alpha = isRadian?-angle:-angle*180/Math.PI;//修改为右手定则
           axis = axis.normalize();
           var x= Math.sin(alpha/2)*axis.elements[0];
@@ -455,6 +455,7 @@ namespace Utils{
           var z= Math.sin(alpha/2)*axis.elements[2];
           var w= Math.cos(alpha/2)
 
+          
           var e:Float32Array;
           e = this.elements;
 
@@ -471,6 +472,42 @@ namespace Utils{
           e[ 8] = 2 * ( x * z - y * w );
           e[ 9] = 2 * ( y * z + x * w );
           e[10] = 2 * ( z * z + w * w ) - 1;
+          e[11] = 0.0;
+      
+          e[12] = 0;
+          e[13] = 0;
+          e[14] = 0;
+          e[15] = 1.0;
+
+          return this;
+        }
+        setRotateFromQuaternion(axis:Vector3, angle:number, isRadian:boolean){
+          var alpha = isRadian?angle:angle*180/Math.PI;
+
+          var e:Float32Array;
+          e = this.elements;
+
+          var u = axis.elements[0];
+          var v = axis.elements[1];
+          var w = axis.elements[2];
+
+          var c = Math.cos(angle)
+          var s = Math.sin(angle)
+
+
+          e[ 0] = u*u+(1-u*u)*c;
+          e[ 1] = u*v*(1-c)+w*s;
+          e[ 2] = u*w*(1-c)-v*s;
+          e[ 3] = 0.0;
+      
+          e[ 4] = u*v*(1-c)-w*s;
+          e[ 5] = v*v+(1-v*v)*c;
+          e[ 6] = v*w*(1-c)+u*s;
+          e[ 7] = 0.0;
+      
+          e[ 8] = u*w*(1-c)+v*s;
+          e[ 9] = v*w*(1-c)-u*s;
+          e[10] = w*w+(1-w*w)*c;
           e[11] = 0.0;
       
           e[12] = 0;

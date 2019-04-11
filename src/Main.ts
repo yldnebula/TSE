@@ -58,7 +58,7 @@ var render = new Render();
 // gp.readGilfFile('./glif/inp2.TXT',"");
 
 //******************************************* */
-var Cube = new Pipe(1,1,0,new Vector3([0,0,0])); 
+var Cube = new Pipe(-1,-1,-1,new Vector3([0,0,0])); 
 // var Cube = new Tee();
 
 main();
@@ -67,14 +67,14 @@ function main(){
     // Cube.Rotate(0,0,10)
     // Cube.Rotate(10,0,0)
     // Cube.setRotation(0,30,10)
-    Cube.setPosition(0,2,3)
-    Cube.rotateByQuaternion(new Vector3([0,0,1]),10/180*Math.PI,true);
-    Cube.rotateByQuaternion(new Vector3([0,1,1]),20/180*Math.PI,true);
-    Cube.rotateByQuaternion(new Vector3([1,0,0]),Math.PI/2,true);
-    Cube.rotateByQuaternion(new Vector3([1,1,0]),Math.PI/6,true);
-    Cube.rotateByQuaternion(new Vector3([0,1,1]),Math.PI/6,true);
-    Cube.rotateByQuaternion(new Vector3([1,1,1]),Math.PI/6,true);
-    Cube.setScale(5,1,1);
+    // Cube.setPosition(0,2,3)
+    // Cube.rotateByQuaternion(new Vector3([0,0,1]),10/180*Math.PI,true);
+    // Cube.rotateByQuaternion(new Vector3([0,1,1]),20/180*Math.PI,true);
+    // Cube.rotateByQuaternion(new Vector3([1,0,0]),Math.PI/2,true);
+    // Cube.rotateByQuaternion(new Vector3([1,1,0]),Math.PI/6,true);
+    // Cube.rotateByQuaternion(new Vector3([0,1,1]),Math.PI/6,true);
+    // Cube.rotateByQuaternion(new Vector3([1,1,1]),Math.PI/6,true);
+    // Cube.setScale(2,1,1);
     Cube.setParent(ne.getScene());
 
 

@@ -506,7 +506,7 @@ var Utils;
          * @param axis  轴向
          * @param angle 绕轴旋转角度
          */
-        Matrix4.prototype.setRotateFromQuaternion = function (axis, angle, isRadian) {
+        Matrix4.prototype.setRotateFromQuaternion1 = function (axis, angle, isRadian) {
             var alpha = isRadian ? -angle : -angle * 180 / Math.PI; //修改为右手定则
             axis = axis.normalize();
             var x = Math.sin(alpha / 2) * axis.elements[0];
@@ -526,6 +526,33 @@ var Utils;
             e[8] = 2 * (x * z - y * w);
             e[9] = 2 * (y * z + x * w);
             e[10] = 2 * (z * z + w * w) - 1;
+            e[11] = 0.0;
+            e[12] = 0;
+            e[13] = 0;
+            e[14] = 0;
+            e[15] = 1.0;
+            return this;
+        };
+        Matrix4.prototype.setRotateFromQuaternion = function (axis, angle, isRadian) {
+            var alpha = isRadian ? angle : angle * 180 / Math.PI;
+            var e;
+            e = this.elements;
+            var u = axis.elements[0];
+            var v = axis.elements[1];
+            var w = axis.elements[2];
+            var c = Math.cos(angle);
+            var s = Math.sin(angle);
+            e[0] = u * u + (1 - u * u) * c;
+            e[1] = u * v * (1 - c) + w * s;
+            e[2] = u * w * (1 - c) - v * s;
+            e[3] = 0.0;
+            e[4] = u * v * (1 - c) - w * s;
+            e[5] = v * v + (1 - v * v) * c;
+            e[6] = v * w * (1 - c) + u * s;
+            e[7] = 0.0;
+            e[8] = u * w * (1 - c) + v * s;
+            e[9] = v * w * (1 - c) - u * s;
+            e[10] = w * w + (1 - w * w) * c;
             e[11] = 0.0;
             e[12] = 0;
             e[13] = 0;
@@ -1328,7 +1355,7 @@ var Utils;
                 var nextNode = parseInt(pipes[0][2]);
                 var restraint = parseInt(pipes[0][3]);
                 var GlifNode = new GLIFNode(lastNode, nextNode, restraint);
-                console.log(this.startPoint);
+                // console.log(this.startPoint)
                 for (var i = 1; i < pipes.length; i++) {
                     var tag = pipes[i][0];
                     switch (tag) {
@@ -3131,7 +3158,7 @@ var shader;
         NEObject.prototype.setRotationFromQuaternion = function (axis, angle, isRadian) {
             // this._modelMatrix.setRotateFromQuaternion(axis,angle,isRadian);
             this._rotateMatrix.setRotateFromQuaternion(axis, angle, isRadian);
-            this._modelMatrix = (this._transMatrix.multiply(this._rotateMatrix)).multiply(this._scaleMatrix);
+            this._modelMatrix = this.setTRS(this._transMatrix, this._rotateMatrix, this._scaleMatrix);
             this._mvpMatrix.set(camera.projViewMatrix).multiply(this._modelMatrix);
             this._normalMatrix.setInverseOf(this._modelMatrix);
             this._normalMatrix.transpose();
@@ -3144,7 +3171,7 @@ var shader;
         NEObject.prototype.rotateByQuaternion = function (axis, angle, isRadian) {
             // this._modelMatrix.rotateByQuaternion(axis,angle,isRadian);
             this._rotateMatrix.rotateByQuaternion(axis, angle, isRadian);
-            this._modelMatrix = (this._transMatrix.multiply(this._rotateMatrix)).multiply(this._scaleMatrix);
+            this._modelMatrix = this.setTRS(this._transMatrix, this._rotateMatrix, this._scaleMatrix);
             this._mvpMatrix.set(camera.projViewMatrix).multiply(this._modelMatrix);
             this._normalMatrix.setInverseOf(this._modelMatrix);
             this._normalMatrix.transpose();
@@ -3161,7 +3188,7 @@ var shader;
             // this._modelMatrix.translate(x,y,z);
             // this._worldMatrix.translate(x,y,z);//保存一下现在的世界坐标矩阵
             this._transMatrix.translate(x, y, z);
-            this._modelMatrix = (this._transMatrix.multiply(this._rotateMatrix)).multiply(this._scaleMatrix);
+            this._modelMatrix = this.setTRS(this._transMatrix, this._rotateMatrix, this._scaleMatrix);
             this._mvpMatrix.set(camera.projViewMatrix).multiply(this._modelMatrix);
             this._normalMatrix.setInverseOf(this._modelMatrix);
             this._normalMatrix.transpose();
@@ -3183,8 +3210,9 @@ var shader;
             // this._modelMatrix = RS_matrix.leftMultiply(this._worldMatrix)
             // console.log(this._worldMatrix)
             // this._modelMatrix.scale(x,y,z);
-            this._scaleMatrix.scale(x, y, z);
-            this._modelMatrix = (this._transMatrix.multiply(this._rotateMatrix)).multiply(this._scaleMatrix);
+            this._scaleMatrix.setScale(x, y, z);
+            // console.log(this._scaleMatrix)
+            this._modelMatrix = this.setTRS(this._transMatrix, this._rotateMatrix, this._scaleMatrix);
             this._mvpMatrix.set(camera.projViewMatrix).multiply(this._modelMatrix);
             this._normalMatrix.setInverseOf(this._modelMatrix);
             this._normalMatrix.transpose();
@@ -3207,7 +3235,7 @@ var shader;
             if (z != 0) {
                 this._rotateMatrix.rotate(z, 0, 0, 1);
             }
-            this._modelMatrix = (this._transMatrix.multiply(this._rotateMatrix)).multiply(this._scaleMatrix);
+            this._modelMatrix = this.setTRS(this._transMatrix, this._rotateMatrix, this._scaleMatrix);
             this._mvpMatrix.set(camera.projViewMatrix).multiply(this._modelMatrix);
             this._normalMatrix.setInverseOf(this._modelMatrix);
             this._normalMatrix.transpose();
@@ -3216,6 +3244,11 @@ var shader;
                 var child = _a[_i];
                 child.setRotation(x, y, z);
             }
+        };
+        NEObject.prototype.setTRS = function (T, R, S) {
+            var tr = T.multiply(R);
+            var ret = tr.multiply(S);
+            return ret;
         };
         NEObject.prototype.getTRS = function () {
             console.log(this._transMatrix, this._rotateMatrix, this._scaleMatrix, this._modelMatrix);
@@ -3558,7 +3591,7 @@ var shader;
             _this.initShader(_this);
             _this.initOBJInfo(_this, './resources/1/pipe.obj', function () {
                 this.length = Math.sqrt(x * x + y * y + z * z);
-                //this.calculate(x, y, z, startPoint);
+                this.calculate1(x, y, z, startPoint);
                 //this.setScale(this.length,1,1)
             }.bind(_this));
             return _this;
@@ -3566,10 +3599,69 @@ var shader;
         Pipe.prototype.onLoad = function () {
             this.name = 'Pipe';
         };
-        Pipe.prototype.calculate = function (x, y, z, startPoint) {
+        Pipe.prototype.calculate1 = function (x, y, z, startPoint) {
             this.direct = new Vector3([x, y, z]);
             this.setPosition(startPoint.elements[0], startPoint.elements[1], startPoint.elements[2]);
             // this.setScale(1,1,1)
+            var endPoint = this.direct.add(startPoint);
+            var angle1;
+            var angle2;
+            if (x != 0.000 && y != 0.000 && z != 0.000) {
+                angle1 = x > 0 ? Math.atan(z / x) : Math.atan(z / x) - Math.PI;
+                angle2 = Math.atan(y / (Math.sqrt(x * x + y * y)));
+                //计算基准轴向，ｘｙ向量的法向量
+                var axis = new Vector3([-z / x, 0, 1]).normalize();
+                this.rotateByQuaternion(new Vector3([0, 1, 0]), -angle1, true);
+                if (x > 0.000 && z > 0.000) {
+                    this.rotateByQuaternion(axis, angle2, true);
+                }
+                else if (x > 0.000 && z < 0.000) {
+                    this.rotateByQuaternion(axis, angle2, true);
+                }
+                else if (x < 0.000 && z > 0.000) {
+                    this.rotateByQuaternion(axis, -angle2, true);
+                }
+                else if (x < 0.000 && z < 0.000) {
+                    this.rotateByQuaternion(axis, -angle2, true);
+                }
+            }
+            else if (x == 0.000 && y != 0.000 && z != 0.000) {
+                // console.log("1");
+                angle1 = y > 0 ? Math.PI / 2 : -Math.PI / 2;
+                angle2 = Math.atan(z / y);
+                this.rotateByQuaternion(new Vector3([0, 0, 1]), angle1, true);
+                this.rotateByQuaternion(new Vector3([0, 1, 0]), -angle2, true); //这个地方注意一下，旋转是按照本地坐标系也要动
+                // console.log(angle1,angle2)
+            }
+            else if (x != 0.000 && y == 0.000 && z != 0.000) {
+                angle1 = x > 0 ? Math.atan(z / x) : -Math.PI + Math.atan(z / x);
+                this.rotateByQuaternion(new Vector3([0, 1, 0]), -angle1, true);
+            }
+            else if (x != 0.000 && y != 0.000 && z == 0.000) {
+                angle1 = x > 0 ? Math.atan(y / x) : Math.PI + Math.atan(y / x);
+                console.log(angle1 / Math.PI * 180);
+                this.rotateByQuaternion(new Vector3([0, 0, 1]), angle1, true);
+            }
+            else if (x == 0.000 && y != 0.000 && z == 0.000) {
+                this.rotateByQuaternion(new Vector3([0, 0, 1]), Math.PI / 2, true);
+            }
+            else if (x != 0.000 && y == 0.000 && z == 0.000) {
+                //nothing
+            }
+            else if (x == 0.000 && y == 0.000 && z != 0.000) {
+                this.rotateByQuaternion(new Vector3([0, 1, 0]), -Math.PI / 2, true);
+            }
+            else if (x == 0.000 && y == 0.000 && z == 0.000) {
+                //nothing
+            }
+            // console.log(startPoint.elements[0],startPoint.elements[1],startPoint.elements[2]);
+            // this.setScale(this.length,1,1)
+            // this.setScale(1,1,1)
+            return endPoint;
+        };
+        Pipe.prototype.calculate2 = function (x, y, z, startPoint) {
+            this.direct = new Vector3([x, y, z]);
+            this.setPosition(startPoint.elements[0], startPoint.elements[1], startPoint.elements[2]);
             var endPoint = this.direct.add(startPoint);
             var angle1;
             var angle2;
@@ -3609,7 +3701,7 @@ var shader;
             else if (x == 0.000 && y == 0.000 && z == 0.000) {
                 //nothing
             }
-            console.log(startPoint.elements[0], startPoint.elements[1], startPoint.elements[2]);
+            this.setScale(this.length, 1, 1);
             return endPoint;
         };
         /**
@@ -3891,7 +3983,7 @@ var render = new Render();
 // var gp = new GLIFParser(ne.getScene());
 // gp.readGilfFile('./glif/inp2.TXT',"");
 //******************************************* */
-var Cube = new Pipe(1, 1, 0, new Vector3([0, 0, 0]));
+var Cube = new Pipe(-1, -1, -1, new Vector3([0, 0, 0]));
 // var Cube = new Tee();
 main();
 function main() {
@@ -3899,14 +3991,14 @@ function main() {
     // Cube.Rotate(0,0,10)
     // Cube.Rotate(10,0,0)
     // Cube.setRotation(0,30,10)
-    Cube.setPosition(0, 2, 3);
-    Cube.rotateByQuaternion(new Vector3([0, 0, 1]), 10 / 180 * Math.PI, true);
-    Cube.rotateByQuaternion(new Vector3([0, 1, 1]), 20 / 180 * Math.PI, true);
-    Cube.rotateByQuaternion(new Vector3([1, 0, 0]), Math.PI / 2, true);
-    Cube.rotateByQuaternion(new Vector3([1, 1, 0]), Math.PI / 6, true);
-    Cube.rotateByQuaternion(new Vector3([0, 1, 1]), Math.PI / 6, true);
-    Cube.rotateByQuaternion(new Vector3([1, 1, 1]), Math.PI / 6, true);
-    Cube.setScale(5, 1, 1);
+    // Cube.setPosition(0,2,3)
+    // Cube.rotateByQuaternion(new Vector3([0,0,1]),10/180*Math.PI,true);
+    // Cube.rotateByQuaternion(new Vector3([0,1,1]),20/180*Math.PI,true);
+    // Cube.rotateByQuaternion(new Vector3([1,0,0]),Math.PI/2,true);
+    // Cube.rotateByQuaternion(new Vector3([1,1,0]),Math.PI/6,true);
+    // Cube.rotateByQuaternion(new Vector3([0,1,1]),Math.PI/6,true);
+    // Cube.rotateByQuaternion(new Vector3([1,1,1]),Math.PI/6,true);
+    // Cube.setScale(2,1,1);
     Cube.setParent(ne.getScene());
     render.render(sceneInfo);
     render.stopped = false; //将来可以改变为资源加载完成后自动改为false，开始update

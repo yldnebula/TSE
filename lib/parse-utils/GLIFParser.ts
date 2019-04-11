@@ -192,7 +192,7 @@ namespace Utils{
                 var nextNode = parseInt(pipes[0][2]);
                 var restraint = parseInt(pipes[0][3]);
                 var GlifNode = new GLIFNode(lastNode,nextNode,restraint)
-                console.log(this.startPoint)
+                // console.log(this.startPoint)
                 for(var i = 1; i < pipes.length; i++){
                     var tag = pipes[i][0];
                     switch(tag){
