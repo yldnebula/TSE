@@ -1,4 +1,7 @@
 namespace Utils{
+  export const DEG_TO_RAD = Math.PI / 180;
+  export const RAD_TO_DEG = 180 / Math.PI;
+  export const INV_LOG2 = 1 / Math.log(2);
     /**
      * 四方矩阵类
      */
@@ -88,6 +91,13 @@ namespace Utils{
         multiply(other:Matrix4){
             this.concat(other);
             return this;
+        }
+        /**
+         * 左乘一个四方矩阵
+         */
+        leftMultiply(other:Matrix4){
+          var ret = new Matrix4(null);
+          return other.multiply(ret);
         }
         /**
          * 右乘一个三维矩阵，返回三维向量
@@ -440,7 +450,7 @@ namespace Utils{
          * @param axis  轴向
          * @param angle 绕轴旋转角度
          */
-        setRotateFromQuaternion(axis:Vector3, angle:number, isRadian:boolean){
+        setRotateFromQuaternion1(axis:Vector3, angle:number, isRadian:boolean){
           var alpha = isRadian?-angle:-angle*180/Math.PI;//修改为右手定则
           axis = axis.normalize();
           var x= Math.sin(alpha/2)*axis.elements[0];
@@ -448,6 +458,7 @@ namespace Utils{
           var z= Math.sin(alpha/2)*axis.elements[2];
           var w= Math.cos(alpha/2)
 
+          
           var e:Float32Array;
           e = this.elements;
 
@@ -464,6 +475,42 @@ namespace Utils{
           e[ 8] = 2 * ( x * z - y * w );
           e[ 9] = 2 * ( y * z + x * w );
           e[10] = 2 * ( z * z + w * w ) - 1;
+          e[11] = 0.0;
+      
+          e[12] = 0;
+          e[13] = 0;
+          e[14] = 0;
+          e[15] = 1.0;
+
+          return this;
+        }
+        setRotateFromQuaternion(axis:Vector3, angle:number, isRadian:boolean){
+          var alpha = isRadian?angle:angle*180/Math.PI;
+
+          var e:Float32Array;
+          e = this.elements;
+
+          var u = axis.elements[0];
+          var v = axis.elements[1];
+          var w = axis.elements[2];
+
+          var c = Math.cos(angle)
+          var s = Math.sin(angle)
+
+
+          e[ 0] = u*u+(1-u*u)*c;
+          e[ 1] = u*v*(1-c)+w*s;
+          e[ 2] = u*w*(1-c)-v*s;
+          e[ 3] = 0.0;
+      
+          e[ 4] = u*v*(1-c)-w*s;
+          e[ 5] = v*v+(1-v*v)*c;
+          e[ 6] = v*w*(1-c)+u*s;
+          e[ 7] = 0.0;
+      
+          e[ 8] = u*w*(1-c)+v*s;
+          e[ 9] = v*w*(1-c)-u*s;
+          e[10] = w*w+(1-w*w)*c;
           e[11] = 0.0;
       
           e[12] = 0;
@@ -587,20 +634,82 @@ namespace Utils{
             var a = planeX * normX + planeY * normY + planeZ * normZ;
             return this.dropShadow([normX, normY, normZ, -a], [lightX, lightY, lightZ, 0]);
         }
-
+        setTRS(t: Vector3, r: Quat, s: Vector3): this {
+          let tx, ty, tz, qx, qy, qz, qw, sx, sy, sz,
+              x2, y2, z2, xx, xy, xz, yy, yz, zz, wx, wy, wz, m;
+  
+          tx = t.x;
+          ty = t.y;
+          tz = t.z;
+  
+          qx = r.x;
+          qy = r.y;
+          qz = r.z;
+          qw = r.w;
+  
+          sx = s.x;
+          sy = s.y;
+          sz = s.z;
+  
+          x2 = qx + qx;
+          y2 = qy + qy;
+          z2 = qz + qz;
+          xx = qx * x2;
+          xy = qx * y2;
+          xz = qx * z2;
+          yy = qy * y2;
+          yz = qy * z2;
+          zz = qz * z2;
+          wx = qw * x2;
+          wy = qw * y2;
+          wz = qw * z2;
+  
+          m = this.elements;
+  
+          m[0] = (1 - (yy + zz)) * sx;
+          m[1] = (xy + wz) * sx;
+          m[2] = (xz - wy) * sx;
+          m[3] = 0;
+  
+          m[4] = (xy - wz) * sy;
+          m[5] = (1 - (xx + zz)) * sy;
+          m[6] = (yz + wx) * sy;
+          m[7] = 0;
+  
+          m[8] = (xz + wy) * sz;
+          m[9] = (yz - wx) * sz;
+          m[10] = (1 - (xx + yy)) * sz;
+          m[11] = 0;
+  
+          m[12] = tx;
+          m[13] = ty;
+          m[14] = tz;
+          m[15] = 1;
+  
+          return this;
+      }
     }
     /**
      * 三维向量类
      */
     export class Vector3{
         elements:Float32Array = null;
-        constructor(opt_src:Float32Array|number[]|Vector3 | null){
-            var v = new Float32Array(3);
-            if (opt_src) {
-              v[0] = opt_src[0]; v[1] = opt_src[1]; v[2] = opt_src[2];
+        constructor();
+        constructor(x: number, y: number, z: number)
+        constructor(x: [number, number, number])
+        constructor(x?, y?, z?) {
+            if (x && x.length === 3) {
+                this.elements = new Float32Array(x);
+                return;
             }
-            this.elements = v;
+    
+            this.elements = new Float32Array(3);
+    
+            this.elements[0] = x || 0;
+            this.elements[1] = y || 0;
+            this.elements[2] = z || 0;
         }
+    
         /**
          * 标准化三维向量
          */
@@ -634,6 +743,9 @@ namespace Utils{
           v[2]*=m;
           return this;
         }
+        clone(): Vector3 {
+          return new Vector3().copy(this);
+        }
         /**
          * 三维向量减去另一个三维向量
          */
@@ -654,6 +766,52 @@ namespace Utils{
           v[2]+=m.elements[2];
           return this;
         }
+        copy(x:Vector3){
+          var v = this.elements;
+          v[0]=x.elements[0];
+          v[1]=x.elements[1];
+          v[2]=x.elements[2];
+          return this;
+        }
+        set(x,y,z){
+          var v = this.elements;
+          v[0]=x;
+          v[1]=y;
+          v[2]=z;
+          return this;
+        }
+        scale(scalar: number): this {
+          let v = this.elements;
+  
+          v[0] *= scalar;
+          v[1] *= scalar;
+          v[2] *= scalar;
+  
+          return this;
+        }
+
+        get x(): number {
+          return this.elements[0];
+        }
+        set x(value: number) {
+          this.elements[0] = value;
+        }
+    
+    
+        get y(): number {
+            return this.elements[1];
+        }
+        set y(value: number) {
+            this.elements[1] = value;
+        }
+    
+    
+        get z(): number {
+            return this.elements[2];
+        }
+        set z(value: number) {
+            this.elements[2] = value;
+        }
     }
     /**
      * 四维向量类
@@ -668,385 +826,423 @@ namespace Utils{
             this.elements = v;
         }
     }
-}
-// ------------------------------------------------------------------------------------------------
-//四元数相关
-// ------------------------------------------------------------------------------------------------
-
-function matIV(){
-	this.create = function(){
-		return new Float32Array(16);
-	};
-	this.identity = function(){
-    var dest = new Float32Array(16);
-		dest[0]  = 1; dest[1]  = 0; dest[2]  = 0; dest[3]  = 0;
-		dest[4]  = 0; dest[5]  = 1; dest[6]  = 0; dest[7]  = 0;
-		dest[8]  = 0; dest[9]  = 0; dest[10] = 1; dest[11] = 0;
-		dest[12] = 0; dest[13] = 0; dest[14] = 0; dest[15] = 1;
-		return dest;
-	};
-	this.multiply = function(mat1, mat2){
-    var dest = new Float32Array(16);
-		var a = mat1[0],  b = mat1[1],  c = mat1[2],  d = mat1[3],
-			e = mat1[4],  f = mat1[5],  g = mat1[6],  h = mat1[7],
-			i = mat1[8],  j = mat1[9],  k = mat1[10], l = mat1[11],
-			m = mat1[12], n = mat1[13], o = mat1[14], p = mat1[15],
-			A = mat2[0],  B = mat2[1],  C = mat2[2],  D = mat2[3],
-			E = mat2[4],  F = mat2[5],  G = mat2[6],  H = mat2[7],
-			I = mat2[8],  J = mat2[9],  K = mat2[10], L = mat2[11],
-			M = mat2[12], N = mat2[13], O = mat2[14], P = mat2[15];
-		dest[0] = A * a + B * e + C * i + D * m;
-		dest[1] = A * b + B * f + C * j + D * n;
-		dest[2] = A * c + B * g + C * k + D * o;
-		dest[3] = A * d + B * h + C * l + D * p;
-		dest[4] = E * a + F * e + G * i + H * m;
-		dest[5] = E * b + F * f + G * j + H * n;
-		dest[6] = E * c + F * g + G * k + H * o;
-		dest[7] = E * d + F * h + G * l + H * p;
-		dest[8] = I * a + J * e + K * i + L * m;
-		dest[9] = I * b + J * f + K * j + L * n;
-		dest[10] = I * c + J * g + K * k + L * o;
-		dest[11] = I * d + J * h + K * l + L * p;
-		dest[12] = M * a + N * e + O * i + P * m;
-		dest[13] = M * b + N * f + O * j + P * n;
-		dest[14] = M * c + N * g + O * k + P * o;
-		dest[15] = M * d + N * h + O * l + P * p;
-		return dest;
-	};
-	this.scale = function(mat, vec){
-    var dest = new Float32Array(16);
-		dest[0]  = mat[0]  * vec[0];
-		dest[1]  = mat[1]  * vec[0];
-		dest[2]  = mat[2]  * vec[0];
-		dest[3]  = mat[3]  * vec[0];
-		dest[4]  = mat[4]  * vec[1];
-		dest[5]  = mat[5]  * vec[1];
-		dest[6]  = mat[6]  * vec[1];
-		dest[7]  = mat[7]  * vec[1];
-		dest[8]  = mat[8]  * vec[2];
-		dest[9]  = mat[9]  * vec[2];
-		dest[10] = mat[10] * vec[2];
-		dest[11] = mat[11] * vec[2];
-		dest[12] = mat[12];
-		dest[13] = mat[13];
-		dest[14] = mat[14];
-		dest[15] = mat[15];
-		return dest;
-	};
-	this.translate = function(mat, vec){
-    var dest = new Float32Array(16);
-
-		dest[0] = mat[0]; dest[1] = mat[1]; dest[2]  = mat[2];  dest[3]  = mat[3];
-		dest[4] = mat[4]; dest[5] = mat[5]; dest[6]  = mat[6];  dest[7]  = mat[7];
-		dest[8] = mat[8]; dest[9] = mat[9]; dest[10] = mat[10]; dest[11] = mat[11];
-		dest[12] = mat[0] * vec[0] + mat[4] * vec[1] + mat[8]  * vec[2] + mat[12];
-		dest[13] = mat[1] * vec[0] + mat[5] * vec[1] + mat[9]  * vec[2] + mat[13];
-		dest[14] = mat[2] * vec[0] + mat[6] * vec[1] + mat[10] * vec[2] + mat[14];
-		dest[15] = mat[3] * vec[0] + mat[7] * vec[1] + mat[11] * vec[2] + mat[15];
-		return dest;
-	};
-	this.rotate = function(mat, angle, axis){
-    var dest = new Float32Array(16);
-
-		var sq = Math.sqrt(axis[0] * axis[0] + axis[1] * axis[1] + axis[2] * axis[2]);
-		if(!sq){return null;}
-		var a = axis[0], b = axis[1], c = axis[2];
-		if(sq != 1){sq = 1 / sq; a *= sq; b *= sq; c *= sq;}
-		var d = Math.sin(angle), e = Math.cos(angle), f = 1 - e,
-			g = mat[0],  h = mat[1], i = mat[2],  j = mat[3],
-			k = mat[4],  l = mat[5], m = mat[6],  n = mat[7],
-			o = mat[8],  p = mat[9], q = mat[10], r = mat[11],
-			s = a * a * f + e,
-			t = b * a * f + c * d,
-			u = c * a * f - b * d,
-			v = a * b * f - c * d,
-			w = b * b * f + e,
-			x = c * b * f + a * d,
-			y = a * c * f + b * d,
-			z = b * c * f - a * d,
-			A = c * c * f + e;
-		if(angle){
-			if(mat != dest){
-				dest[12] = mat[12]; dest[13] = mat[13];
-				dest[14] = mat[14]; dest[15] = mat[15];
-			}
-		} else {
-			dest = mat;
-		}
-		dest[0]  = g * s + k * t + o * u;
-		dest[1]  = h * s + l * t + p * u;
-		dest[2]  = i * s + m * t + q * u;
-		dest[3]  = j * s + n * t + r * u;
-		dest[4]  = g * v + k * w + o * x;
-		dest[5]  = h * v + l * w + p * x;
-		dest[6]  = i * v + m * w + q * x;
-		dest[7]  = j * v + n * w + r * x;
-		dest[8]  = g * y + k * z + o * A;
-		dest[9]  = h * y + l * z + p * A;
-		dest[10] = i * y + m * z + q * A;
-		dest[11] = j * y + n * z + r * A;
-		return dest;
-	};
-	this.lookAt = function(eye, center, up){
-    var dest = new Float32Array(16);
-		var eyeX    = eye[0],    eyeY    = eye[1],    eyeZ    = eye[2],
-			upX     = up[0],     upY     = up[1],     upZ     = up[2],
-			centerX = center[0], centerY = center[1], centerZ = center[2];
-		if(eyeX == centerX && eyeY == centerY && eyeZ == centerZ){return this.identity(dest);}
-		var x0, x1, x2, y0, y1, y2, z0, z1, z2, l;
-		z0 = eyeX - center[0]; z1 = eyeY - center[1]; z2 = eyeZ - center[2];
-		l = 1 / Math.sqrt(z0 * z0 + z1 * z1 + z2 * z2);
-		z0 *= l; z1 *= l; z2 *= l;
-		x0 = upY * z2 - upZ * z1;
-		x1 = upZ * z0 - upX * z2;
-		x2 = upX * z1 - upY * z0;
-		l = Math.sqrt(x0 * x0 + x1 * x1 + x2 * x2);
-		if(!l){
-			x0 = 0; x1 = 0; x2 = 0;
-		} else {
-			l = 1 / l;
-			x0 *= l; x1 *= l; x2 *= l;
-		}
-		y0 = z1 * x2 - z2 * x1; y1 = z2 * x0 - z0 * x2; y2 = z0 * x1 - z1 * x0;
-		l = Math.sqrt(y0 * y0 + y1 * y1 + y2 * y2);
-		if(!l){
-			y0 = 0; y1 = 0; y2 = 0;
-		} else {
-			l = 1 / l;
-			y0 *= l; y1 *= l; y2 *= l;
-		}
-		dest[0] = x0; dest[1] = y0; dest[2]  = z0; dest[3]  = 0;
-		dest[4] = x1; dest[5] = y1; dest[6]  = z1; dest[7]  = 0;
-		dest[8] = x2; dest[9] = y2; dest[10] = z2; dest[11] = 0;
-		dest[12] = -(x0 * eyeX + x1 * eyeY + x2 * eyeZ);
-		dest[13] = -(y0 * eyeX + y1 * eyeY + y2 * eyeZ);
-		dest[14] = -(z0 * eyeX + z1 * eyeY + z2 * eyeZ);
-		dest[15] = 1;
-		return dest;
-	};
-	this.perspective = function(fovy, aspect, near, far){
-    var dest = new Float32Array(16);
-
-		var t = near * Math.tan(fovy * Math.PI / 360);
-		var r = t * aspect;
-		var a = r * 2, b = t * 2, c = far - near;
-		dest[0]  = near * 2 / a;
-		dest[1]  = 0;
-		dest[2]  = 0;
-		dest[3]  = 0;
-		dest[4]  = 0;
-		dest[5]  = near * 2 / b;
-		dest[6]  = 0;
-		dest[7]  = 0;
-		dest[8]  = 0;
-		dest[9]  = 0;
-		dest[10] = -(far + near) / c;
-		dest[11] = -1;
-		dest[12] = 0;
-		dest[13] = 0;
-		dest[14] = -(far * near * 2) / c;
-		dest[15] = 0;
-		return dest;
-	};
-	this.ortho = function(left, right, top, bottom, near, far) {
-    var dest = new Float32Array(16);
-
-		var h = (right - left);
-		var v = (top - bottom);
-		var d = (far - near);
-		dest[0]  = 2 / h;
-		dest[1]  = 0;
-		dest[2]  = 0;
-		dest[3]  = 0;
-		dest[4]  = 0;
-		dest[5]  = 2 / v;
-		dest[6]  = 0;
-		dest[7]  = 0;
-		dest[8]  = 0;
-		dest[9]  = 0;
-		dest[10] = -2 / d;
-		dest[11] = 0;
-		dest[12] = -(left + right) / h;
-		dest[13] = -(top + bottom) / v;
-		dest[14] = -(far + near) / d;
-		dest[15] = 1;
-		return dest;
-	};
-	this.transpose = function(mat){
-    var dest = new Float32Array(16);
-
-		dest[0]  = mat[0];  dest[1]  = mat[4];
-		dest[2]  = mat[8];  dest[3]  = mat[12];
-		dest[4]  = mat[1];  dest[5]  = mat[5];
-		dest[6]  = mat[9];  dest[7]  = mat[13];
-		dest[8]  = mat[2];  dest[9]  = mat[6];
-		dest[10] = mat[10]; dest[11] = mat[14];
-		dest[12] = mat[3];  dest[13] = mat[7];
-		dest[14] = mat[11]; dest[15] = mat[15];
-		return dest;
-	};
-	this.inverse = function(mat){
-    var dest = new Float32Array(16);
-
-		var a = mat[0],  b = mat[1],  c = mat[2],  d = mat[3],
-			e = mat[4],  f = mat[5],  g = mat[6],  h = mat[7],
-			i = mat[8],  j = mat[9],  k = mat[10], l = mat[11],
-			m = mat[12], n = mat[13], o = mat[14], p = mat[15],
-			q = a * f - b * e, r = a * g - c * e,
-			s = a * h - d * e, t = b * g - c * f,
-			u = b * h - d * f, v = c * h - d * g,
-			w = i * n - j * m, x = i * o - k * m,
-			y = i * p - l * m, z = j * o - k * n,
-			A = j * p - l * n, B = k * p - l * o,
-			ivd = 1 / (q * B - r * A + s * z + t * y - u * x + v * w);
-		dest[0]  = ( f * B - g * A + h * z) * ivd;
-		dest[1]  = (-b * B + c * A - d * z) * ivd;
-		dest[2]  = ( n * v - o * u + p * t) * ivd;
-		dest[3]  = (-j * v + k * u - l * t) * ivd;
-		dest[4]  = (-e * B + g * y - h * x) * ivd;
-		dest[5]  = ( a * B - c * y + d * x) * ivd;
-		dest[6]  = (-m * v + o * s - p * r) * ivd;
-		dest[7]  = ( i * v - k * s + l * r) * ivd;
-		dest[8]  = ( e * A - f * y + h * w) * ivd;
-		dest[9]  = (-a * A + b * y - d * w) * ivd;
-		dest[10] = ( m * u - n * s + p * q) * ivd;
-		dest[11] = (-i * u + j * s - l * q) * ivd;
-		dest[12] = (-e * z + f * x - g * w) * ivd;
-		dest[13] = ( a * z - b * x + c * w) * ivd;
-		dest[14] = (-m * t + n * r - o * q) * ivd;
-		dest[15] = ( i * t - j * r + k * q) * ivd;
-		return dest;
-	};
-}
-
-function qtnIV(){
-	this.create = function(){
-		return new Float32Array(4);
-	};
-	this.identity = function(dest){
-		dest[0] = 0; dest[1] = 0; dest[2] = 0; dest[3] = 1;
-		return dest;
-	};
-	this.inverse = function(qtn, dest){
-		dest[0] = -qtn[0];
-		dest[1] = -qtn[1];
-		dest[2] = -qtn[2];
-		dest[3] =  qtn[3];
-		return dest;
-	};
-	this.normalize = function(dest){
-		var x = dest[0], y = dest[1], z = dest[2], w = dest[3];
-		var l = Math.sqrt(x * x + y * y + z * z + w * w);
-		if(l === 0){
-			dest[0] = 0;
-			dest[1] = 0;
-			dest[2] = 0;
-			dest[3] = 0;
-		}else{
-			l = 1 / l;
-			dest[0] = x * l;
-			dest[1] = y * l;
-			dest[2] = z * l;
-			dest[3] = w * l;
-		}
-		return dest;
-	};
-	this.multiply = function(qtn1, qtn2){
-    var dest = new Float32Array(16);
-
-		var ax = qtn1[0], ay = qtn1[1], az = qtn1[2], aw = qtn1[3];
-		var bx = qtn2[0], by = qtn2[1], bz = qtn2[2], bw = qtn2[3];
-		dest[0] = ax * bw + aw * bx + ay * bz - az * by;
-		dest[1] = ay * bw + aw * by + az * bx - ax * bz;
-		dest[2] = az * bw + aw * bz + ax * by - ay * bx;
-		dest[3] = aw * bw - ax * bx - ay * by - az * bz;
-		return dest;
-	};
-	this.rotate = function(angle, axis){
-    var dest = new Float32Array(16);
-
-		var sq = Math.sqrt(axis[0] * axis[0] + axis[1] * axis[1] + axis[2] * axis[2]);
-		if(!sq){return null;}
-		var a = axis[0], b = axis[1], c = axis[2];
-		if(sq != 1){sq = 1 / sq; a *= sq; b *= sq; c *= sq;}
-		var s = Math.sin(angle * 0.5);
-		dest[0] = a * s;
-		dest[1] = b * s;
-		dest[2] = c * s;
-		dest[3] = Math.cos(angle * 0.5);
-		return dest;
-	};
-	this.toVecIII = function(vec, qtn){
-    var dest = new Float32Array(16);
-
-		var qp = this.create();
-		var qq = this.create();
-		var qr = this.create();
-		this.inverse(qtn, qr);
-		qp[0] = vec[0];
-		qp[1] = vec[1];
-		qp[2] = vec[2];
-		this.multiply(qr, qp, qq);
-		this.multiply(qq, qtn, qr);
-		dest[0] = qr[0];
-		dest[1] = qr[1];
-		dest[2] = qr[2];
-		return dest;
-	};
-	this.toMatIV = function(qtn){
-    var dest = new Float32Array(16);
-
-		var x = qtn[0], y = qtn[1], z = qtn[2], w = qtn[3];
-		var x2 = x + x, y2 = y + y, z2 = z + z;
-		var xx = x * x2, xy = x * y2, xz = x * z2;
-		var yy = y * y2, yz = y * z2, zz = z * z2;
-		var wx = w * x2, wy = w * y2, wz = w * z2;
-		dest[0]  = 1 - (yy + zz);
-		dest[1]  = xy - wz;
-		dest[2]  = xz + wy;
-		dest[3]  = 0;
-		dest[4]  = xy + wz;
-		dest[5]  = 1 - (xx + zz);
-		dest[6]  = yz - wx;
-		dest[7]  = 0;
-		dest[8]  = xz - wy;
-		dest[9]  = yz + wx;
-		dest[10] = 1 - (xx + yy);
-		dest[11] = 0;
-		dest[12] = 0;
-		dest[13] = 0;
-		dest[14] = 0;
-		dest[15] = 1;
-		return dest;
-	};
-	this.slerp = function(qtn1, qtn2, time){
-    var dest = new Float32Array(16);
-
-		var ht = qtn1[0] * qtn2[0] + qtn1[1] * qtn2[1] + qtn1[2] * qtn2[2] + qtn1[3] * qtn2[3];
-		var hs = 1.0 - ht * ht;
-		if(hs <= 0.0){
-			dest[0] = qtn1[0];
-			dest[1] = qtn1[1];
-			dest[2] = qtn1[2];
-			dest[3] = qtn1[3];
-		}else{
-			hs = Math.sqrt(hs);
-			if(Math.abs(hs) < 0.0001){
-				dest[0] = (qtn1[0] * 0.5 + qtn2[0] * 0.5);
-				dest[1] = (qtn1[1] * 0.5 + qtn2[1] * 0.5);
-				dest[2] = (qtn1[2] * 0.5 + qtn2[2] * 0.5);
-				dest[3] = (qtn1[3] * 0.5 + qtn2[3] * 0.5);
-			}else{
-				var ph = Math.acos(ht);
-				var pt = ph * time;
-				var t0 = Math.sin(ph - pt) / hs;
-				var t1 = Math.sin(pt) / hs;
-				dest[0] = qtn1[0] * t0 + qtn2[0] * t1;
-				dest[1] = qtn1[1] * t0 + qtn2[1] * t1;
-				dest[2] = qtn1[2] * t0 + qtn2[2] * t1;
-				dest[3] = qtn1[3] * t0 + qtn2[3] * t1;
-			}
-		}
-		return dest;
-	};
+    /**
+     * 四元数类
+     */
+    export class Quat{
+      x: number;
+      y: number;
+      z: number;
+      w: number;
+      constructor(x: number, y: number, z: number, w: number)
+      constructor(x: [number, number, number, number])
+      constructor()
+      constructor(x?, y?, z?, w?) {
+          if (x && x.length === 4) {
+              this.x = x[0];
+              this.y = x[1];
+              this.z = x[2];
+              this.w = x[3];
+          } else {
+              this.x = (x === undefined) ? 0 : x;
+              this.y = (y === undefined) ? 0 : y;
+              this.z = (z === undefined) ? 0 : z;
+              this.w = (w === undefined) ? 1 : w;
+          }
+      }
+  
+  
+  
+      clone() {
+          return new Quat(this.x, this.y, this.z, this.w);
+      }
+  
+      conjugate() {
+          this.x *= -1;
+          this.y *= -1;
+          this.z *= -1;
+  
+          return this;
+      }
+  
+  
+      copy({ x, y, z, w }: Quat) {
+          this.x = x;
+          this.y = y;
+          this.z = z;
+          this.w = w;
+  
+          return this;
+      }
+  
+  
+      equals({ x, y, z, w }: Quat) {
+          return (this.x === x) && (this.y === y) && (this.z === z) && (this.w === w);
+      }
+  
+  
+      getAxisAngle(axis: Vector3) {
+          let rad = Math.acos(this.w) * 2;
+          const s = Math.sin(rad / 2);
+          if (s !== 0) {
+              axis.x = this.x / s;
+              axis.y = this.y / s;
+              axis.z = this.z / s;
+              if (axis.x < 0 || axis.y < 0 || axis.z < 0) {
+                  // Flip the sign
+                  axis.x *= -1;
+                  axis.y *= -1;
+                  axis.z *= -1;
+                  rad *= -1;
+              }
+          } else {
+              // If s is zero, return any axis (no rotation - axis does not matter)
+              axis.x = 1;
+              axis.y = 0;
+              axis.z = 0;
+          }
+          return rad * RAD_TO_DEG;
+      }
+  
+  
+      getEulerAngles(eulers?/*ref*/: Vector3) {
+          let x, y, z, qx, qy, qz, qw, a2;
+  
+          eulers = (eulers === undefined) ? new Vector3() : eulers;
+  
+          qx = this.x;
+          qy = this.y;
+          qz = this.z;
+          qw = this.w;
+  
+          a2 = 2 * (qw * qy - qx * qz);
+          if (a2 <= -0.99999) {
+              x = 2 * Math.atan2(qx, qw);
+              y = -Math.PI / 2;
+              z = 0;
+          } else if (a2 >= 0.99999) {
+              x = 2 * Math.atan2(qx, qw);
+              y = Math.PI / 2;
+              z = 0;
+          } else {
+              x = Math.atan2(2 * (qw * qx + qy * qz), 1 - 2 * (qx * qx + qy * qy));
+              y = Math.asin(a2);
+              z = Math.atan2(2 * (qw * qz + qx * qy), 1 - 2 * (qy * qy + qz * qz));
+          }
+  
+          return eulers.set(x, y, z).scale(RAD_TO_DEG);
+      }
+  
+  
+      invert() {
+          return this.conjugate().normalize();
+      }
+  
+  
+      length() {
+          let x, y, z, w;
+  
+          x = this.x;
+          y = this.y;
+          z = this.z;
+          w = this.w;
+  
+          return Math.sqrt(x * x + y * y + z * z + w * w);
+      }
+  
+  
+      lengthSq() {
+          let x, y, z, w;
+          return x * x + y * y + z * z + w * w;
+      }
+  
+  
+      mul({ x, y, z, w }: Quat) {
+          let q1x, q1y, q1z, q1w, q2x, q2y, q2z, q2w;
+  
+          q1x = this.x;
+          q1y = this.y;
+          q1z = this.z;
+          q1w = this.w;
+  
+          q2x = x;
+          q2y = y;
+          q2z = z;
+          q2w = w;
+  
+          this.x = q1w * q2x + q1x * q2w + q1y * q2z - q1z * q2y;
+          this.y = q1w * q2y + q1y * q2w + q1z * q2x - q1x * q2z;
+          this.z = q1w * q2z + q1z * q2w + q1x * q2y - q1y * q2x;
+          this.w = q1w * q2w - q1x * q2x - q1y * q2y - q1z * q2z;
+  
+          return this;
+      }
+  
+  
+      mul2(lhs: Quat, rhs: Quat): Quat {
+          let q1x, q1y, q1z, q1w, q2x, q2y, q2z, q2w;
+  
+          q1x = lhs.x;
+          q1y = lhs.y;
+          q1z = lhs.z;
+          q1w = lhs.w;
+  
+          q2x = rhs.x;
+          q2y = rhs.y;
+          q2z = rhs.z;
+          q2w = rhs.w;
+  
+          this.x = q1w * q2x + q1x * q2w + q1y * q2z - q1z * q2y;
+          this.y = q1w * q2y + q1y * q2w + q1z * q2x - q1x * q2z;
+          this.z = q1w * q2z + q1z * q2w + q1x * q2y - q1y * q2x;
+          this.w = q1w * q2w - q1x * q2x - q1y * q2y - q1z * q2z;
+  
+          return this;
+      }
+  
+  
+      normalize() {
+          let len = this.length();
+          if (len === 0) {
+              this.x = this.y = this.z = 0;
+              this.w = 1;
+          } else {
+              len = 1 / len;
+              this.x *= len;
+              this.y *= len;
+              this.z *= len;
+              this.w *= len;
+          }
+  
+          return this;
+      }
+  
+  
+      set(x: number, y: number, z: number, w: number) {
+          this.x = x;
+          this.y = y;
+          this.z = z;
+          this.w = w;
+  
+          return this;
+      }
+  
+  
+      setFromAxisAngle({ x, y, z }: Vector3, angle: number) {
+          let sa, ca;
+  
+          angle *= 0.5 * DEG_TO_RAD;
+  
+          sa = Math.sin(angle);
+          ca = Math.cos(angle);
+  
+          this.x = sa * x;
+          this.y = sa * y;
+          this.z = sa * z;
+          this.w = ca;
+  
+          return this;
+      }
+  
+  
+      setFromEulerAngles(ex: number, ey: number, ez: number) {
+          let sx, cx, sy, cy, sz, cz, halfToRad;
+  
+          halfToRad = 0.5 * DEG_TO_RAD;
+          ex *= halfToRad;
+          ey *= halfToRad;
+          ez *= halfToRad;
+  
+          sx = Math.sin(ex);
+          cx = Math.cos(ex);
+          sy = Math.sin(ey);
+          cy = Math.cos(ey);
+          sz = Math.sin(ez);
+          cz = Math.cos(ez);
+  
+          this.x = sx * cy * cz - cx * sy * sz;
+          this.y = cx * sy * cz + sx * cy * sz;
+          this.z = cx * cy * sz - sx * sy * cz;
+          this.w = cx * cy * cz + sx * sy * sz;
+  
+          return this;
+      }
+  
+  
+      setFromMat4(mat: Matrix4) {
+          let m00, m01, m02, m10, m11, m12, m20, m21, m22, tr, s, rs, lx, ly, lz;
+  
+          let m = mat.elements;
+  
+          // Cache matrix values for super-speed
+          m00 = m[0];
+          m01 = m[1];
+          m02 = m[2];
+          m10 = m[4];
+          m11 = m[5];
+          m12 = m[6];
+          m20 = m[8];
+          m21 = m[9];
+          m22 = m[10];
+  
+          // Remove the scale from the matrix
+          lx = 1 / Math.sqrt(m00 * m00 + m01 * m01 + m02 * m02);
+          ly = 1 / Math.sqrt(m10 * m10 + m11 * m11 + m12 * m12);
+          lz = 1 / Math.sqrt(m20 * m20 + m21 * m21 + m22 * m22);
+  
+          m00 *= lx;
+          m01 *= lx;
+          m02 *= lx;
+          m10 *= ly;
+          m11 *= ly;
+          m12 *= ly;
+          m20 *= lz;
+          m21 *= lz;
+          m22 *= lz;
+  
+          // http://www.cs.ucr.edu/~vbz/resources/quatut.pdf
+  
+          tr = m00 + m11 + m22;
+          if (tr >= 0) {
+              s = Math.sqrt(tr + 1);
+              this.w = s * 0.5;
+              s = 0.5 / s;
+              this.x = (m12 - m21) * s;
+              this.y = (m20 - m02) * s;
+              this.z = (m01 - m10) * s;
+          } else {
+              if (m00 > m11) {
+                  if (m00 > m22) {
+                      // XDiagDomMatrix
+                      rs = (m00 - (m11 + m22)) + 1;
+                      rs = Math.sqrt(rs);
+  
+                      this.x = rs * 0.5;
+                      rs = 0.5 / rs;
+                      this.w = (m12 - m21) * rs;
+                      this.y = (m01 + m10) * rs;
+                      this.z = (m02 + m20) * rs;
+                  } else {
+                      // ZDiagDomMatrix
+                      rs = (m22 - (m00 + m11)) + 1;
+                      rs = Math.sqrt(rs);
+  
+                      this.z = rs * 0.5;
+                      rs = 0.5 / rs;
+                      this.w = (m01 - m10) * rs;
+                      this.x = (m20 + m02) * rs;
+                      this.y = (m21 + m12) * rs;
+                  }
+              } else if (m11 > m22) {
+                  // YDiagDomMatrix
+                  rs = (m11 - (m22 + m00)) + 1;
+                  rs = Math.sqrt(rs);
+  
+                  this.y = rs * 0.5;
+                  rs = 0.5 / rs;
+                  this.w = (m20 - m02) * rs;
+                  this.z = (m12 + m21) * rs;
+                  this.x = (m10 + m01) * rs;
+              } else {
+                  // ZDiagDomMatrix
+                  rs = (m22 - (m00 + m11)) + 1;
+                  rs = Math.sqrt(rs);
+  
+                  this.z = rs * 0.5;
+                  rs = 0.5 / rs;
+                  this.w = (m01 - m10) * rs;
+                  this.x = (m20 + m02) * rs;
+                  this.y = (m21 + m12) * rs;
+              }
+          }
+  
+          return this;
+      }
+  
+  
+      slerp(lhs: Quat, rhs: Quat, alpha: number): this {
+          let lx, ly, lz, lw, rx, ry, rz, rw;
+          lx = lhs.x;
+          ly = lhs.y;
+          lz = lhs.z;
+          lw = lhs.w;
+          rx = rhs.x;
+          ry = rhs.y;
+          rz = rhs.z;
+          rw = rhs.w;
+  
+          // Calculate angle between them.
+          let cosHalfTheta = lw * rw + lx * rx + ly * ry + lz * rz;
+  
+          if (cosHalfTheta < 0) {
+              rw = -rw;
+              rx = -rx;
+              ry = -ry;
+              rz = -rz;
+              cosHalfTheta = -cosHalfTheta;
+          }
+  
+          // If lhs == rhs or lhs == -rhs then theta == 0 and we can return lhs
+          if (Math.abs(cosHalfTheta) >= 1) {
+              this.w = lw;
+              this.x = lx;
+              this.y = ly;
+              this.z = lz;
+              return this;
+          }
+  
+          // Calculate temporary values.
+          let halfTheta = Math.acos(cosHalfTheta);
+          let sinHalfTheta = Math.sqrt(1 - cosHalfTheta * cosHalfTheta);
+  
+          // If theta = 180 degrees then result is not fully defined
+          // we could rotate around any axis normal to qa or qb
+          if (Math.abs(sinHalfTheta) < 0.001) {
+              this.w = (lw * 0.5 + rw * 0.5);
+              this.x = (lx * 0.5 + rx * 0.5);
+              this.y = (ly * 0.5 + ry * 0.5);
+              this.z = (lz * 0.5 + rz * 0.5);
+              return this;
+          }
+  
+          let ratioA = Math.sin((1 - alpha) * halfTheta) / sinHalfTheta;
+          let ratioB = Math.sin(alpha * halfTheta) / sinHalfTheta;
+  
+          // Calculate Quaternion.
+          this.w = (lw * ratioA + rw * ratioB);
+          this.x = (lx * ratioA + rx * ratioB);
+          this.y = (ly * ratioA + ry * ratioB);
+          this.z = (lz * ratioA + rz * ratioB);
+          return this;
+      }
+  
+  
+      transformVector(vec: Vector3, res?: Vector3) {
+          if (res === undefined) {
+              res = new Vector3();
+          }
+  
+          const x = vec.x, y = vec.y, z = vec.z;
+          const qx = this.x, qy = this.y, qz = this.z, qw = this.w;
+  
+          // calculate quat * vec
+          const ix = qw * x + qy * z - qz * y;
+          const iy = qw * y + qz * x - qx * z;
+          const iz = qw * z + qx * y - qy * x;
+          const iw = -qx * x - qy * y - qz * z;
+  
+          // calculate result * inverse quat
+          res.x = ix * qw + iw * -qx + iy * -qz - iz * -qy;
+          res.y = iy * qw + iw * -qy + iz * -qx - ix * -qz;
+          res.z = iz * qw + iw * -qz + ix * -qy - iy * -qx;
+  
+          return res;
+      }
+      static readonly TEMP = new Quat();
+  
+      static readonly IDENTITY: Quat = new Quat();
+  
+  
+      static readonly ZERO: Quat = new Quat(0, 0, 0, 0);
+    }
 }

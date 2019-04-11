@@ -14,7 +14,6 @@ namespace shader{
     export class Pipe extends NEObject implements ISIE{
         IS:number;
         IE:number;
-        position:Vector3 = new Vector3([0,0,0]);
         direct:Vector3;
         length:number;
         constructor(x:number, y:number, z:number, startPoint:Vector3){
@@ -22,66 +21,64 @@ namespace shader{
             this.initShader(this);
             this.initOBJInfo(this,'./resources/1/pipe.obj',function(){
                 this.length = Math.sqrt(x*x+y*y+z*z);
-                // this.setScale(this.length,1,1)
-                this.calculate(x, y, z, startPoint);
+                this.calculate1(x, y, z, startPoint);
+                this.setLocalScale(this.length,1,1)
+
             }.bind(this));
         }
         onLoad(){
             this.name = 'Pipe';
         }
 
-        calculate(x:number, y:number, z:number, startPoint:Vector3):Vector3{
+        calculate1(x:number, y:number, z:number, startPoint:Vector3):Vector3{
             this.direct = new Vector3([x,y,z]);
+            this.setLocalPosition(startPoint.elements[0],startPoint.elements[1],startPoint.elements[2]);
             
-            this.setPosition(startPoint.elements[0],startPoint.elements[1],startPoint.elements[2]);
-            // this.setScale(1,1,1)
             var endPoint = this.direct.add(startPoint);
             var angle1:number;
             var angle2:number;
             if(x!=0.000 && y != 0.000 && z != 0.000){
-                angle1 = Math.atan(y/x);
-                angle2 = Math.atan(z/(Math.sqrt(x*x+y*y)));
+                
+                angle1 = x>0?Math.atan(z/x):Math.atan(z/x)-Math.PI;
+                angle2 = Math.atan(y/(Math.sqrt(x*x+y*y)));
                 //计算基准轴向，ｘｙ向量的法向量
-                var axis = new Vector3([-y/x,1,0]).normalize();
+                var axis = new Vector3([-z/x,0,1]).normalize();
 
-                this.rotateByQuaternion(new Vector3([0,0,1]),angle1,true);
-                this.rotateByQuaternion(axis,-angle2,true);
-
+                this.rotateFromAxis(new Vector3([0,1,0]),-angle1,true);
+                this.rotateFromAxis(axis,angle2,true);
+               
             }else if(x==0.000 && y != 0.000 && z != 0.000){
                 // console.log("1");
                 angle1 = y>0?Math.PI/2:-Math.PI/2;
-                angle2 = Math.atan(y/z);
+                angle2 = y>0?Math.atan(z/y):-Math.atan(z/y);
 
-                this.rotateByQuaternion(new Vector3([0,0,1]),angle1,true);
-                this.rotateByQuaternion(new Vector3([0,1,0]),-angle2,true);//这个地方注意一下，旋转是按照本地坐标系旋转的,但是设置规模却是按照世界坐标系来的
+                this.rotateFromAxis(new Vector3([0,0,1]),angle1,true);
+                
+                this.rotateFromAxis(new Vector3([0,1,0]),-angle2,true);//这个地方注意一下，旋转是按照本地坐标系也要动
 
                 // console.log(angle1,angle2)
             }else if(x!=0.000 && y == 0.000 && z != 0.000){
-                angle1 = Math.atan(z/x);
-                this.rotateByQuaternion(new Vector3([0,1,0]),-angle1,true);
+                angle1 = x>0?Math.atan(z/x):-Math.PI+Math.atan(z/x);
+                this.rotateFromAxis(new Vector3([0,1,0]),-angle1,true);
 
             }else if(x!=0.000 && y != 0.000 && z == 0.000){
-                angle1 = Math.atan(y/x);
-                this.rotateByQuaternion(new Vector3([0,0,1]),angle1,true);
+                angle1 = x>0?Math.atan(y/x):Math.PI+Math.atan(y/x);
+                console.log(angle1/Math.PI*180);
+                this.rotateFromAxis(new Vector3([0,0,1]),angle1,true);
 
             }else if(x==0.000 && y != 0.000 && z == 0.000){
-                this.rotateByQuaternion(new Vector3([0,0,1]),Math.PI/2,true);
+                this.rotateFromAxis(new Vector3([0,0,1]),Math.PI/2,true);
 
             }else if(x!=0.000 && y == 0.000 && z == 0.000){
                 //nothing
             }else if(x==0.000 && y == 0.000 && z != 0.000){
-                this.rotateByQuaternion(new Vector3([0,1,0]),-Math.PI/2,true);
+                this.rotateFromAxis(new Vector3([0,1,0]),-Math.PI/2,true);
             }else if(x==0.000 && y == 0.000 && z == 0.000){
                 //nothing
             }
-            console.log(startPoint.elements[0],startPoint.elements[1],startPoint.elements[2]);
 
             return endPoint;
         }
-        /**
-         * 设置轴朝向
-         * @param which　哪个轴为朝向，暂不实现，先用四元数
-         */
         setAxisDirection(which){
 
         }

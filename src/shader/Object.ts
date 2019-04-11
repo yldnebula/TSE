@@ -3,21 +3,6 @@ namespace shader{
      * 所有３维物体的子类，实现基本方法
      */
     export class NEObject{
-        coordinate = {
-            x:0,
-            y:0,
-            z:0
-        }
-        rotation ={
-            x:0,
-            y:0,
-            z:0
-        }
-        scale = {
-            x:1,
-            y:1,
-            z:1
-        }
         vertex:string    = ''+
         'attribute  vec4 a_Position;\n' +
         'attribute  vec4 a_Color;\n' +
@@ -62,6 +47,16 @@ namespace shader{
         private _mvpMatrix:Matrix4   = new Matrix4(null);//模型视图投影矩阵
         private _normalMatrix:Matrix4= new Matrix4(null);//法向量变换矩阵
 
+        private _transMatrix:Matrix4 = new Matrix4(null);
+        private _rotateMatrix:Matrix4= new Matrix4(null);
+        private _scaleMatrix:Matrix4 = new Matrix4(null);
+
+        private _localTransForm:Matrix4 = new Matrix4(null);//节点局部矩阵
+        
+        scale = new Vector3(1,1,1);
+        rotation = new Quat();
+        position = new Vector3();
+
         public program     :WebGLProgram = null;
         public OBJInfo  = null;
         public vertices;
@@ -72,12 +67,6 @@ namespace shader{
         constructor(){
             this.onLoad();
             this.onStart();
-            // var nowScene = ne.getScene();
-            // if(!!nowScene){
-            //     nowScene.addUpdateEvents(this.onUpdate.bind(this));
-            // }
-            // this._loop();
-
         }
         onLoad(){
 
@@ -178,112 +167,218 @@ namespace shader{
         getParent(){
             return this.parent;
         }
+        setRotation(x: Quat): this;
+        setRotation(x: number, y: number, z: number, w: number): this;
+        setRotation(x?, y?, z?, w?) {
+            let rotation: Quat;
+            if (x instanceof Quat) {
+                rotation = x;
+            } else {
+                rotation = new Quat(x, y, z, w);
+            }
+            this.rotation.copy(rotation);
+            return this;
+        }
+        setRotationFromAxis(axis:Vector3,angle:number,isRadian:boolean):this{
+            let rotation: Quat;
+            var alpha = isRadian?angle:angle*Math.PI/180;//修改为右手定则
+            axis = axis.normalize();
+            
+            var x= Math.sin(alpha/2)*axis.x;
+            var y= Math.sin(alpha/2)*axis.y;
+            var z= Math.sin(alpha/2)*axis.z;
+            var w= Math.cos(alpha/2)
+                
+            rotation = new Quat(x, y, z, w);
+
+            this.rotation.copy(rotation);
+            return this;
+        }
+        rotateLocal(x: Vector3): this;
+        rotateLocal(x: number, y: number, z: number): this;
+        rotateLocal(x?, y?, z?) {
+            let quaternion = new Quat();
+            if (x instanceof Vector3) {
+                quaternion.setFromEulerAngles(x.elements[0], x.elements[1], x.elements[2]);
+            } else {
+                quaternion.setFromEulerAngles(x, y, z);
+            }
+    
+            this.rotation.mul(quaternion);
+            return this;
+        }
+        rotateFromAxis(axis:Vector3,angle:number,isRadian:boolean){
+            let rotation: Quat;
+            var alpha = isRadian?angle:angle*Math.PI/180;//修改为右手定则
+            axis = axis.normalize();
+            
+            var x= Math.sin(alpha/2)*axis.x;
+            var y= Math.sin(alpha/2)*axis.y;
+            var z= Math.sin(alpha/2)*axis.z;
+            var w= Math.cos(alpha/2)
+
+            rotation = new Quat(x, y, z, w);
+            this.rotation.mul(rotation);
+            return this;
+        }
+        setLocalEulerAngles(x: Vector3): this;
+        setLocalEulerAngles(x: number, y: number, z: number): this;
+        setLocalEulerAngles(x?, y?, z?) {
+            if (x instanceof Vector3) {
+                this.rotation.setFromEulerAngles(x.elements[0], x.elements[1], x.elements[2]);
+            } else {
+                this.rotation.setFromEulerAngles(x, y, z);
+            }
+            return this;
+        }
+        setLocalPosition(x: Vector3): this;
+        setLocalPosition(x: number, y: number, z: number): this;
+        setLocalPosition(x?, y?, z?) {
+            if (x instanceof Vector3) {
+                this.position.copy(x);
+            } else {
+                this.position.set(x, y, z);
+            }
+            return this;
+        }
+        setLocalScale(x: Vector3): this;
+        setLocalScale(x: number, y: number, z: number): this;
+        setLocalScale(x?, y?, z?) {
+            if (x instanceof Vector3) {
+                this.scale.copy(x);
+            } else {
+                this.scale.set(x, y, z);
+            }
+            return this;
+        }
+        translate(x: Vector3): this;
+        translate(x: number, y: number, z: number): this;
+        translate(x?, y?, z?) {
+            let translation: Vector3;
+            if (x instanceof Vector3) {
+                translation = x.clone();
+            } else {
+                translation = new Vector3(x, y, z);
+            }
+            translation.add(this.position);
+            this.setLocalPosition(translation);
+            return this;
+        }
 
         /**
          * 模型变换函数
          */
-        setPosition(x:number,y:number,z:number){
-            var dx = x - this.coordinate.x;
-            var dy = y - this.coordinate.y;
-            var dz = z - this.coordinate.z;
+        // setPosition(x:number,y:number,z:number){
 
-            this.setTranslate(dx,dy,dz);
-        }
-        setRotation(x:number,y:number,z:number){
-            var dx = x - this.rotation.x;
-            var dy = y - this.rotation.y;
-            var dz = z - this.rotation.z;
+        // }
+        // setRotation(x:number,y:number,z:number){
 
-            this.Rotate(dx,dy,dz);
-        }
-        setRotationFromQuaternion(axis:Vector3,angle:number,isRadian:boolean){//看看能不能做，从旋转矩阵读取当前xyz轴旋转角度?
-            this._modelMatrix.setRotateFromQuaternion(axis,angle,isRadian);
+        // }
+        // setRotationFromQuaternion(axis:Vector3,angle:number,isRadian:boolean){//看看能不能做，从旋转矩阵读取当前xyz轴旋转角度?
+        //     // this._modelMatrix.setRotateFromQuaternion(axis,angle,isRadian);
 
-            this._mvpMatrix.set(camera.projViewMatrix).multiply(this._modelMatrix);
-            this._normalMatrix.setInverseOf(this._modelMatrix);
-            this._normalMatrix.transpose();
-            this.boundingBox.updateBoundingBox();
+        //     this._rotateMatrix.setRotateFromQuaternion(axis,angle,isRadian);
 
-            for(var child of this.Child){
-                child.setRotationFromQuaternion(axis,angle,isRadian)
-            }
-        }
-        rotateByQuaternion(axis:Vector3,angle:number,isRadian:boolean){
-            this._modelMatrix.rotateByQuaternion(axis,angle,isRadian);
+        //     this._modelMatrix =this.setTRS(this._transMatrix,this._rotateMatrix,this._scaleMatrix);
 
-            this._mvpMatrix.set(camera.projViewMatrix).multiply(this._modelMatrix);
-            this._normalMatrix.setInverseOf(this._modelMatrix);
-            this._normalMatrix.transpose();
-            this.boundingBox.updateBoundingBox();
+        //     this._mvpMatrix.set(camera.projViewMatrix).multiply(this._modelMatrix);
+        //     this._normalMatrix.setInverseOf(this._modelMatrix);
+        //     this._normalMatrix.transpose();
+        //     this.boundingBox.updateBoundingBox();
 
-            for(var child of this.Child){
-                child.rotateByQuaternion(axis,angle,isRadian)
-            }
-        }
-        setTranslate(x:number,y:number,z:number){
-            this.coordinate.x +=x;
-            this.coordinate.y +=y;
-            this.coordinate.z +=z;
-            this._modelMatrix.translate(x,y,z);
+        //     for(var child of this.Child){
+        //         child.setRotationFromQuaternion(axis,angle,isRadian)
+        //     }
+        // }
+        // rotateByQuaternion(axis:Vector3,angle:number,isRadian:boolean){
+        //     // this._modelMatrix.rotateByQuaternion(axis,angle,isRadian);
 
-            this._mvpMatrix.set(camera.projViewMatrix).multiply(this._modelMatrix);
-            this._normalMatrix.setInverseOf(this._modelMatrix);
-            this._normalMatrix.transpose();
+        //     this._rotateMatrix.rotateByQuaternion(axis,angle,isRadian);
+        //     this._modelMatrix =this.setTRS(this._transMatrix,this._rotateMatrix,this._scaleMatrix);
 
-            this.boundingBox.updateBoundingBox();
 
-            for(var child of this.Child){
-                child.setTranslate(x,y,z)
-            }
-        }
-        setScale(x:number,y:number,z:number){
-            this.scale.x =x;
-            this.scale.y =y;
-            this.scale.z =z;
-            // this._modelMatrix = new Matrix4(null);
-            this._modelMatrix.scale(x,y,z);
+        //     this._mvpMatrix.set(camera.projViewMatrix).multiply(this._modelMatrix);
+        //     this._normalMatrix.setInverseOf(this._modelMatrix);
+        //     this._normalMatrix.transpose();
+        //     this.boundingBox.updateBoundingBox();
+
+        //     for(var child of this.Child){
+        //         child.rotateByQuaternion(axis,angle,isRadian)
+        //     }
+        // }
+        // setTranslate(x:number,y:number,z:number){
+
+        //     // this._modelMatrix.translate(x,y,z);
+        //     // this._worldMatrix.translate(x,y,z);//保存一下现在的世界坐标矩阵
+
+        //     this._transMatrix.translate(x,y,z);
+        //     this._modelMatrix =this.setTRS(this._transMatrix,this._rotateMatrix,this._scaleMatrix);
+
+        //     this._mvpMatrix.set(camera.projViewMatrix).multiply(this._modelMatrix);
+        //     this._normalMatrix.setInverseOf(this._modelMatrix);
+        //     this._normalMatrix.transpose();
+
+        //     this.boundingBox.updateBoundingBox();
+
+        //     for(var child of this.Child){
+        //         child.setTranslate(x,y,z)
+        //     }
+        // }
+        // setScale(x:number,y:number,z:number){
+
+        
+        //     this._scaleMatrix.setScale(x,y,z);
+        //     this._modelMatrix =this.setTRS(this._transMatrix,this._rotateMatrix,this._scaleMatrix);
+
+        //     this._mvpMatrix.set(camera.projViewMatrix).multiply(this._modelMatrix);
+        //     this._normalMatrix.setInverseOf(this._modelMatrix);
+        //     this._normalMatrix.transpose();
+
+        //     this.boundingBox.updateBoundingBox();
+        // }
+        // Rotate(x:number,y:number,z:number){//注意此处的x,y,z是角度增量，而非最终角度，调用时候请注意
+
+
+        //     if(x != 0){
+        //         this._rotateMatrix.rotate(x,1,0,0);
+        //     }
+        //     if(y != 0){
+        //         this._rotateMatrix.rotate(y,0,1,0);
+        //     }
+        //     if(z != 0){
+        //         this._rotateMatrix.rotate(z,0,0,1);
+        //     }
+        //     this._modelMatrix =this.setTRS(this._transMatrix,this._rotateMatrix,this._scaleMatrix);
             
-            this._mvpMatrix.set(camera.projViewMatrix).multiply(this._modelMatrix);
-            this._normalMatrix.setInverseOf(this._modelMatrix);
-            this._normalMatrix.transpose();
 
-            this.boundingBox.updateBoundingBox();
+        //     this._mvpMatrix.set(camera.projViewMatrix).multiply(this._modelMatrix);
+        //     this._normalMatrix.setInverseOf(this._modelMatrix);
+        //     this._normalMatrix.transpose();
 
-            for(var child of this.Child){
-                child.setScale(x,y,z)
-            }
-        }
-        Rotate(x:number,y:number,z:number){//注意此处的x,y,z是角度增量，而非最终角度，调用时候请注意
-            this.rotation.x +=x;
-            this.rotation.y +=y;
-            this.rotation.z +=z;
-            if(x != 0){
-                this._modelMatrix.rotate(x,1,0,0);
-            }
-            if(y != 0){
-                this._modelMatrix.rotate(y,0,1,0);
-            }
-            if(z != 0){
-                this._modelMatrix.rotate(z,0,0,1);
-            }
-            this._mvpMatrix.set(camera.projViewMatrix).multiply(this._modelMatrix);
-            this._normalMatrix.setInverseOf(this._modelMatrix);
-            this._normalMatrix.transpose();
+        //     this.boundingBox.updateBoundingBox();
 
-            this.boundingBox.updateBoundingBox();
+        //     for(var child of this.Child){
+        //         child.setRotation(x,y,z)
+        //     }
+        // }
+        // setTRS(T:Matrix4, R:Matrix4, S:Matrix4){
+        //     var tr = T.multiply(R);
+        //     var ret = tr.multiply(S)
+        //     return ret;
+        // }
 
-            for(var child of this.Child){
-                child.setRotation(x,y,z)
-            }
-        }
         getModelMatrix():Matrix4{
+            this._modelMatrix = new Matrix4(null).setTRS(this.position,this.rotation,this.scale);
             return this._modelMatrix;
         }
         getMvpMatrix():Matrix4{
+            this._modelMatrix = new Matrix4(null).setTRS(this.position,this.rotation,this.scale);
             this._mvpMatrix.set(camera.projViewMatrix).multiply(this._modelMatrix);
             return this._mvpMatrix;
         }
         getNormalMatrix():Matrix4{
+            this._modelMatrix = new Matrix4(null).setTRS(this.position,this.rotation,this.scale);
+            this._normalMatrix = new Matrix4(null).setInverseOf(this._modelMatrix).transpose();
             return this._normalMatrix;
         }
         onClick(){
@@ -391,7 +486,7 @@ namespace shader{
             }
             target.program = obj.program;
         }
-        initOBJInfo(target,path,callBack){
+        initOBJInfo(target:NEObject,path,callBack){
             var obp = new OBJParser(path);
             obp.readOBJFile(path,1/60,true,function(){
                 var info = obp.getDrawingInfo();
