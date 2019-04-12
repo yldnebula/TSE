@@ -22,7 +22,7 @@ namespace shader{
             this.initOBJInfo(this,'./resources/1/pipe.obj',function(){
                 this.length = Math.sqrt(x*x+y*y+z*z);
                 this.calculate1(x, y, z, startPoint);
-                this.setLocalScale(this.length,1,1)
+                this.setLocalScale(this.length,1,1);
 
             }.bind(this));
         }
@@ -111,13 +111,19 @@ namespace shader{
         RR:number;//弯曲半径
         RA:number;//弯曲角度
         IA:number;//弯单元种类
-        constructor(){
+        constructor(startPoint:Vector3){
             super();
+            this.initShader(this);
+            this.initOBJInfo(this,'./resources/1/elbow.obj',function(){
+                this.calculate(startPoint);
+            }.bind(this));
         }
         onLoad(){
             this.name = 'Elbow';
-            this.initShader(this);
-            this.initOBJInfo(this,'./resources/1/elbow.obj',null);
+
+        }
+        calculate(startPoint:Vector3){
+            this.setLocalPosition(startPoint.x,startPoint.y,startPoint.z);
         }
         onUpdate(dt){
             this._draw(this.program,this.OBJInfo);

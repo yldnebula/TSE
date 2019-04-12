@@ -209,6 +209,7 @@ namespace Utils{
                         
                         break;
                         case "4":
+                            GlifNode.UnitPool.push(this.parseDirectUnit(pipes[i],this.Scene))
                         
                         break;
                         case "5":
@@ -267,7 +268,7 @@ namespace Utils{
          */
         parseBendingUnit(info, scene){
             if(!!scene){
-                var elbow = new Elbow();
+                var elbow = new Elbow(this.startPoint);//弯单元不改变下一个的位置
                 elbow.IS = info[1];
                 elbow.IE = info[2];
                 elbow.RR = info[3];

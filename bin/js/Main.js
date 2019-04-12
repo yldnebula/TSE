@@ -1395,6 +1395,7 @@ var Utils;
                         case "3":
                             break;
                         case "4":
+                            GlifNode.UnitPool.push(this.parseDirectUnit(pipes[i], this.Scene));
                             break;
                         case "5":
                             break;
@@ -1444,7 +1445,7 @@ var Utils;
          */
         GLIFParser.prototype.parseBendingUnit = function (info, scene) {
             if (!!scene) {
-                var elbow = new Elbow();
+                var elbow = new Elbow(this.startPoint); //弯单元不改变下一个的位置
                 elbow.IS = info[1];
                 elbow.IE = info[2];
                 elbow.RR = info[3];
@@ -2324,8 +2325,16 @@ var Core;
             this.center = {
                 x: 0, y: 0, z: 0
             };
+            this.fovy = 85;
+            this.aspect = 0;
+            this.near = 1;
+            this.far = 1000;
             this.projectMatrix = new Matrix4(null);
             this.projViewMatrix = new Matrix4(null);
+            this.fovy = fovy;
+            this.aspect = aspect;
+            this.near = near;
+            this.far = 1000;
             this.setPerspectiveCamera(fovy, aspect, near, far);
         }
         Camera.prototype.setCoordinatePoint = function (x, y, z) {
@@ -2351,7 +2360,7 @@ var Core;
             var nowN = camera.getSightDirection(1);
             nowN = camera.getSightDirection(1 + factor);
             camera.setCoordinatePoint(camera.center.x - nowN[0], camera.center.y - nowN[1], camera.center.z - nowN[2]);
-            camera.setPerspectiveCamera(85, canvas.width / canvas.height, 1, 1000);
+            camera.setPerspectiveCamera(this.fovy, canvas.width / canvas.height, this.near, this.far);
         };
         /**
          * 设置正视摄像机,暂时不用开发
@@ -3045,10 +3054,6 @@ var shader;
             this._modelMatrix = new Matrix4(null); //模型矩阵
             this._mvpMatrix = new Matrix4(null); //模型视图投影矩阵
             this._normalMatrix = new Matrix4(null); //法向量变换矩阵
-            this._transMatrix = new Matrix4(null);
-            this._rotateMatrix = new Matrix4(null);
-            this._scaleMatrix = new Matrix4(null);
-            this._localTransForm = new Matrix4(null); //节点局部矩阵
             this.scale = new Vector3(1, 1, 1);
             this.rotation = new Quat();
             this.position = new Vector3();
@@ -3730,13 +3735,19 @@ var shader;
     shader.Tee = Tee;
     var Elbow = /** @class */ (function (_super) {
         __extends(Elbow, _super);
-        function Elbow() {
-            return _super.call(this) || this;
+        function Elbow(startPoint) {
+            var _this = _super.call(this) || this;
+            _this.initShader(_this);
+            _this.initOBJInfo(_this, './resources/1/elbow.obj', function () {
+                this.calculate(startPoint);
+            }.bind(_this));
+            return _this;
         }
         Elbow.prototype.onLoad = function () {
             this.name = 'Elbow';
-            this.initShader(this);
-            this.initOBJInfo(this, './resources/1/elbow.obj', null);
+        };
+        Elbow.prototype.calculate = function (startPoint) {
+            this.setLocalPosition(startPoint.x, startPoint.y, startPoint.z);
         };
         Elbow.prototype.onUpdate = function (dt) {
             this._draw(this.program, this.OBJInfo);
@@ -3976,7 +3987,7 @@ var camera = new Camera(85, canvas.width / canvas.height, 1, 1000);
 var render = new Render();
 //初始化GLIF解析器
 var gp = new GLIFParser(ne.getScene());
-gp.readGilfFile('./glif/inp2.TXT', "");
+gp.readGilfFile('./glif/inp1.TXT', "");
 //******************************************* */
 var Cube = new Pipe(1, -1, -1, new Vector3([0, 0, 0]));
 // var Cube = new Tee();
@@ -3999,6 +4010,7 @@ function main() {
     var isDrag = false;
     var lastX = -1;
     var lastY = -1;
+    var cameraMove = false;
     //被选中的物体
     var objClicked = null;
     var setX = false;
@@ -4010,57 +4022,59 @@ function main() {
     ca.onmousedown = function (ev) {
         var x = ev.layerX, y = ev.layerY;
         if (ev.layerX <= canvas.width && ev.layerX >= 0 && ev.layerY >= 0 && ev.layerY <= canvas.height) {
-            isDrag = true;
+            if (ev.button == 1) {
+                cameraMove = true;
+            }
+            else if (ev.button == 0) {
+                isDrag = true;
+                var _mousex = (ev.layerX / canvas.width) * 2 - 1;
+                var _mousey = -(ev.layerY / canvas.height) * 2 + 1;
+                // console.log(_mousex,_mousey);
+                var pointOnCanvasToNear = new Vector4([_mousex, _mousey, -1.0, 1.0]);
+                var positionN = new Matrix4(null).setInverseOf(camera.projViewMatrix).multiplyVector4(pointOnCanvasToNear);
+                RayCaster1.initCameraRay(camera.coordinate.x, camera.coordinate.y, camera.coordinate.z, positionN.elements[0], positionN.elements[1], positionN.elements[2], 100);
+                var obj = RayCaster1.intersectObjects(ne.getScene().Child, true);
+                if (!!obj) {
+                    objClicked = obj;
+                }
+                else {
+                    objClicked = null;
+                }
+                console.log(obj);
+            }
         }
         lastX = x;
         lastY = y;
-        var _mousex = (ev.layerX / canvas.width) * 2 - 1;
-        var _mousey = -(ev.layerY / canvas.height) * 2 + 1;
-        // console.log(_mousex,_mousey);
-        var pointOnCanvasToNear = new Vector4([_mousex, _mousey, -1.0, 1.0]);
-        var positionN = new Matrix4(null).setInverseOf(camera.projViewMatrix).multiplyVector4(pointOnCanvasToNear);
-        RayCaster1.initCameraRay(camera.coordinate.x, camera.coordinate.y, camera.coordinate.z, positionN.elements[0], positionN.elements[1], positionN.elements[2], 100);
-        var obj = RayCaster1.intersectObjects(ne.getScene().Child, true);
-        if (!!obj) {
-            objClicked = obj;
-        }
-        else {
-            objClicked = null;
-        }
-        console.log(obj);
-        // console.log(positionN);
     };
     ca.onmouseup = function (ev) {
         isDrag = false;
+        cameraMove = false;
     };
     ca.onmousemove = function (ev) {
-        var x = ev.clientX, y = ev.clientY;
+        var x = ev.layerX, y = ev.layerY;
         // console.log(ev.target)
-        if (!isDrag)
-            return;
-        if (ev.layerX <= canvas.width && ev.layerX >= 0 && ev.layerY >= 0 && ev.layerY <= canvas.height) {
-            var factor = 300 / canvas.height;
-            var dx = factor * (x - lastX);
-            var dy = factor * (y - lastY);
-            // Cube.boundingBox.updateBoundingBox();
-            if (rotateCamera) {
-                camera.setCoordinatePoint(-dy / 10, -dx / 10, 14);
-                camera.setPerspectiveCamera(85, canvas.width / canvas.height, 1, 1000);
-                lastX = x;
-                lastY = y;
-                return;
-            }
-            if (!!objClicked) {
-                if (setX) {
-                    objClicked.translate(dx / 20, 0, 0);
-                }
-                else if (setY) {
-                    objClicked.translate(0, -dy / 20, 0);
-                }
-                else if (setZ) {
-                    objClicked.translate(0, 0, dy / 20);
+        var factor = 300 / canvas.height;
+        var dx = factor * (x - lastX);
+        var dy = factor * (y - lastY);
+        if (isDrag) {
+            if (ev.layerX <= canvas.width && ev.layerX >= 0 && ev.layerY >= 0 && ev.layerY <= canvas.height) {
+                if (!!objClicked) {
+                    if (setX) {
+                        objClicked.translate(dx / 20, 0, 0);
+                    }
+                    else if (setY) {
+                        objClicked.translate(0, -dy / 20, 0);
+                    }
+                    else if (setZ) {
+                        objClicked.translate(0, 0, dy / 20);
+                    }
                 }
             }
+        }
+        else if (cameraMove) {
+            camera.setCenter(camera.center.x - dx / 20, camera.center.y + dy / 20, camera.center.z);
+            camera.setCoordinatePoint(camera.coordinate.x - dx / 20, camera.coordinate.y + dy / 20, camera.coordinate.z);
+            camera.setPerspectiveCamera(camera.fovy, camera.aspect, camera.near, camera.far);
         }
         lastX = x;
         lastY = y;

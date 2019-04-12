@@ -46,13 +46,7 @@ namespace shader{
         private _modelMatrix:Matrix4 = new Matrix4(null);//模型矩阵
         private _mvpMatrix:Matrix4   = new Matrix4(null);//模型视图投影矩阵
         private _normalMatrix:Matrix4= new Matrix4(null);//法向量变换矩阵
-
-        private _transMatrix:Matrix4 = new Matrix4(null);
-        private _rotateMatrix:Matrix4= new Matrix4(null);
-        private _scaleMatrix:Matrix4 = new Matrix4(null);
-
-        private _localTransForm:Matrix4 = new Matrix4(null);//节点局部矩阵
-        
+     
         scale = new Vector3(1,1,1);
         rotation = new Quat();
         position = new Vector3();

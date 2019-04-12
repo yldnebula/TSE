@@ -537,6 +537,10 @@ declare namespace Core {
             y: number;
             z: number;
         };
+        fovy: number;
+        aspect: number;
+        near: number;
+        far: number;
         projectMatrix: Matrix4;
         projViewMatrix: Matrix4;
         constructor(fovy: number, aspect: number, near: number, far: number);
@@ -652,10 +656,6 @@ declare namespace shader {
         private _modelMatrix;
         private _mvpMatrix;
         private _normalMatrix;
-        private _transMatrix;
-        private _rotateMatrix;
-        private _scaleMatrix;
-        private _localTransForm;
         scale: Vector3;
         rotation: Quat;
         position: Vector3;
@@ -825,8 +825,9 @@ declare namespace shader {
         RR: number;
         RA: number;
         IA: number;
-        constructor();
+        constructor(startPoint: Vector3);
         onLoad(): void;
+        calculate(startPoint: Vector3): void;
         onUpdate(dt: any): void;
     }
     class Valve extends NEObject implements ISIE {
