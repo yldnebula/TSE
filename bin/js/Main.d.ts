@@ -174,7 +174,13 @@ declare namespace Utils {
      */
     class Vector4 {
         elements: Float32Array;
-        constructor(opt_src: Float32Array | number[] | Vector4 | null);
+        constructor();
+        constructor(x: number, y: number, z: number, w: number);
+        constructor(x: [number, number, number, number]);
+        x: number;
+        y: number;
+        z: number;
+        w: number;
     }
     /**
      * 四元数类
@@ -237,7 +243,7 @@ declare namespace Utils {
          */
         isNodeInfo(nowLine: string[]): boolean;
         /**
-         * 10开头的一段数据,希望参数为整段数据,或者为260,70,90开头的数据
+         * 10开头的一段数据,期望参数为整段数据,或者为260,70,90开头的数据
          * 10,7,8,81
                 1,1,1,0.000,-0.441,-0.066
                 0,1,1,0.457,81.494,1
@@ -659,6 +665,7 @@ declare namespace shader {
         scale: Vector3;
         rotation: Quat;
         position: Vector3;
+        color: Vector4;
         program: WebGLProgram;
         OBJInfo: any;
         vertices: any;
@@ -912,6 +919,7 @@ declare var camera: Camera;
 declare var render: Render;
 declare var gp: GLIFParser;
 declare var Cube: Pipe;
+declare var Cube1: Pipe;
 declare function main(): void;
 declare const zero_guard = 0.00001;
 declare function rayPickLog(val: any): void;

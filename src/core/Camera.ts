@@ -21,7 +21,7 @@ namespace Core{
         }
         setCoordinatePoint(x:number,y:number,z:number){
             this.coordinate.x = x;
-            this.coordinate.y = y;
+            this.coordinate.y = y;  
             this.coordinate.z = z;
         }
         setCenter(x:number,y:number,z:number){

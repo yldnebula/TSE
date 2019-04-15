@@ -818,12 +818,49 @@ namespace Utils{
      */
     export class Vector4{
         elements:Float32Array = null;
-        constructor(opt_src:Float32Array|number[]|Vector4 | null){
-            var v = new Float32Array(4);
-            if (opt_src) {
-                v[0] = opt_src[0]; v[1] = opt_src[1]; v[2] = opt_src[2]; v[3] = opt_src[3];
+        constructor();
+        constructor(x: number, y: number, z: number, w:number)
+        constructor(x: [number, number, number, number])
+        constructor(x?, y?, z?, w?){
+            if (x && x.length === 4) {
+                this.elements = new Float32Array(x);
+                return;
             }
-            this.elements = v;
+    
+            this.elements = new Float32Array(4);
+    
+            this.elements[0] = x || 0;
+            this.elements[1] = y || 0;
+            this.elements[2] = z || 0;
+            this.elements[3] = w || 0;
+        }
+        get x(): number {
+            return this.elements[0];
+        }
+        set x(value: number) {
+            this.elements[0] = value;
+        }
+    
+    
+        get y(): number {
+            return this.elements[1];
+        }
+        set y(value: number) {
+            this.elements[1] = value;
+        }
+    
+    
+        get z(): number {
+            return this.elements[2];
+        }
+        set z(value: number) {
+            this.elements[2] = value;
+        }
+        get w(): number {
+            return this.elements[3];
+        }
+        set w(value: number) {
+            this.elements[3] = value;
         }
     }
     /**

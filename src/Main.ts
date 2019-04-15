@@ -56,10 +56,11 @@ var camera = new Camera(85,canvas.width/canvas.height,1,1000)
 var render = new Render();
 //初始化GLIF解析器
 var gp = new GLIFParser(ne.getScene());
-gp.readGilfFile('./glif/inp1.TXT',"");
+gp.readGilfFile('./glif/inp2.TXT',"");
 
 //******************************************* */
-var Cube = new Pipe(1,-1,-1,new Vector3([0,0,0])); 
+var Cube = new Pipe(-1,1,-1,new Vector3([0,0,0])); 
+var Cube1 = new Pipe(-1,1,-1,new Vector3([-1,1,-1])); 
 // var Cube = new Tee();
 
 main();
@@ -72,6 +73,7 @@ function main(){
     // Cube.setLocalPosition(new Vector3(3,5,0))
     // Cube.translate(new Vector3(-3,-5,0))
     Cube.setParent(ne.getScene());
+    Cube1.setParent(ne.getScene());
 
 
     render.render(sceneInfo);
@@ -150,8 +152,8 @@ function main(){
                 }
             }
         }else if(cameraMove){
-            camera.setCenter(camera.center.x-dx/20,camera.center.y+dy/20,camera.center.z);
-            camera.setCoordinatePoint(camera.coordinate.x-dx/20,camera.coordinate.y+dy/20,camera.coordinate.z)
+            camera.setCenter(camera.center.x-dx/5,camera.center.y+dy/5,camera.center.z);
+            camera.setCoordinatePoint(camera.coordinate.x-dx/5,camera.coordinate.y+dy/5,camera.coordinate.z)
             camera.setPerspectiveCamera(camera.fovy,camera.aspect,camera.near,camera.far);
         }
 

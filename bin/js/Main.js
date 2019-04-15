@@ -838,17 +838,58 @@ var Utils;
      * 四维向量类
      */
     var Vector4 = /** @class */ (function () {
-        function Vector4(opt_src) {
+        function Vector4(x, y, z, w) {
             this.elements = null;
-            var v = new Float32Array(4);
-            if (opt_src) {
-                v[0] = opt_src[0];
-                v[1] = opt_src[1];
-                v[2] = opt_src[2];
-                v[3] = opt_src[3];
+            if (x && x.length === 4) {
+                this.elements = new Float32Array(x);
+                return;
             }
-            this.elements = v;
+            this.elements = new Float32Array(4);
+            this.elements[0] = x || 0;
+            this.elements[1] = y || 0;
+            this.elements[2] = z || 0;
+            this.elements[3] = w || 0;
         }
+        Object.defineProperty(Vector4.prototype, "x", {
+            get: function () {
+                return this.elements[0];
+            },
+            set: function (value) {
+                this.elements[0] = value;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Vector4.prototype, "y", {
+            get: function () {
+                return this.elements[1];
+            },
+            set: function (value) {
+                this.elements[1] = value;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Vector4.prototype, "z", {
+            get: function () {
+                return this.elements[2];
+            },
+            set: function (value) {
+                this.elements[2] = value;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Vector4.prototype, "w", {
+            get: function () {
+                return this.elements[3];
+            },
+            set: function (value) {
+                this.elements[3] = value;
+            },
+            enumerable: true,
+            configurable: true
+        });
         return Vector4;
     }());
     Utils.Vector4 = Vector4;
@@ -1362,7 +1403,7 @@ var Utils;
             }
         };
         /**
-         * 10开头的一段数据,希望参数为整段数据,或者为260,70,90开头的数据
+         * 10开头的一段数据,期望参数为整段数据,或者为260,70,90开头的数据
          * 10,7,8,81
                 1,1,1,0.000,-0.441,-0.066
                 0,1,1,0.457,81.494,1
@@ -1991,7 +2032,7 @@ var Utils;
         c[1] = v0[2] * v1[0] - v0[0] * v1[2];
         c[2] = v0[0] * v1[1] - v0[1] * v1[0];
         // Normalize the result
-        var v = new Utils.Vector3(c);
+        var v = new Utils.Vector3(c[0], c[1], c[2]);
         v.normalize();
         return v.elements;
     }
@@ -2218,7 +2259,7 @@ var Core;
             this.Scene = null;
             this.sceneID = 0;
             this.LigthColor = new Float32Array([1.0, 1.0, 1.0]);
-            this.LigthPoint = new Float32Array([2.3, 4.0, 3.5]);
+            this.LigthPoint = new Float32Array([99999, 99999, 99999]);
             this.AmbientLight = new Float32Array([0.2, 0.2, 0.2]);
             this.projViewMatrix = null;
             this.Child = [];
@@ -3040,6 +3081,7 @@ var shader;
                 'varying vec3 v_Position;\n' +
                 'varying vec4 v_Color;\n' +
                 'void main() {\n' +
+                '  vec4 n_color = vec4(1.0,1.0,0.0,1.0);\n' +
                 // Normalize the normal because it is interpolated and not 1.0 in length any more
                 '  vec3 normal = normalize(v_Normal);\n' +
                 // Calculate the light direction and make its length 1.
@@ -3047,9 +3089,9 @@ var shader;
                 // The dot product of the light direction and the orientation of a surface (the normal)
                 '  float nDotL = max(dot(lightDirection, normal), 0.0);\n' +
                 // Calculate the final color from diffuse reflection and ambient reflection
-                '  vec3 diffuse = u_LightColor * v_Color.rgb * nDotL;\n' +
-                '  vec3 ambient = u_AmbientLight * v_Color.rgb;\n' +
-                '  gl_FragColor = vec4(diffuse + ambient, v_Color.a);\n' +
+                '  vec3 diffuse = u_LightColor * n_color.rgb * nDotL;\n' +
+                '  vec3 ambient = u_AmbientLight * n_color.rgb;\n' +
+                '  gl_FragColor = vec4(diffuse + ambient, n_color.a);\n' +
                 '}\n';
             this._modelMatrix = new Matrix4(null); //模型矩阵
             this._mvpMatrix = new Matrix4(null); //模型视图投影矩阵
@@ -3057,6 +3099,7 @@ var shader;
             this.scale = new Vector3(1, 1, 1);
             this.rotation = new Quat();
             this.position = new Vector3();
+            this.color = new Vector4(0, 0, 0, 1);
             this.program = null;
             this.OBJInfo = null;
             this.name = '';
@@ -3088,10 +3131,10 @@ var shader;
                 var u_LightColor = GL.getUniformLocation(program, 'u_LightColor');
                 var u_LightPosition = GL.getUniformLocation(program, 'u_LightPosition');
                 var u_AmbientLight = GL.getUniformLocation(program, 'u_AmbientLight');
-                if (a_Position < 0 || a_Color < 0 || a_Normal < 0) {
-                    console.log('Failed to get the attribute storage location');
-                    return;
-                }
+                // if (a_Position < 0 || a_Color<0 || a_Normal<0) {
+                //     console.log('Failed to get the attribute storage location');
+                //     return;
+                // }
                 if (!u_ModelMatrix || !u_MvpMatrix || !u_NormalMatrix || !u_LightColor || !u_LightPosition || !u_AmbientLight) {
                     console.log('Failed to get the unifrom storage location');
                     return;
@@ -3430,11 +3473,11 @@ var shader;
             var obp = new OBJParser(path);
             obp.readOBJFile(path, 1 / 60, true, function () {
                 var info = obp.getDrawingInfo();
-                // console.log(target)
+                // console.log(info.colors)
                 target.vertices = info.vertices;
                 target.OBJInfo = target.initVertexBuffer(info.vertices, info.colors, info.normals, info.indices);
                 target.boundingBox = new BoundingBox(target);
-                // console.log(this.Pipe);
+                // console.log(target.OBJInfo);
                 if (typeof callBack == "function")
                     callBack();
             }.bind(target));
@@ -3663,18 +3706,25 @@ var shader;
             this.name = 'Pipe';
         };
         Pipe.prototype.calculate1 = function (x, y, z, startPoint) {
-            this.direct = new Vector3([x, y, z]);
+            this.direct = new Vector3(x, y, z);
             this.setLocalPosition(startPoint.elements[0], startPoint.elements[1], startPoint.elements[2]);
-            var endPoint = this.direct.add(startPoint);
+            var endPoint = this.direct.clone().add(startPoint);
             var angle1;
             var angle2;
             if (x != 0.000 && y != 0.000 && z != 0.000) {
-                angle1 = x > 0 ? Math.atan(z / x) : Math.atan(z / x) - Math.PI;
-                angle2 = Math.atan(y / (Math.sqrt(x * x + y * y)));
-                //计算基准轴向，ｘｙ向量的法向量
-                var axis = new Vector3([-z / x, 0, 1]).normalize();
-                this.rotateFromAxis(new Vector3([0, 1, 0]), -angle1, true);
-                this.rotateFromAxis(axis, angle2, true);
+                // angle1 = x>0?Math.atan(z/x):Math.atan(z/x)-Math.PI;
+                // angle2 = Math.atan(y/(Math.sqrt(x*x+z*z)));
+                // //计算基准轴向，ｘｙ向量的法向量
+                // var axis = new Vector3([-z/x,0,1]).normalize();
+                // this.rotateFromAxis(new Vector3([0,1,0]),-angle1,true);
+                // this.rotateFromAxis(axis,angle2,true);
+                angle1 = x > 0 ? Math.atan(y / x) : Math.atan(y / x) + Math.PI;
+                angle2 = Math.atan(z / (Math.sqrt(x * x + y * y)));
+                // var axis = new Vector3([-y/x,1,0]).normalize();
+                this.rotateFromAxis(new Vector3([0, 0, 1]), angle1, true);
+                // this.rotateFromAxis(axis,-angle2,true);
+                this.rotateFromAxis(new Vector3([0, 1, 0]), -angle2, true); //注意：第二次四元数旋转是按照旋转之后的本地轴再旋转的
+                console.log(this.rotation);
             }
             else if (x == 0.000 && y != 0.000 && z != 0.000) {
                 // console.log("1");
@@ -3694,13 +3744,26 @@ var shader;
                 this.rotateFromAxis(new Vector3([0, 0, 1]), angle1, true);
             }
             else if (x == 0.000 && y != 0.000 && z == 0.000) {
-                this.rotateFromAxis(new Vector3([0, 0, 1]), Math.PI / 2, true);
+                if (y > 0) {
+                    this.rotateFromAxis(new Vector3([0, 0, 1]), Math.PI / 2, true);
+                }
+                else {
+                    this.rotateFromAxis(new Vector3([0, 0, 1]), -Math.PI / 2, true);
+                }
             }
             else if (x != 0.000 && y == 0.000 && z == 0.000) {
+                if (x < 0) {
+                    this.rotateFromAxis(new Vector3([0, 1, 0]), Math.PI, true);
+                }
                 //nothing
             }
             else if (x == 0.000 && y == 0.000 && z != 0.000) {
-                this.rotateFromAxis(new Vector3([0, 1, 0]), -Math.PI / 2, true);
+                if (z > 0) {
+                    this.rotateFromAxis(new Vector3([0, 1, 0]), -Math.PI / 2, true);
+                }
+                else {
+                    this.rotateFromAxis(new Vector3([0, 1, 0]), Math.PI / 2, true);
+                }
             }
             else if (x == 0.000 && y == 0.000 && z == 0.000) {
                 //nothing
@@ -3739,7 +3802,7 @@ var shader;
             var _this = _super.call(this) || this;
             _this.initShader(_this);
             _this.initOBJInfo(_this, './resources/1/elbow.obj', function () {
-                this.calculate(startPoint);
+                //this.calculate(startPoint);
             }.bind(_this));
             return _this;
         }
@@ -3748,6 +3811,13 @@ var shader;
         };
         Elbow.prototype.calculate = function (startPoint) {
             this.setLocalPosition(startPoint.x, startPoint.y, startPoint.z);
+            //思路：
+            //１．是否可以把弯头定义为多个物体的组合，然后通过不同的弯头数据进行修改
+            //这个方法的难度在于如何去设置弯头弯曲的地方
+            //２．直接修改shader，修改弯头的顶点来达到预期效果，这个就很难了
+            //可能要去知道整个弯头顶点生成的过程，来确定修改哪些顶点
+            //3.骨骼动画思路：感觉实现结果跟需求很相似－－－待研究，但是可以确定的是，它需要很高的处理器性能
+            //
         };
         Elbow.prototype.onUpdate = function (dt) {
             this._draw(this.program, this.OBJInfo);
@@ -3987,9 +4057,10 @@ var camera = new Camera(85, canvas.width / canvas.height, 1, 1000);
 var render = new Render();
 //初始化GLIF解析器
 var gp = new GLIFParser(ne.getScene());
-gp.readGilfFile('./glif/inp1.TXT', "");
+gp.readGilfFile('./glif/inp2.TXT', "");
 //******************************************* */
-var Cube = new Pipe(1, -1, -1, new Vector3([0, 0, 0]));
+var Cube = new Pipe(-1, 1, -1, new Vector3([0, 0, 0]));
+var Cube1 = new Pipe(-1, 1, -1, new Vector3([-1, 1, -1]));
 // var Cube = new Tee();
 main();
 function main() {
@@ -4001,6 +4072,7 @@ function main() {
     // Cube.setLocalPosition(new Vector3(3,5,0))
     // Cube.translate(new Vector3(-3,-5,0))
     Cube.setParent(ne.getScene());
+    Cube1.setParent(ne.getScene());
     render.render(sceneInfo);
     render.stopped = false; //将来可以改变为资源加载完成后自动改为false，开始update
     render.main();
@@ -4072,8 +4144,8 @@ function main() {
             }
         }
         else if (cameraMove) {
-            camera.setCenter(camera.center.x - dx / 20, camera.center.y + dy / 20, camera.center.z);
-            camera.setCoordinatePoint(camera.coordinate.x - dx / 20, camera.coordinate.y + dy / 20, camera.coordinate.z);
+            camera.setCenter(camera.center.x - dx / 5, camera.center.y + dy / 5, camera.center.z);
+            camera.setCoordinatePoint(camera.coordinate.x - dx / 5, camera.coordinate.y + dy / 5, camera.coordinate.z);
             camera.setPerspectiveCamera(camera.fovy, camera.aspect, camera.near, camera.far);
         }
         lastX = x;
