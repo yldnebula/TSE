@@ -482,7 +482,7 @@ namespace shader{
             }
             target.program = obj.program;
         }
-        initOBJInfo(target:NEObject,path,callBack){
+        initOBJInfo(target:NEObject,path,callBack){//这里可以使用localstorage加速读取速率
             var obp = new OBJParser(path);
             obp.readOBJFile(path,1/60,true,function(){
                 var info = obp.getDrawingInfo();

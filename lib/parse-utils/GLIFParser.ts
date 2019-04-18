@@ -197,7 +197,9 @@ namespace Utils{
                     var tag = pipes[i][0];
                     switch(tag){
                         case "0"://处理弯单元
-                            GlifNode.UnitPool.push(this.parseBendingUnit(pipes[i],this.Scene))
+                            var info = pipes[i-1];
+                            GlifNode.UnitPool.push(this.parseBendingUnit(pipes[i],this.Scene,
+                                new Vector3(parseFloat(info[3]), parseFloat(info[4]), parseFloat(info[5]))));
                         break;
                         case "1"://处理直单元
                             GlifNode.UnitPool.push(this.parseDirectUnit(pipes[i],this.Scene))
@@ -266,9 +268,9 @@ namespace Utils{
         /**
          * 处理弯单元
          */
-        parseBendingUnit(info, scene){
+        parseBendingUnit(info, scene,direct){
             if(!!scene){
-                var elbow = new Elbow(this.startPoint);//弯单元不改变下一个的位置
+                var elbow = new Elbow(this.startPoint,direct);//弯单元不改变下一个的位置
                 elbow.IS = info[1];
                 elbow.IE = info[2];
                 elbow.RR = info[3];

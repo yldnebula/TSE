@@ -8,6 +8,7 @@
 ///<reference path="../lib/matrix-utils/matrixUtils.ts" />
 ///<reference path="./shader/Cube.ts" />
 ///<reference path="./shader/Pipe.ts" />
+///<reference path="./shader/Sphere.ts" />
 ///<reference path="./shader/Cylinder.ts" />
 ///<reference path="../lib/parse-utils/objParse.ts" />
 ///<reference path="../lib/parse-utils/GLIFParser.ts" />
@@ -34,6 +35,7 @@ import Tee          = shader.Tee;
 import Elbow        = shader.Elbow;
 import Valve        = shader.Valve;
 import GLIFNode     = shader.GLIFNode;
+import Sphere       = shader.Sphere;
 
 //************全局变量Global****************** */
 
@@ -56,13 +58,17 @@ var camera = new Camera(85,canvas.width/canvas.height,1,1000)
 var render = new Render();
 //初始化GLIF解析器
 var gp = new GLIFParser(ne.getScene());
-gp.readGilfFile('./glif/inp2.TXT',"");
+gp.readGilfFile('./glif/inp6.TXT',"");
 
 //******************************************* */
-var Cube = new Pipe(-1,1,-1,new Vector3([0,0,0])); 
-var Cube1 = new Pipe(-1,1,-1,new Vector3([-1,1,-1])); 
+// var Cube = new Pipe(-1,1,-1,new Vector3([0,0,0])); 
+// var Cube1 = new Pipe(-1,1,-1,new Vector3([-1,1,-1])); 
+// var Plane = new cube();
 // var Cube = new Tee();
-
+// // var elbow = new Elbow(new Vector3([0,0,0]),new Vector3(1,0,0),new Vector3(0,1,0))
+// var sphere = new Sphere();
+// var pipe1 = new Pipe(1,0,0,new Vector3(0,0,0))
+// var pipe2 = new Pipe(2,8,0,new Vector3(1,0,0))
 main();
 function main(){
     // Cube.setLocalScale(2,1,1);
@@ -72,10 +78,18 @@ function main(){
     // Cube.setLocalScale(4,1,1)
     // Cube.setLocalPosition(new Vector3(3,5,0))
     // Cube.translate(new Vector3(-3,-5,0))
-    Cube.setParent(ne.getScene());
-    Cube1.setParent(ne.getScene());
+    // Cube.setParent(ne.getScene());
+    // Plane.setParent(ne.getScene());
+    // Cube1.setParent(ne.getScene());
 
-
+    // Plane.setLocalScale(50,0.001,50)
+    // elbow.setLocalPosition(50,0,0)
+    // sphere.setLocalScale(12.35,12.35,12.35)
+    // sphere.setLocalPosition(1,0,0)
+    // sphere.setParent(ne.getScene())
+    // pipe1.setParent(ne.getScene())
+    // pipe2.setParent(ne.getScene())
+    
     render.render(sceneInfo);
 
     render.stopped = false;//将来可以改变为资源加载完成后自动改为false，开始update

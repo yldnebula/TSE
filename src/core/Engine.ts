@@ -2,16 +2,6 @@ namespace Core{
     export class Nebula{
         GL:WebGLRenderingContext = null;
         canvas:HTMLCanvasElement = null;
-        eye = {
-            x:0,
-            y:0,
-            z:14
-        };
-        center = {
-            x:0,
-            y:0,
-            z:0
-        }
         private scene:Scene[] =[];
         private nowScene:Scene = null;
         constructor(id:string, width:number, height:number){

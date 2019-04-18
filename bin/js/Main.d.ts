@@ -265,7 +265,7 @@ declare namespace Utils {
         /**
          * 处理弯单元
          */
-        parseBendingUnit(info: any, scene: any): Elbow;
+        parseBendingUnit(info: any, scene: any, direct: any): any;
         /**
          * 自定义输出
          * @param val
@@ -832,9 +832,10 @@ declare namespace shader {
         RR: number;
         RA: number;
         IA: number;
-        constructor(startPoint: Vector3);
+        constructor(startPoint: Vector3, direct: Vector3, nextDirect: Vector3);
         onLoad(): void;
-        calculate(startPoint: Vector3): void;
+        initSphere(startPoint: Vector3): void;
+        calculate(startPoint: Vector3, direct: Vector3, nextDirect: Vector3): void;
         onUpdate(dt: any): void;
     }
     class Valve extends NEObject implements ISIE {
@@ -851,6 +852,18 @@ declare namespace shader {
         UnitPool: NEObject[];
         startPoint: any[];
         constructor(isn: any, ien: any, ity: any);
+    }
+}
+declare namespace shader {
+    class Sphere extends NEObject {
+        info: any;
+        colors: any;
+        normals: any;
+        indices: any;
+        constructor();
+        constructor();
+        onLoad(): void;
+        onUpdate(dt: any): void;
     }
 }
 declare namespace shader {
@@ -907,6 +920,7 @@ import Tee = shader.Tee;
 import Elbow = shader.Elbow;
 import Valve = shader.Valve;
 import GLIFNode = shader.GLIFNode;
+import Sphere = shader.Sphere;
 declare const shaderTool: shaderUtils;
 declare var GL: WebGLRenderingContext;
 declare const canvas: {
@@ -918,8 +932,6 @@ declare var sceneInfo: Scene;
 declare var camera: Camera;
 declare var render: Render;
 declare var gp: GLIFParser;
-declare var Cube: Pipe;
-declare var Cube1: Pipe;
 declare function main(): void;
 declare const zero_guard = 0.00001;
 declare function rayPickLog(val: any): void;
@@ -946,3 +958,15 @@ declare function pointInSurface2D(pA: any, pB: any, pC: any, p: any): boolean;
  * @returns {vec3} out
  */
 declare function cross(out: any, a: any, b: any): any;
+declare namespace shader {
+    class Plane extends NEObject {
+        info: any;
+        colors: any;
+        normals: any;
+        indices: any;
+        constructor();
+        constructor();
+        initPlane(): void;
+        onUpdate(): void;
+    }
+}

@@ -1426,7 +1426,8 @@ var Utils;
                     var tag = pipes[i][0];
                     switch (tag) {
                         case "0": //处理弯单元
-                            GlifNode.UnitPool.push(this.parseBendingUnit(pipes[i], this.Scene));
+                            var info = pipes[i - 1];
+                            GlifNode.UnitPool.push(this.parseBendingUnit(pipes[i], this.Scene, new Utils.Vector3(parseFloat(info[3]), parseFloat(info[4]), parseFloat(info[5]))));
                             break;
                         case "1": //处理直单元
                             GlifNode.UnitPool.push(this.parseDirectUnit(pipes[i], this.Scene));
@@ -1484,9 +1485,9 @@ var Utils;
         /**
          * 处理弯单元
          */
-        GLIFParser.prototype.parseBendingUnit = function (info, scene) {
+        GLIFParser.prototype.parseBendingUnit = function (info, scene, direct) {
             if (!!scene) {
-                var elbow = new Elbow(this.startPoint); //弯单元不改变下一个的位置
+                var elbow = new Elbow(this.startPoint, direct); //弯单元不改变下一个的位置
                 elbow.IS = info[1];
                 elbow.IE = info[2];
                 elbow.RR = info[3];
@@ -3798,18 +3799,22 @@ var shader;
     shader.Tee = Tee;
     var Elbow = /** @class */ (function (_super) {
         __extends(Elbow, _super);
-        function Elbow(startPoint) {
+        function Elbow(startPoint, direct, nextDirect) {
             var _this = _super.call(this) || this;
             _this.initShader(_this);
-            _this.initOBJInfo(_this, './resources/1/elbow.obj', function () {
-                //this.calculate(startPoint);
+            _this.initOBJInfo(_this, './resources/sphere.obj', function () {
+                this.initSphere(startPoint);
             }.bind(_this));
             return _this;
         }
         Elbow.prototype.onLoad = function () {
             this.name = 'Elbow';
         };
-        Elbow.prototype.calculate = function (startPoint) {
+        Elbow.prototype.initSphere = function (startPoint) {
+            this.setLocalScale(12.35, 12.35, 12.35);
+            this.setLocalPosition(startPoint);
+        };
+        Elbow.prototype.calculate = function (startPoint, direct, nextDirect) {
             this.setLocalPosition(startPoint.x, startPoint.y, startPoint.z);
             //思路：
             //１．是否可以把弯头定义为多个物体的组合，然后通过不同的弯头数据进行修改
@@ -3818,6 +3823,70 @@ var shader;
             //可能要去知道整个弯头顶点生成的过程，来确定修改哪些顶点
             //3.骨骼动画思路：感觉实现结果跟需求很相似－－－待研究，但是可以确定的是，它需要很高的处理器性能
             //
+            var x = direct.x;
+            var y = direct.y;
+            var z = direct.z;
+            var angle1, angle2, angle3;
+            if (x != 0.000 && y != 0.000 && z != 0.000) {
+                // angle1 = x>0?Math.atan(z/x):Math.atan(z/x)-Math.PI;
+                // angle2 = Math.atan(y/(Math.sqrt(x*x+z*z)));
+                // //计算基准轴向，ｘｙ向量的法向量
+                // var axis = new Vector3([-z/x,0,1]).normalize();
+                // this.rotateFromAxis(new Vector3([0,1,0]),-angle1,true);
+                // this.rotateFromAxis(axis,angle2,true);
+                angle1 = x > 0 ? Math.atan(y / x) : Math.atan(y / x) + Math.PI;
+                angle2 = Math.atan(z / (Math.sqrt(x * x + y * y)));
+                // var axis = new Vector3([-y/x,1,0]).normalize();
+                this.rotateFromAxis(new Vector3([0, 0, 1]), angle1, true);
+                // this.rotateFromAxis(axis,-angle2,true);
+                this.rotateFromAxis(new Vector3([0, 1, 0]), -angle2, true); //注意：第二次四元数旋转是按照旋转之后的本地轴再旋转的
+                console.log(this.rotation);
+            }
+            else if (x == 0.000 && y != 0.000 && z != 0.000) {
+                // console.log("1");
+                angle1 = y > 0 ? Math.PI / 2 : -Math.PI / 2;
+                angle2 = y > 0 ? Math.atan(z / y) : -Math.atan(z / y);
+                this.rotateFromAxis(new Vector3([0, 0, 1]), angle1, true);
+                this.rotateFromAxis(new Vector3([0, 1, 0]), -angle2, true); //这个地方注意一下，旋转是按照本地坐标系也要动
+                // console.log(angle1,angle2)
+            }
+            else if (x != 0.000 && y == 0.000 && z != 0.000) {
+                angle1 = x > 0 ? Math.atan(z / x) : -Math.PI + Math.atan(z / x);
+                this.rotateFromAxis(new Vector3([0, 1, 0]), -angle1, true);
+            }
+            else if (x != 0.000 && y != 0.000 && z == 0.000) {
+                angle1 = x > 0 ? Math.atan(y / x) : Math.PI + Math.atan(y / x);
+                console.log(angle1 / Math.PI * 180);
+                this.rotateFromAxis(new Vector3([0, 0, 1]), angle1, true);
+            }
+            else if (x == 0.000 && y != 0.000 && z == 0.000) {
+                if (y > 0) {
+                    this.rotateFromAxis(new Vector3([0, 0, 1]), Math.PI / 2, true);
+                }
+                else {
+                    this.rotateFromAxis(new Vector3([0, 0, 1]), -Math.PI / 2, true);
+                }
+            }
+            else if (x != 0.000 && y == 0.000 && z == 0.000) {
+                if (x < 0) {
+                    this.rotateFromAxis(new Vector3([0, 1, 0]), Math.PI, true);
+                }
+                //nothing
+            }
+            else if (x == 0.000 && y == 0.000 && z != 0.000) {
+                if (z > 0) {
+                    this.rotateFromAxis(new Vector3([0, 1, 0]), -Math.PI / 2, true);
+                }
+                else {
+                    this.rotateFromAxis(new Vector3([0, 1, 0]), Math.PI / 2, true);
+                }
+            }
+            else if (x == 0.000 && y == 0.000 && z == 0.000) {
+                //nothing
+            }
+            // if(z == 0.000){
+            // }
+            // angle3 = Math.atan(y/z)
         };
         Elbow.prototype.onUpdate = function (dt) {
             this._draw(this.program, this.OBJInfo);
@@ -3852,6 +3921,46 @@ var shader;
         return GLIFNode;
     }());
     shader.GLIFNode = GLIFNode;
+})(shader || (shader = {}));
+var shader;
+(function (shader) {
+    var Sphere = /** @class */ (function (_super) {
+        __extends(Sphere, _super);
+        function Sphere() {
+            var _this = _super.call(this) || this;
+            _this.info = null;
+            _this.colors = null;
+            _this.normals = null;
+            _this.indices = null;
+            return _this;
+            // this.initSphere();
+        }
+        // initSphere(){
+        //     this.initShader(this);
+        //     var obp = new OBJParser('./resources/sphere.obj');
+        //     obp.readOBJFile('./resources/sphere.obj',1,true,function(){
+        //         this.info = obp.getDrawingInfo();
+        //         this.vertices = this.info.vertices;
+        //         this.normals  = this.info.normals;
+        //         this.colors   = this.info.colors;
+        //         this.indices  = this.info.indices;
+        //         this.cube = this.initVertexBuffer(this.vertices,this.colors,this.normals,this.indices);  
+        //         this.boundingBox = new BoundingBox(this);
+        //         // console.log(this.info);
+        //     }.bind(this));
+        //     // this.scale = new Vector3(50,0,50);
+        // }
+        Sphere.prototype.onLoad = function () {
+            this.name = 'Sphere';
+            this.initShader(this);
+            this.initOBJInfo(this, './resources/sphere.obj', null);
+        };
+        Sphere.prototype.onUpdate = function (dt) {
+            this._draw(this.program, this.OBJInfo);
+        };
+        return Sphere;
+    }(shader.NEObject));
+    shader.Sphere = Sphere;
 })(shader || (shader = {}));
 ///<reference path="./Object.ts" />
 var shader;
@@ -4013,6 +4122,7 @@ var shader;
 ///<reference path="../lib/matrix-utils/matrixUtils.ts" />
 ///<reference path="./shader/Cube.ts" />
 ///<reference path="./shader/Pipe.ts" />
+///<reference path="./shader/Sphere.ts" />
 ///<reference path="./shader/Cylinder.ts" />
 ///<reference path="../lib/parse-utils/objParse.ts" />
 ///<reference path="../lib/parse-utils/GLIFParser.ts" />
@@ -4037,6 +4147,7 @@ var Tee = shader.Tee;
 var Elbow = shader.Elbow;
 var Valve = shader.Valve;
 var GLIFNode = shader.GLIFNode;
+var Sphere = shader.Sphere;
 //************全局变量Global****************** */
 var shaderTool = new shaderUtils();
 var GL = null;
@@ -4057,11 +4168,16 @@ var camera = new Camera(85, canvas.width / canvas.height, 1, 1000);
 var render = new Render();
 //初始化GLIF解析器
 var gp = new GLIFParser(ne.getScene());
-gp.readGilfFile('./glif/inp2.TXT', "");
+gp.readGilfFile('./glif/inp6.TXT', "");
 //******************************************* */
-var Cube = new Pipe(-1, 1, -1, new Vector3([0, 0, 0]));
-var Cube1 = new Pipe(-1, 1, -1, new Vector3([-1, 1, -1]));
+// var Cube = new Pipe(-1,1,-1,new Vector3([0,0,0])); 
+// var Cube1 = new Pipe(-1,1,-1,new Vector3([-1,1,-1])); 
+// var Plane = new cube();
 // var Cube = new Tee();
+// // var elbow = new Elbow(new Vector3([0,0,0]),new Vector3(1,0,0),new Vector3(0,1,0))
+// var sphere = new Sphere();
+// var pipe1 = new Pipe(1,0,0,new Vector3(0,0,0))
+// var pipe2 = new Pipe(2,8,0,new Vector3(1,0,0))
 main();
 function main() {
     // Cube.setLocalScale(2,1,1);
@@ -4071,8 +4187,16 @@ function main() {
     // Cube.setLocalScale(4,1,1)
     // Cube.setLocalPosition(new Vector3(3,5,0))
     // Cube.translate(new Vector3(-3,-5,0))
-    Cube.setParent(ne.getScene());
-    Cube1.setParent(ne.getScene());
+    // Cube.setParent(ne.getScene());
+    // Plane.setParent(ne.getScene());
+    // Cube1.setParent(ne.getScene());
+    // Plane.setLocalScale(50,0.001,50)
+    // elbow.setLocalPosition(50,0,0)
+    // sphere.setLocalScale(12.35,12.35,12.35)
+    // sphere.setLocalPosition(1,0,0)
+    // sphere.setParent(ne.getScene())
+    // pipe1.setParent(ne.getScene())
+    // pipe2.setParent(ne.getScene())
     render.render(sceneInfo);
     render.stopped = false; //将来可以改变为资源加载完成后自动改为false，开始update
     render.main();
@@ -4623,4 +4747,38 @@ function cross(out, a, b) {
     out[2] = ax * by - ay * bx;
     return out;
 }
+var shader;
+(function (shader) {
+    var Plane = /** @class */ (function (_super) {
+        __extends(Plane, _super);
+        function Plane() {
+            var _this = _super.call(this) || this;
+            _this.info = null;
+            _this.colors = null;
+            _this.normals = null;
+            _this.indices = null;
+            _this.initPlane();
+            return _this;
+        }
+        Plane.prototype.initPlane = function () {
+            var obp = new OBJParser('./resources/cube.obj');
+            obp.readOBJFile('./resources/cube.obj', 1, true, function () {
+                this.info = obp.getDrawingInfo();
+                this.vertices = this.info.vertices;
+                this.normals = this.info.normals;
+                this.colors = this.info.colors;
+                this.indices = this.info.indices;
+                this.cube = this.initVertexBuffer(this.vertices, this.colors, this.normals, this.indices);
+                this.boundingBox = new BoundingBox(this);
+                // console.log(this.info);
+            }.bind(this));
+            // this.scale = new Vector3(50,0,50);
+        };
+        Plane.prototype.onUpdate = function () {
+            this._draw(this.program, this.info);
+        };
+        return Plane;
+    }(shader.NEObject));
+    shader.Plane = Plane;
+})(shader || (shader = {}));
 //# sourceMappingURL=Main.js.map
