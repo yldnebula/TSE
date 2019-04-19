@@ -8,6 +8,7 @@
 ///<reference path="../lib/matrix-utils/matrixUtils.ts" />
 ///<reference path="./shader/Cube.ts" />
 ///<reference path="./shader/Pipe.ts" />
+///<reference path="./shader/Sphere.ts" />
 ///<reference path="./shader/Cylinder.ts" />
 ///<reference path="../lib/parse-utils/objParse.ts" />
 ///<reference path="../lib/parse-utils/GLIFParser.ts" />
@@ -34,6 +35,7 @@ import Tee          = shader.Tee;
 import Elbow        = shader.Elbow;
 import Valve        = shader.Valve;
 import GLIFNode     = shader.GLIFNode;
+import Sphere       = shader.Sphere;
 
 //************全局变量Global****************** */
 
@@ -56,12 +58,17 @@ var camera = new Camera(85,canvas.width/canvas.height,1,1000)
 var render = new Render();
 //初始化GLIF解析器
 var gp = new GLIFParser(ne.getScene());
-gp.readGilfFile('./glif/inp2.TXT',"");
+gp.readGilfFile('./glif/inp6.TXT',"");
 
 //******************************************* */
-var Cube = new Pipe(1,-1,-1,new Vector3([0,0,0])); 
+// var Cube = new Pipe(-1,1,-1,new Vector3([0,0,0])); 
+// var Cube1 = new Pipe(-1,1,-1,new Vector3([-1,1,-1])); 
+// var Plane = new cube();
 // var Cube = new Tee();
-
+// // var elbow = new Elbow(new Vector3([0,0,0]),new Vector3(1,0,0),new Vector3(0,1,0))
+// var sphere = new Sphere();
+// var pipe1 = new Pipe(1,0,0,new Vector3(0,0,0))
+// var pipe2 = new Pipe(2,8,0,new Vector3(1,0,0))
 main();
 function main(){
     // Cube.setLocalScale(2,1,1);
@@ -71,9 +78,18 @@ function main(){
     // Cube.setLocalScale(4,1,1)
     // Cube.setLocalPosition(new Vector3(3,5,0))
     // Cube.translate(new Vector3(-3,-5,0))
-    Cube.setParent(ne.getScene());
+    // Cube.setParent(ne.getScene());
+    // Plane.setParent(ne.getScene());
+    // Cube1.setParent(ne.getScene());
 
-
+    // Plane.setLocalScale(50,0.001,50)
+    // elbow.setLocalPosition(50,0,0)
+    // sphere.setLocalScale(12.35,12.35,12.35)
+    // sphere.setLocalPosition(1,0,0)
+    // sphere.setParent(ne.getScene())
+    // pipe1.setParent(ne.getScene())
+    // pipe2.setParent(ne.getScene())
+    
     render.render(sceneInfo);
 
     render.stopped = false;//将来可以改变为资源加载完成后自动改为false，开始update
@@ -88,7 +104,8 @@ function main(){
     var lastX:number = -1;
     var lastY:number = -1;
 
-    
+    var cameraMove = false;
+
     //被选中的物体
     var objClicked = null;
     var setX = false;
@@ -101,57 +118,60 @@ function main(){
     ca.onmousedown=function(ev){
         var x = ev.layerX,y = ev.layerY;
         if(ev.layerX <= canvas.width && ev.layerX >= 0 && ev.layerY >=0 && ev.layerY <=canvas.height){
-            isDrag = true;
+            if(ev.button == 1){
+                cameraMove = true;
+            }else if(ev.button == 0){
+                isDrag = true;
+                var _mousex = ( ev.layerX / canvas.width ) * 2 - 1;
+                var _mousey = - ( ev.layerY / canvas.height ) * 2 + 1;
+                // console.log(_mousex,_mousey);
+                var pointOnCanvasToNear = new Vector4([_mousex,_mousey,-1.0,1.0]);
+                var positionN = new Matrix4(null).setInverseOf(camera.projViewMatrix).multiplyVector4(pointOnCanvasToNear);
+                RayCaster1.initCameraRay(camera.coordinate.x,camera.coordinate.y,camera.coordinate.z,positionN.elements[0],positionN.elements[1],positionN.elements[2],100);
+                var obj =RayCaster1.intersectObjects(ne.getScene().Child,true);
+                if(!!obj){
+                    objClicked = obj;
+                }else{
+                    objClicked = null;
+                }
+                console.log(obj)
+            }
         }
 
         lastX = x;
         lastY = y;
-        var _mousex = ( ev.layerX / canvas.width ) * 2 - 1;
-        var _mousey = - ( ev.layerY / canvas.height ) * 2 + 1;
-        // console.log(_mousex,_mousey);
-        var pointOnCanvasToNear = new Vector4([_mousex,_mousey,-1.0,1.0]);
-        var positionN = new Matrix4(null).setInverseOf(camera.projViewMatrix).multiplyVector4(pointOnCanvasToNear);
-        RayCaster1.initCameraRay(camera.coordinate.x,camera.coordinate.y,camera.coordinate.z,positionN.elements[0],positionN.elements[1],positionN.elements[2],100);
-        var obj =RayCaster1.intersectObjects(ne.getScene().Child,true);
-        if(!!obj){
-            objClicked = obj;
-        }else{
-            objClicked = null;
-        }
-        console.log(obj)
-        // console.log(positionN);
     }
     ca.onmouseup=function(ev){
         isDrag = false;
+        cameraMove = false;
+
     }
     ca.onmousemove=function(ev){
 
-        var x = ev.clientX,y=ev.clientY;
+        var x = ev.layerX,y=ev.layerY;
         // console.log(ev.target)
-        if(!isDrag)return;
-        if(ev.layerX <= canvas.width && ev.layerX >= 0 && ev.layerY >=0 && ev.layerY <=canvas.height){
-            
-            var factor = 300/canvas.height;
-            var dx = factor*(x - lastX);
-            var dy = factor*(y - lastY);
-            // Cube.boundingBox.updateBoundingBox();
-            if(rotateCamera){
-                camera.setCoordinatePoint(-dy/10,-dx/10, 14)
-                camera.setPerspectiveCamera(85,canvas.width/canvas.height,1,1000)
-                lastX = x;
-                lastY = y;
-                return;
-            }
-            if(!!objClicked){
-                if(setX){
-                    objClicked.translate(dx/20, 0,0);
-                }else if(setY){
-                    objClicked.translate(0, -dy/20,0);
-                }else if(setZ){
-                    objClicked.translate(0, 0,dy/20);
+        var factor = 300/canvas.height;
+        var dx = factor*(x - lastX);
+        var dy = factor*(y - lastY);
+        if(isDrag){
+            if(ev.layerX <= canvas.width && ev.layerX >= 0 && ev.layerY >=0 && ev.layerY <=canvas.height){
+                if(!!objClicked){
+                    if(setX){
+                        objClicked.translate(dx/20, 0,0);
+                    }else if(setY){
+                        objClicked.translate(0, -dy/20,0);
+                    }else if(setZ){
+                        objClicked.translate(0, 0,dy/20);
+                    }
                 }
             }
+        }else if(cameraMove){
+            camera.setCenter(camera.center.x-dx/5,camera.center.y+dy/5,camera.center.z);
+            camera.setCoordinatePoint(camera.coordinate.x-dx/5,camera.coordinate.y+dy/5,camera.coordinate.z)
+            camera.setPerspectiveCamera(camera.fovy,camera.aspect,camera.near,camera.far);
         }
+
+
         lastX = x;
         lastY = y;
     }

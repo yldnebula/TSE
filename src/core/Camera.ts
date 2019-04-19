@@ -6,14 +6,22 @@ namespace Core{
         center={
             x:0,y:0,z:0
         };
+        fovy = 85;
+        aspect = 0;
+        near = 1;
+        far  = 1000;
         projectMatrix = new Matrix4(null);
         projViewMatrix = new Matrix4(null);
         constructor(fovy:number,aspect:number, near:number, far:number){
+            this.fovy = fovy;
+            this.aspect = aspect;
+            this.near = near;
+            this.far  = 1000;
             this.setPerspectiveCamera(fovy,aspect,near,far);
         }
         setCoordinatePoint(x:number,y:number,z:number){
             this.coordinate.x = x;
-            this.coordinate.y = y;
+            this.coordinate.y = y;  
             this.coordinate.z = z;
         }
         setCenter(x:number,y:number,z:number){
@@ -35,7 +43,7 @@ namespace Core{
             nowN = camera.getSightDirection(1+factor);
 
             camera.setCoordinatePoint(camera.center.x-nowN[0],camera.center.y-nowN[1],camera.center.z-nowN[2])
-            camera.setPerspectiveCamera(85,canvas.width/canvas.height,1,1000)
+            camera.setPerspectiveCamera(this.fovy,canvas.width/canvas.height,this.near,this.far)
         }
         /**
          * 设置正视摄像机,暂时不用开发

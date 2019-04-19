@@ -173,7 +173,7 @@ namespace Utils{
             }
         }
         /**
-         * 10开头的一段数据,希望参数为整段数据,或者为260,70,90开头的数据
+         * 10开头的一段数据,期望参数为整段数据,或者为260,70,90开头的数据
          * 10,7,8,81
                 1,1,1,0.000,-0.441,-0.066
                 0,1,1,0.457,81.494,1
@@ -197,7 +197,9 @@ namespace Utils{
                     var tag = pipes[i][0];
                     switch(tag){
                         case "0"://处理弯单元
-                            GlifNode.UnitPool.push(this.parseBendingUnit(pipes[i],this.Scene))
+                            var info = pipes[i-1];
+                            GlifNode.UnitPool.push(this.parseBendingUnit(pipes[i],this.Scene,
+                                new Vector3(parseFloat(info[3]), parseFloat(info[4]), parseFloat(info[5]))));
                         break;
                         case "1"://处理直单元
                             GlifNode.UnitPool.push(this.parseDirectUnit(pipes[i],this.Scene))
@@ -209,6 +211,7 @@ namespace Utils{
                         
                         break;
                         case "4":
+                            GlifNode.UnitPool.push(this.parseDirectUnit(pipes[i],this.Scene))
                         
                         break;
                         case "5":
@@ -265,9 +268,9 @@ namespace Utils{
         /**
          * 处理弯单元
          */
-        parseBendingUnit(info, scene){
+        parseBendingUnit(info, scene,direct){
             if(!!scene){
-                var elbow = new Elbow();
+                var elbow = new Elbow(this.startPoint,direct);//弯单元不改变下一个的位置
                 elbow.IS = info[1];
                 elbow.IE = info[2];
                 elbow.RR = info[3];

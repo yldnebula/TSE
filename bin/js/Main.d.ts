@@ -174,7 +174,13 @@ declare namespace Utils {
      */
     class Vector4 {
         elements: Float32Array;
-        constructor(opt_src: Float32Array | number[] | Vector4 | null);
+        constructor();
+        constructor(x: number, y: number, z: number, w: number);
+        constructor(x: [number, number, number, number]);
+        x: number;
+        y: number;
+        z: number;
+        w: number;
     }
     /**
      * 四元数类
@@ -237,7 +243,7 @@ declare namespace Utils {
          */
         isNodeInfo(nowLine: string[]): boolean;
         /**
-         * 10开头的一段数据,希望参数为整段数据,或者为260,70,90开头的数据
+         * 10开头的一段数据,期望参数为整段数据,或者为260,70,90开头的数据
          * 10,7,8,81
                 1,1,1,0.000,-0.441,-0.066
                 0,1,1,0.457,81.494,1
@@ -259,7 +265,7 @@ declare namespace Utils {
         /**
          * 处理弯单元
          */
-        parseBendingUnit(info: any, scene: any): Elbow;
+        parseBendingUnit(info: any, scene: any, direct: any): any;
         /**
          * 自定义输出
          * @param val
@@ -537,6 +543,10 @@ declare namespace Core {
             y: number;
             z: number;
         };
+        fovy: number;
+        aspect: number;
+        near: number;
+        far: number;
         projectMatrix: Matrix4;
         projViewMatrix: Matrix4;
         constructor(fovy: number, aspect: number, near: number, far: number);
@@ -652,13 +662,10 @@ declare namespace shader {
         private _modelMatrix;
         private _mvpMatrix;
         private _normalMatrix;
-        private _transMatrix;
-        private _rotateMatrix;
-        private _scaleMatrix;
-        private _localTransForm;
         scale: Vector3;
         rotation: Quat;
         position: Vector3;
+        color: Vector4;
         program: WebGLProgram;
         OBJInfo: any;
         vertices: any;
@@ -825,8 +832,10 @@ declare namespace shader {
         RR: number;
         RA: number;
         IA: number;
-        constructor();
+        constructor(startPoint: Vector3, direct: Vector3, nextDirect: Vector3);
         onLoad(): void;
+        initSphere(startPoint: Vector3): void;
+        calculate(startPoint: Vector3, direct: Vector3, nextDirect: Vector3): void;
         onUpdate(dt: any): void;
     }
     class Valve extends NEObject implements ISIE {
@@ -843,6 +852,18 @@ declare namespace shader {
         UnitPool: NEObject[];
         startPoint: any[];
         constructor(isn: any, ien: any, ity: any);
+    }
+}
+declare namespace shader {
+    class Sphere extends NEObject {
+        info: any;
+        colors: any;
+        normals: any;
+        indices: any;
+        constructor();
+        constructor();
+        onLoad(): void;
+        onUpdate(dt: any): void;
     }
 }
 declare namespace shader {
@@ -899,6 +920,7 @@ import Tee = shader.Tee;
 import Elbow = shader.Elbow;
 import Valve = shader.Valve;
 import GLIFNode = shader.GLIFNode;
+import Sphere = shader.Sphere;
 declare const shaderTool: shaderUtils;
 declare var GL: WebGLRenderingContext;
 declare const canvas: {
@@ -910,7 +932,6 @@ declare var sceneInfo: Scene;
 declare var camera: Camera;
 declare var render: Render;
 declare var gp: GLIFParser;
-declare var Cube: Pipe;
 declare function main(): void;
 declare const zero_guard = 0.00001;
 declare function rayPickLog(val: any): void;
@@ -937,3 +958,15 @@ declare function pointInSurface2D(pA: any, pB: any, pC: any, p: any): boolean;
  * @returns {vec3} out
  */
 declare function cross(out: any, a: any, b: any): any;
+declare namespace shader {
+    class Plane extends NEObject {
+        info: any;
+        colors: any;
+        normals: any;
+        indices: any;
+        constructor();
+        constructor();
+        initPlane(): void;
+        onUpdate(): void;
+    }
+}

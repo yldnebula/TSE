@@ -32,6 +32,7 @@ namespace shader{
         'varying vec3 v_Position;\n' +
         'varying vec4 v_Color;\n' +
         'void main() {\n' +
+        '  vec4 n_color = vec4(1.0,1.0,0.0,1.0);\n' +
         // Normalize the normal because it is interpolated and not 1.0 in length any more
         '  vec3 normal = normalize(v_Normal);\n' +
         // Calculate the light direction and make its length 1.
@@ -39,23 +40,18 @@ namespace shader{
         // The dot product of the light direction and the orientation of a surface (the normal)
         '  float nDotL = max(dot(lightDirection, normal), 0.0);\n' +
         // Calculate the final color from diffuse reflection and ambient reflection
-        '  vec3 diffuse = u_LightColor * v_Color.rgb * nDotL;\n' +
-        '  vec3 ambient = u_AmbientLight * v_Color.rgb;\n' +
-        '  gl_FragColor = vec4(diffuse + ambient, v_Color.a);\n' +
+        '  vec3 diffuse = u_LightColor * n_color.rgb * nDotL;\n' +
+        '  vec3 ambient = u_AmbientLight * n_color.rgb;\n' +
+        '  gl_FragColor = vec4(diffuse + ambient, n_color.a);\n' +
         '}\n';
         private _modelMatrix:Matrix4 = new Matrix4(null);//模型矩阵
         private _mvpMatrix:Matrix4   = new Matrix4(null);//模型视图投影矩阵
         private _normalMatrix:Matrix4= new Matrix4(null);//法向量变换矩阵
-
-        private _transMatrix:Matrix4 = new Matrix4(null);
-        private _rotateMatrix:Matrix4= new Matrix4(null);
-        private _scaleMatrix:Matrix4 = new Matrix4(null);
-
-        private _localTransForm:Matrix4 = new Matrix4(null);//节点局部矩阵
-        
+     
         scale = new Vector3(1,1,1);
         rotation = new Quat();
         position = new Vector3();
+        color = new Vector4(0,0,0,1);
 
         public program     :WebGLProgram = null;
         public OBJInfo  = null;
@@ -95,10 +91,10 @@ namespace shader{
                 var u_LightPosition = GL.getUniformLocation(program, 'u_LightPosition');
                 var u_AmbientLight  = GL.getUniformLocation(program, 'u_AmbientLight');
     
-                if (a_Position < 0 || a_Color<0 || a_Normal<0) {
-                    console.log('Failed to get the attribute storage location');
-                    return;
-                }
+                // if (a_Position < 0 || a_Color<0 || a_Normal<0) {
+                //     console.log('Failed to get the attribute storage location');
+                //     return;
+                // }
     
                 if (!u_ModelMatrix||!u_MvpMatrix || !u_NormalMatrix || !u_LightColor || !u_LightPosition　|| !u_AmbientLight ) {
                     console.log('Failed to get the unifrom storage location');
@@ -486,15 +482,15 @@ namespace shader{
             }
             target.program = obj.program;
         }
-        initOBJInfo(target:NEObject,path,callBack){
+        initOBJInfo(target:NEObject,path,callBack){//这里可以使用localstorage加速读取速率
             var obp = new OBJParser(path);
             obp.readOBJFile(path,1/60,true,function(){
                 var info = obp.getDrawingInfo();
-                // console.log(target)
+                // console.log(info.colors)
                 target.vertices = info.vertices;
                 target.OBJInfo = target.initVertexBuffer(info.vertices,info.colors,info.normals,info.indices);  
                 target.boundingBox = new BoundingBox(target);
-                // console.log(this.Pipe);
+                // console.log(target.OBJInfo);
                 if(typeof callBack == "function")callBack();
             }.bind(target));
         }

@@ -819,9 +819,9 @@ namespace Utils{
     export class Vector4{
         elements:Float32Array = null;
         constructor();
-        constructor(x: number, y: number, z: number,zw: number)
+        constructor(x: number, y: number, z: number, w:number)
         constructor(x: [number, number, number, number])
-        constructor(x?, y?, z?,w?) {
+        constructor(x?, y?, z?, w?){
             if (x && x.length === 4) {
                 this.elements = new Float32Array(x);
                 return;
@@ -838,7 +838,7 @@ namespace Utils{
             return this.elements[0];
         }
         set x(value: number) {
-        this.elements[0] = value;
+            this.elements[0] = value;
         }
     
     

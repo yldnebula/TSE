@@ -5,7 +5,7 @@ namespace Core{
         Scene:Scene = null;
         sceneID:number = 0;
         LigthColor:Float32Array = new Float32Array([1.0,1.0,1.0]);
-        LigthPoint:Float32Array = new Float32Array([2.3, 4.0, 3.5]);
+        LigthPoint:Float32Array = new Float32Array([99999, 99999, 99999]);
         AmbientLight:Float32Array = new Float32Array([0.2, 0.2, 0.2]);;
         projViewMatrix:Matrix4 = null;
 

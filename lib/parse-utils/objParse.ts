@@ -500,7 +500,7 @@ namespace Utils{
         c[2] = v0[0] * v1[1] - v0[1] * v1[0];
       
         // Normalize the result
-        var v = new Vector3(c);
+        var v = new Vector3(c[0],c[1],c[2]);
         v.normalize();
         return v.elements;
     }
