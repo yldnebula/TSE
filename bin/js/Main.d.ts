@@ -952,6 +952,12 @@ declare namespace Core {
         readonly front: Vector3;
     }
 }
+import NEnode = Core.NEnode;
+declare namespace NE3D {
+    class Cube extends NEnode {
+        constructor();
+    }
+}
 declare const zero_guard = 0.00001;
 declare function rayPickLog(val: any): void;
 declare function test1(): void;
@@ -987,5 +993,65 @@ declare namespace shader {
         constructor();
         initPlane(): void;
         onUpdate(): void;
+    }
+}
+declare namespace shader {
+    class Shader {
+        vertex: string;
+        fragment: string;
+        private _modelMatrix;
+        private _mvpMatrix;
+        private _normalMatrix;
+        program: WebGLProgram;
+        constructor();
+        draw(): void;
+        getModelMatrix(position: any, rotation: any, scale: any): Matrix4;
+        getMvpMatrix(position: any, rotation: any, scale: any): Matrix4;
+        getNormalMatrix(position: any, rotation: any, scale: any): Matrix4;
+        /**
+         * 初始化各缓存区
+         * @param gl 上下文
+         * @param data 源数据
+         * @param num 单位数据长度
+         * @param type 单位类型
+         */
+        initArrayBufferForLaterUse(gl: WebGLRenderingContext, data: Float32Array, num: number, type: number): {
+            buffer: any;
+            num: any;
+            type: any;
+        };
+        /**
+         * 初始化索引数组
+         * @param gl 上下文
+         * @param data 源数据
+         * @param type 索引源数据类型
+         */
+        initElementArrayBufferForLaterUse(gl: WebGLRenderingContext, data: Uint16Array, type: number): {
+            buffer: any;
+            type: any;
+        };
+        /**
+         * 分配缓冲区对象并且激活分配
+         * @param gl 上下文
+         * @param a_attribute 属性名
+         * @param buffer 缓冲区数据
+         */
+        initAttributeVariable(gl: WebGLRenderingContext, a_attribute: any, bufferObj: any): void;
+        /**
+         * 初始化obj数据，全局只需绑定一次
+         * @param vertices 顶点矩阵
+         * @param colors 颜色矩阵
+         * @param normals 法向量矩阵
+         * @param program　对应的着色器程序
+         * @param indices 索引矩阵
+         */
+        initVertexBuffer(vertices: Float32Array, colors: Float32Array, normals: Float32Array, indices: Uint16Array): {
+            vertex: any;
+            color: any;
+            normal: any;
+            index: any;
+            numIndices: any;
+        };
+        initShader(target: any): void;
     }
 }
