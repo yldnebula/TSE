@@ -2139,16 +2139,6 @@ var Core;
         function Nebula(id, width, height) {
             this.GL = null;
             this.canvas = null;
-            this.eye = {
-                x: 0,
-                y: 0,
-                z: 14
-            };
-            this.center = {
-                x: 0,
-                y: 0,
-                z: 0
-            };
             this.scene = [];
             this.nowScene = null;
             this.canvas = this.getCanvasByID(id, width, height);
@@ -4167,8 +4157,8 @@ var camera = new Camera(85, canvas.width / canvas.height, 1, 1000);
 //初始化主控渲染器
 var render = new Render();
 //初始化GLIF解析器
-var gp = new GLIFParser(ne.getScene());
-gp.readGilfFile('./glif/inp6.TXT', "");
+// var gp = new GLIFParser(ne.getScene());
+// gp.readGilfFile('./glif/inp2.TXT',"");
 //******************************************* */
 // var Cube = new Pipe(-1,1,-1,new Vector3([0,0,0])); 
 // var Cube1 = new Pipe(-1,1,-1,new Vector3([-1,1,-1])); 
@@ -4326,6 +4316,150 @@ function main() {
         }
     };
 }
+var Core;
+(function (Core) {
+    var NEnode = /** @class */ (function () {
+        function NEnode() {
+            this.scale = new Vector3(1, 1, 1);
+            this.rotation = new Quat();
+            this.position = new Vector3();
+            this.color = new Vector4(0, 0, 0, 1);
+            this.parent = null;
+            this.children = [];
+        }
+        NEnode.prototype.addChild = function (obj) {
+            this.children.push(obj); //未判断是否已经被加入到队列中
+            obj.parent = this;
+        };
+        NEnode.prototype.setParent = function (obj) {
+            if (!!obj) {
+                if (!!this.parent) {
+                    var idx = this.parent.children.indexOf(this); //判断是否是第一次设置父节点
+                    if (idx != -1) {
+                        this.parent.children.splice(idx, 1);
+                    }
+                }
+                obj.children.push(this);
+                this.parent = obj;
+            }
+            else {
+                console.error("you can not set a child NEobject to null");
+                return;
+            }
+        };
+        NEnode.prototype.setRotation = function (x, y, z, w) {
+            var rotation;
+            if (x instanceof Quat) {
+                rotation = x;
+            }
+            else {
+                rotation = new Quat(x, y, z, w);
+            }
+            this.rotation.copy(rotation);
+            return this;
+        };
+        NEnode.prototype.setRotationFromAxis = function (axis, angle, isRadian) {
+            var rotation;
+            var alpha = isRadian ? angle : angle * Math.PI / 180; //修改为右手定则
+            axis = axis.normalize();
+            var x = Math.sin(alpha / 2) * axis.x;
+            var y = Math.sin(alpha / 2) * axis.y;
+            var z = Math.sin(alpha / 2) * axis.z;
+            var w = Math.cos(alpha / 2);
+            rotation = new Quat(x, y, z, w);
+            this.rotation.copy(rotation);
+            return this;
+        };
+        NEnode.prototype.rotateLocal = function (x, y, z) {
+            var quaternion = new Quat();
+            if (x instanceof Vector3) {
+                quaternion.setFromEulerAngles(x.elements[0], x.elements[1], x.elements[2]);
+            }
+            else {
+                quaternion.setFromEulerAngles(x, y, z);
+            }
+            this.rotation.mul(quaternion);
+            return this;
+        };
+        NEnode.prototype.rotateFromAxis = function (axis, angle, isRadian) {
+            var rotation;
+            var alpha = isRadian ? angle : angle * Math.PI / 180; //修改为右手定则
+            axis = axis.normalize();
+            var x = Math.sin(alpha / 2) * axis.x;
+            var y = Math.sin(alpha / 2) * axis.y;
+            var z = Math.sin(alpha / 2) * axis.z;
+            var w = Math.cos(alpha / 2);
+            rotation = new Quat(x, y, z, w);
+            this.rotation.mul(rotation);
+            return this;
+        };
+        NEnode.prototype.setLocalEulerAngles = function (x, y, z) {
+            if (x instanceof Vector3) {
+                this.rotation.setFromEulerAngles(x.elements[0], x.elements[1], x.elements[2]);
+            }
+            else {
+                this.rotation.setFromEulerAngles(x, y, z);
+            }
+            return this;
+        };
+        NEnode.prototype.setLocalPosition = function (x, y, z) {
+            if (x instanceof Vector3) {
+                this.position.copy(x);
+            }
+            else {
+                this.position.set(x, y, z);
+            }
+            return this;
+        };
+        NEnode.prototype.setLocalScale = function (x, y, z) {
+            if (x instanceof Vector3) {
+                this.scale.copy(x);
+            }
+            else {
+                this.scale.set(x, y, z);
+            }
+            return this;
+        };
+        NEnode.prototype.translate = function (x, y, z) {
+            var translation;
+            if (x instanceof Vector3) {
+                translation = x.clone();
+            }
+            else {
+                translation = new Vector3(x, y, z);
+            }
+            translation.add(this.position);
+            this.setLocalPosition(translation);
+            return this;
+        };
+        Object.defineProperty(NEnode.prototype, "up", {
+            get: function () {
+                var ret = new Vector3();
+                return ret;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(NEnode.prototype, "right", {
+            get: function () {
+                var ret = new Vector3();
+                return ret;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(NEnode.prototype, "front", {
+            get: function () {
+                var ret = new Vector3();
+                return ret;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        return NEnode;
+    }());
+    Core.NEnode = NEnode;
+})(Core || (Core = {}));
 var zero_guard = 0.00001;
 function rayPickLog(val) {
     //return;

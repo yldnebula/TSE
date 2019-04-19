@@ -57,8 +57,8 @@ var camera = new Camera(85,canvas.width/canvas.height,1,1000)
 //初始化主控渲染器
 var render = new Render();
 //初始化GLIF解析器
-var gp = new GLIFParser(ne.getScene());
-gp.readGilfFile('./glif/inp6.TXT',"");
+// var gp = new GLIFParser(ne.getScene());
+// gp.readGilfFile('./glif/inp2.TXT',"");
 
 //******************************************* */
 // var Cube = new Pipe(-1,1,-1,new Vector3([0,0,0])); 

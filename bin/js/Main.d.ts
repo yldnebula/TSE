@@ -425,16 +425,6 @@ declare namespace Core {
     class Nebula {
         GL: WebGLRenderingContext;
         canvas: HTMLCanvasElement;
-        eye: {
-            x: number;
-            y: number;
-            z: number;
-        };
-        center: {
-            x: number;
-            y: number;
-            z: number;
-        };
         private scene;
         private nowScene;
         constructor(id: string, width: number, height: number);
@@ -931,8 +921,37 @@ declare var ne: Nebula;
 declare var sceneInfo: Scene;
 declare var camera: Camera;
 declare var render: Render;
-declare var gp: GLIFParser;
 declare function main(): void;
+declare namespace Core {
+    class NEnode {
+        scale: Vector3;
+        rotation: Quat;
+        position: Vector3;
+        color: Vector4;
+        parent: NEnode;
+        children: NEnode[];
+        constructor();
+        addChild(obj: NEnode): void;
+        setParent(obj: NEnode): void;
+        setRotation(x: Quat): this;
+        setRotation(x: number, y: number, z: number, w: number): this;
+        setRotationFromAxis(axis: Vector3, angle: number, isRadian: boolean): this;
+        rotateLocal(x: Vector3): this;
+        rotateLocal(x: number, y: number, z: number): this;
+        rotateFromAxis(axis: Vector3, angle: number, isRadian: boolean): this;
+        setLocalEulerAngles(x: Vector3): this;
+        setLocalEulerAngles(x: number, y: number, z: number): this;
+        setLocalPosition(x: Vector3): this;
+        setLocalPosition(x: number, y: number, z: number): this;
+        setLocalScale(x: Vector3): this;
+        setLocalScale(x: number, y: number, z: number): this;
+        translate(x: Vector3): this;
+        translate(x: number, y: number, z: number): this;
+        readonly up: Vector3;
+        readonly right: Vector3;
+        readonly front: Vector3;
+    }
+}
 declare const zero_guard = 0.00001;
 declare function rayPickLog(val: any): void;
 declare function test1(): void;
