@@ -2,6 +2,7 @@
 ///<reference path="./core/Scene.ts" />
 ///<reference path="./core/Camera.ts" />
 ///<reference path="./core/Render.ts" />
+///<reference path="./example/example.ts" />
 ///<reference path="./lib/RayCaster.ts" />
 ///<reference path="./lib/BoundingBox.ts" />
 ///<reference path="../lib/shader-utils/shaderUtils.ts" />
@@ -36,6 +37,7 @@ import Elbow        = shader.Elbow;
 import Valve        = shader.Valve;
 import GLIFNode     = shader.GLIFNode;
 import Sphere       = shader.Sphere;
+import Cube         = NE3D.Cube;
 
 //************全局变量Global****************** */
 
@@ -52,48 +54,36 @@ var sceneInfo = new Scene(0);
 ne.addScene(sceneInfo);
 ne.setScene(0);
 sceneInfo.initScene();
-//摄像机信息
+//摄像机信息０
 var camera = new Camera(85,canvas.width/canvas.height,1,1000)
 //初始化主控渲染器
 var render = new Render();
-//初始化GLIF解析器
+// //初始化GLIF解析器
 // var gp = new GLIFParser(ne.getScene());
 // gp.readGilfFile('./glif/inp2.TXT',"");
+// var cube1 = new cube();
+// cube1.setParent(ne.getScene()._root)
 
 //******************************************* */
-// var Cube = new Pipe(-1,1,-1,new Vector3([0,0,0])); 
-// var Cube1 = new Pipe(-1,1,-1,new Vector3([-1,1,-1])); 
-// var Plane = new cube();
-// var Cube = new Tee();
-// // var elbow = new Elbow(new Vector3([0,0,0]),new Vector3(1,0,0),new Vector3(0,1,0))
-// var sphere = new Sphere();
-// var pipe1 = new Pipe(1,0,0,new Vector3(0,0,0))
-// var pipe2 = new Pipe(2,8,0,new Vector3(1,0,0))
 main();
 function main(){
-    // Cube.setLocalScale(2,1,1);
-    // Cube.setRotationFromAxis(new Vector3(0,0,1),90,false)
-    // Cube.rotateFromAxis(new Vector3(0,0,1),-90,false)
-    // Cube.setRotation(new Quat(0,0,Math.sqrt(2)/2,Math.sqrt(2)/2))
-    // Cube.setLocalScale(4,1,1)
-    // Cube.setLocalPosition(new Vector3(3,5,0))
-    // Cube.translate(new Vector3(-3,-5,0))
-    // Cube.setParent(ne.getScene());
-    // Plane.setParent(ne.getScene());
-    // Cube1.setParent(ne.getScene());
 
-    // Plane.setLocalScale(50,0.001,50)
-    // elbow.setLocalPosition(50,0,0)
-    // sphere.setLocalScale(12.35,12.35,12.35)
-    // sphere.setLocalPosition(1,0,0)
-    // sphere.setParent(ne.getScene())
-    // pipe1.setParent(ne.getScene())
-    // pipe2.setParent(ne.getScene())
+    var cube3 = new Cube();cube3.name = "cube1";
+    ne.getScene().addChild1(cube3);
+    var cube4 = new Cube();cube4.name = "cube2";
+    cube3.addChild(cube4);  
+    ne.getScene().traverseScene1(ne.getScene()._root,function(o){
+        console.log(o.name)
+    })  
+    console.log(ne.getScene()._root)
+    // cube4.setPosition(6,0,0)
+
+    // cube3.addChild(cube4);
     
-    render.render(sceneInfo);
+    // render.render(sceneInfo);
 
-    render.stopped = false;//将来可以改变为资源加载完成后自动改为false，开始update
-    render.main();
+    // render.stopped = false;//将来可以改变为资源加载完成后自动改为false，开始update
+    // render.main();
     // Pipe1.setParent(ne.getScene())
 
     var RayCaster1 = new RayCaster();
@@ -128,7 +118,7 @@ function main(){
                 var pointOnCanvasToNear = new Vector4([_mousex,_mousey,-1.0,1.0]);
                 var positionN = new Matrix4(null).setInverseOf(camera.projViewMatrix).multiplyVector4(pointOnCanvasToNear);
                 RayCaster1.initCameraRay(camera.coordinate.x,camera.coordinate.y,camera.coordinate.z,positionN.elements[0],positionN.elements[1],positionN.elements[2],100);
-                var obj =RayCaster1.intersectObjects(ne.getScene().Child,true);
+                var obj =RayCaster1.intersectObjects(ne.getScene()._root.Child,true);
                 if(!!obj){
                     objClicked = obj;
                 }else{

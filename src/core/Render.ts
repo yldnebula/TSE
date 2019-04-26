@@ -7,7 +7,7 @@ namespace Core{
         public  startTime   = 0;
 
         public  renderQueue = [];
-        
+        public  loadQueue
         //单例类
         constructor(){
             // requestAnimationFrame(this.main.bind(this));
@@ -35,14 +35,29 @@ namespace Core{
             //渲染场景，
 
             //更新函数
-            ne.getScene().traverseScene(ne.getScene(),function(o){
-                ne.getScene().addUpdateEvents(o.onUpdate.bind(o));
+            scene.traverseScene(scene._root,function(o){
+                scene.addUpdateEvents(o.onUpdate.bind(o));
                 render.stopped = false;
             })
 
             this.renderQueue.push(scene.initScene.bind(scene))
             this.renderQueue.push(scene._update.bind(scene));
             
+        }
+        public renderScene1(scene:Scene){
+            scene.traverseScene1(scene._root,function(o){
+                scene.addUpdateEvents(o.onUpdate.bind(o));
+                render.stopped = false;
+            })
+
+            this.renderQueue.push(scene.initScene.bind(scene))
+            this.renderQueue.push(scene._update.bind(scene));
+        }
+        /**
+         * async Load
+         */
+        public async onLoad(obj:Cube) {
+            await obj.onLoad();
         }
     }
 }

@@ -1,4 +1,8 @@
 declare namespace Utils {
+    const generateUUID: () => string;
+    function arrayRemove<T>(arr: Array<T>, elm: T): void;
+}
+declare namespace Utils {
     const DEG_TO_RAD: number;
     const RAD_TO_DEG: number;
     const INV_LOG2: number;
@@ -7,7 +11,9 @@ declare namespace Utils {
      */
     class Matrix4 {
         elements: Float32Array;
-        constructor(opt_src: Matrix4 | null);
+        constructor();
+        constructor(v0: number, v1: number, v2: number, v3: number, v4: number, v5: number, v6: number, v7: number, v8: number, v9: number, v10: number, v11: number, v12: number, v13: number, v14: number, v15: number);
+        constructor(v0: [number, number, number, number, number, number, number, number, number, number, number, number, number, number, number, number]);
         /**
          * 设置单位矩阵
          */
@@ -27,6 +33,7 @@ declare namespace Utils {
          * @param other 需要右乘的四方矩阵
          */
         multiply(other: Matrix4): this;
+        mul2(lhs: Matrix4, rhs: Matrix4): this;
         /**
          * 左乘一个四方矩阵
          */
@@ -50,6 +57,23 @@ declare namespace Utils {
          * @param other 源四方矩阵
          */
         setInverseOf(other: Matrix4): Matrix4;
+        copy(rhs: Matrix4): this;
+        /**
+         * 修改自身，逆矩阵
+         *
+         * @returns {this} this
+         * @memberof Mat4
+         */
+        invert(): this;
+        /**
+ * 移动到某个点
+ *
+ * @param {Vec3} vec
+ * @param {Vec3} [res] ref
+ * @returns {Vec3} res
+ * @memberof Mat4
+ */
+        transformPoint(vec: Vector3, res?: Vector3): Vector3;
         /**
          * 设置正交投影矩阵，定义盒状可视空间，变量范围在[-1.0,1.0]
          * @param left 剪裁面的左边界
@@ -132,6 +156,12 @@ declare namespace Utils {
         dropShadow(plane: number[], light: number[]): this;
         dropShadowDirectionally(normX: number, normY: number, normZ: number, planeX: number, planeY: number, planeZ: number, lightX: number, lightY: number, lightZ: number): this;
         setTRS(t: Vector3, r: Quat, s: Vector3): this;
+        getEulerAngles: (eulers?: Vector3) => Vector3;
+        getScale: (scale?: Vector3) => Vector3;
+        getTranslation(t?: Vector3): Vector3;
+        getX(x?: Vector3): Vector3;
+        getY(y?: Vector3): Vector3;
+        getZ(z?: Vector3): Vector3;
     }
     /**
      * 三维向量类
@@ -153,6 +183,7 @@ declare namespace Utils {
          * 三维向量乘以一个数
          */
         mutiply(m: number): this;
+        mul2(lhs: Vector3, rhs: Vector3): this;
         clone(): Vector3;
         /**
          * 三维向量减去另一个三维向量
@@ -265,7 +296,7 @@ declare namespace Utils {
         /**
          * 处理弯单元
          */
-        parseBendingUnit(info: any, scene: any, direct: any): any;
+        parseBendingUnit(info: any, scene: any, direct: any): Elbow;
         /**
          * 自定义输出
          * @param val
@@ -477,11 +508,11 @@ declare namespace Core {
         LigthPoint: Float32Array;
         AmbientLight: Float32Array;
         projViewMatrix: Matrix4;
-        Child: any[];
+        _root: NEObject;
         private updateEvents;
         constructor(id: number);
         /**
-         * 初始化场景
+         * 初始化场景,这个函数必须在每帧一开始调用，并且每帧只能调用一次
          */
         initScene(): void;
         /**
@@ -495,6 +526,7 @@ declare namespace Core {
          * 为场景添加一个孩子
          */
         addChild(object: NEObject): void;
+        addChild1(object: NEnode): void;
         /**
          * 删除一个孩子
          */
@@ -518,7 +550,8 @@ declare namespace Core {
          * 递归遍历场景子节点,自顶向下行为
          * //也可以考虑在每个NEObject中定义注册函数，形成自下而上的行为
          */
-        traverseScene(parent: Scene | NEObject, callBack: (parent: any) => void): void;
+        traverseScene(parent: NEObject, callBack: (parent: NEObject) => void): void;
+        traverseScene1(parent: NEnode | NEObject, callBack: (parent: NEnode) => void): void;
     }
 }
 declare namespace Core {
@@ -566,6 +599,7 @@ declare namespace Core {
         frameRate: number;
         startTime: number;
         renderQueue: any[];
+        loadQueue: any;
         constructor();
         /**
          * 主控函数，控制生命周期和帧刷新
@@ -575,6 +609,210 @@ declare namespace Core {
          * 渲染函数，将所有帧更新函数加入渲染队列,如果需要渲染几个场景，可以将scene改为Scene[]
          */
         render(scene: Scene): void;
+        renderScene1(scene: Scene): void;
+        /**
+         * async Load
+         */
+        onLoad(obj: Cube): Promise<void>;
+    }
+}
+import generateUUID = Utils.generateUUID;
+declare namespace Core {
+    class NElement {
+        uuid: string;
+        name: string;
+        tag: string[];
+        enabled: boolean;
+    }
+}
+declare namespace script {
+    /**
+     * 生命周期函数抽象类，NEnode和Component的生命周期都要实现这个类
+     * load表示渲染之前的准备
+     * start开始渲染的第一帧，在onstart之后
+     * update每帧更新
+     * destroy被销毁之前进行的操作，下一帧进行销毁
+     */
+    abstract class Script {
+        onLoad?(): void;
+        onStart?(): void;
+        onUpdate?(dt: number): void;
+        onDestroy?(): void;
+    }
+}
+import Script = script.Script;
+import arrayRemove = Utils.arrayRemove;
+import NElement = Core.NElement;
+declare namespace Core {
+    class NEnode extends NElement implements Script {
+        scaleCompensatePosTransform: Matrix4;
+        scaleCompensatePos: Vector3;
+        scaleCompensateRot: Quat;
+        scaleCompensateRot2: Quat;
+        scaleCompensateScale: Vector3;
+        scaleCompensateScaleForParent: Vector3;
+        scale: Vector3;
+        rotation: Quat;
+        position: Vector3;
+        color: Vector4;
+        eulerAngles: Vector3;
+        worldTransform: Matrix4;
+        localPosition: Vector3;
+        localRotation: Quat;
+        localScale: Vector3;
+        localEulerAngles: Vector3;
+        localTransform: Matrix4;
+        scaleCompensation: boolean;
+        private _dirtyNormal;
+        private _dirtyLocal;
+        private _dirtyWorld;
+        private _up;
+        private _right;
+        private _forward;
+        parent: NEnode;
+        children: NEnode[];
+        constructor();
+        onLoad(): void;
+        addChild(child: NEnode): void;
+        removeChild(child: NEnode): void;
+        setPosition(x: Vector3): this;
+        setPosition(x: number, y: number, z: number): this;
+        /**
+         * 获取世界坐标
+         * @returns
+         * @memberof INode
+         */
+        getPosition(): Vector3;
+        setLocalEulerAngles(x: Vector3): this;
+        setLocalEulerAngles(x: number, y: number, z: number): this;
+        getLocalEulerAngles(): Vector3;
+        setEulerAngles(x: Vector3): this;
+        setEulerAngles(x: number, y: number, z: number): this;
+        getEulerAngles(): Vector3;
+        setLocalPosition(x: Vector3): this;
+        setLocalPosition(x: number, y: number, z: number): this;
+        getLocalPosition(): Vector3;
+        /**
+         * local
+         * @param {Quat} x
+         * @returns {this}
+         * @memberof NEnode
+         */
+        setRotation(x: Quat): this;
+        setRotation(x: number, y: number, z: number, w: number): this;
+        getRotation(): Quat;
+        getWorldTransform(): Matrix4;
+        setLocalScale(x: Vector3): this;
+        setLocalScale(x: number, y: number, z: number): this;
+        getLocalScale(): Vector3;
+        rotate(x: Vector3): this;
+        rotate(x: number, y: number, z: number): this;
+        rotateLocal(x: Vector3): this;
+        rotateLocal(x: number, y: number, z: number): this;
+        translate(x: Vector3): this;
+        translate(x: number, y: number, z: number): this;
+        translateLocal(x: Vector3): this;
+        translateLocal(x: number, y: number, z: number): this;
+        getLocalTransform(): Matrix4;
+        syncHierarchy(): void;
+        private _sync;
+        readonly root: NEnode;
+        /**
+         * 标记自己和儿子“脏” 需要重新获取位置
+         *
+         * @private
+         * @param {boolean} [local]
+         * @returns
+         * @memberof INode
+         */
+        _dirtify(local?: boolean): void;
+        readonly up: Vector3;
+        readonly forward: Vector3;
+        readonly right: Vector3;
+    }
+}
+declare namespace shader {
+    class Shader {
+        vertex: string;
+        fragment: string;
+        private _modelMatrix;
+        private _mvpMatrix;
+        private _normalMatrix;
+        program: WebGLProgram;
+        a_Position: number;
+        a_Color: number;
+        a_Normal: number;
+        u_ModelMatrix: WebGLUniformLocation;
+        u_MvpMatrix: WebGLUniformLocation;
+        u_NormalMatrix: WebGLUniformLocation;
+        u_LightColor: WebGLUniformLocation;
+        u_LightPosition: WebGLUniformLocation;
+        u_AmbientLight: WebGLUniformLocation;
+        OBJ: any;
+        constructor();
+        draw(): void;
+        calculateMatrix(position: any, rotation: any, scale: any): void;
+        /**
+         * 初始化各缓存区
+         * @param gl 上下文
+         * @param data 源数据
+         * @param num 单位数据长度
+         * @param type 单位类型
+         */
+        initArrayBufferForLaterUse(gl: WebGLRenderingContext, data: Float32Array, num: number, type: number): {
+            buffer: any;
+            num: any;
+            type: any;
+        };
+        /**
+         * 初始化索引数组
+         * @param gl 上下文
+         * @param data 源数据
+         * @param type 索引源数据类型
+         */
+        initElementArrayBufferForLaterUse(gl: WebGLRenderingContext, data: Uint16Array, type: number): {
+            buffer: any;
+            type: any;
+        };
+        /**
+         * 分配缓冲区对象并且激活分配
+         * @param gl 上下文
+         * @param a_attribute 属性名
+         * @param buffer 缓冲区数据
+         */
+        initAttributeVariable(gl: WebGLRenderingContext, a_attribute: any, bufferObj: any): void;
+        /**
+         * 初始化obj数据，全局只需绑定一次
+         * @param vertices 顶点矩阵
+         * @param colors 颜色矩阵
+         * @param normals 法向量矩阵
+         * @param program　对应的着色器程序
+         * @param indices 索引矩阵
+         */
+        initVertexBuffer(vertices: Float32Array, colors: Float32Array, normals: Float32Array, indices: Uint16Array): {
+            vertex: any;
+            color: any;
+            normal: any;
+            index: any;
+            numIndices: any;
+        };
+        initShader(target: any): void;
+    }
+}
+import NEnode = Core.NEnode;
+import Shader = shader.Shader;
+declare namespace NE3D {
+    class Cube extends NEnode {
+        shader: Shader;
+        vertices: Float32Array;
+        colors: Float32Array;
+        normals: Float32Array;
+        indices: Float32Array;
+        info: any;
+        boundingBox: any;
+        constructor();
+        onLoad(): void;
+        onUpdate(): void;
     }
 }
 declare namespace Lib {
@@ -661,7 +899,7 @@ declare namespace shader {
         vertices: any;
         name: string;
         Child: any[];
-        parent: NEObject | Scene;
+        parent: NEObject;
         boundingBox: BoundingBox;
         constructor();
         onLoad(): void;
@@ -681,8 +919,8 @@ declare namespace shader {
         /**
          * 设置父节点
          */
-        setParent(object: Scene | NEObject): void;
-        getParent(): Scene | NEObject;
+        setParent(object: NEObject): void;
+        getParent(): NEObject;
         setRotation(x: Quat): this;
         setRotation(x: number, y: number, z: number, w: number): this;
         setRotationFromAxis(axis: Vector3, angle: number, isRadian: boolean): this;
@@ -822,7 +1060,7 @@ declare namespace shader {
         RR: number;
         RA: number;
         IA: number;
-        constructor(startPoint: Vector3, direct: Vector3, nextDirect: Vector3);
+        constructor(startPoint: Vector3, direct: Vector3, nextDirect?: Vector3);
         onLoad(): void;
         initSphere(startPoint: Vector3): void;
         calculate(startPoint: Vector3, direct: Vector3, nextDirect: Vector3): void;
@@ -911,6 +1149,7 @@ import Elbow = shader.Elbow;
 import Valve = shader.Valve;
 import GLIFNode = shader.GLIFNode;
 import Sphere = shader.Sphere;
+import Cube = NE3D.Cube;
 declare const shaderTool: shaderUtils;
 declare var GL: WebGLRenderingContext;
 declare const canvas: {
@@ -922,42 +1161,6 @@ declare var sceneInfo: Scene;
 declare var camera: Camera;
 declare var render: Render;
 declare function main(): void;
-declare namespace Core {
-    class NEnode {
-        scale: Vector3;
-        rotation: Quat;
-        position: Vector3;
-        color: Vector4;
-        parent: NEnode;
-        children: NEnode[];
-        constructor();
-        addChild(obj: NEnode): void;
-        setParent(obj: NEnode): void;
-        setRotation(x: Quat): this;
-        setRotation(x: number, y: number, z: number, w: number): this;
-        setRotationFromAxis(axis: Vector3, angle: number, isRadian: boolean): this;
-        rotateLocal(x: Vector3): this;
-        rotateLocal(x: number, y: number, z: number): this;
-        rotateFromAxis(axis: Vector3, angle: number, isRadian: boolean): this;
-        setLocalEulerAngles(x: Vector3): this;
-        setLocalEulerAngles(x: number, y: number, z: number): this;
-        setLocalPosition(x: Vector3): this;
-        setLocalPosition(x: number, y: number, z: number): this;
-        setLocalScale(x: Vector3): this;
-        setLocalScale(x: number, y: number, z: number): this;
-        translate(x: Vector3): this;
-        translate(x: number, y: number, z: number): this;
-        readonly up: Vector3;
-        readonly right: Vector3;
-        readonly front: Vector3;
-    }
-}
-import NEnode = Core.NEnode;
-declare namespace NE3D {
-    class Cube extends NEnode {
-        constructor();
-    }
-}
 declare const zero_guard = 0.00001;
 declare function rayPickLog(val: any): void;
 declare function test1(): void;
@@ -993,65 +1196,5 @@ declare namespace shader {
         constructor();
         initPlane(): void;
         onUpdate(): void;
-    }
-}
-declare namespace shader {
-    class Shader {
-        vertex: string;
-        fragment: string;
-        private _modelMatrix;
-        private _mvpMatrix;
-        private _normalMatrix;
-        program: WebGLProgram;
-        constructor();
-        draw(): void;
-        getModelMatrix(position: any, rotation: any, scale: any): Matrix4;
-        getMvpMatrix(position: any, rotation: any, scale: any): Matrix4;
-        getNormalMatrix(position: any, rotation: any, scale: any): Matrix4;
-        /**
-         * 初始化各缓存区
-         * @param gl 上下文
-         * @param data 源数据
-         * @param num 单位数据长度
-         * @param type 单位类型
-         */
-        initArrayBufferForLaterUse(gl: WebGLRenderingContext, data: Float32Array, num: number, type: number): {
-            buffer: any;
-            num: any;
-            type: any;
-        };
-        /**
-         * 初始化索引数组
-         * @param gl 上下文
-         * @param data 源数据
-         * @param type 索引源数据类型
-         */
-        initElementArrayBufferForLaterUse(gl: WebGLRenderingContext, data: Uint16Array, type: number): {
-            buffer: any;
-            type: any;
-        };
-        /**
-         * 分配缓冲区对象并且激活分配
-         * @param gl 上下文
-         * @param a_attribute 属性名
-         * @param buffer 缓冲区数据
-         */
-        initAttributeVariable(gl: WebGLRenderingContext, a_attribute: any, bufferObj: any): void;
-        /**
-         * 初始化obj数据，全局只需绑定一次
-         * @param vertices 顶点矩阵
-         * @param colors 颜色矩阵
-         * @param normals 法向量矩阵
-         * @param program　对应的着色器程序
-         * @param indices 索引矩阵
-         */
-        initVertexBuffer(vertices: Float32Array, colors: Float32Array, normals: Float32Array, indices: Uint16Array): {
-            vertex: any;
-            color: any;
-            normal: any;
-            index: any;
-            numIndices: any;
-        };
-        initShader(target: any): void;
     }
 }

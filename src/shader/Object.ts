@@ -58,7 +58,7 @@ namespace shader{
         public vertices;
         public name  = '';
         public Child = [];
-        public parent:NEObject | Scene = null;
+        public parent:NEObject = null;
         public boundingBox:BoundingBox = new BoundingBox(null);
         constructor(){
             this.onLoad();
@@ -145,7 +145,7 @@ namespace shader{
         /**
          * 设置父节点
          */
-        setParent(object:Scene|NEObject){
+        setParent(object:NEObject){
             if(!!object){
                 if(!!this.parent){
                     var idx = this.parent.Child.indexOf(this);//判断是否是第一次设置父节点

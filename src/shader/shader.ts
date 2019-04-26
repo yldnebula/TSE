@@ -29,7 +29,7 @@ namespace shader{
         'varying vec3 v_Position;\n' +
         'varying vec4 v_Color;\n' +
         'void main() {\n' +
-        '  vec4 n_color = vec4(1.0,1.0,0.0,1.0);\n' +
+        // '  vec4 n_color = vec4(1.0,1.0,0.0,1.0);\n' +
         // Normalize the normal because it is interpolated and not 1.0 in length any more
         '  vec3 normal = normalize(v_Normal);\n' +
         // Calculate the light direction and make its length 1.
@@ -37,9 +37,9 @@ namespace shader{
         // The dot product of the light direction and the orientation of a surface (the normal)
         '  float nDotL = max(dot(lightDirection, normal), 0.0);\n' +
         // Calculate the final color from diffuse reflection and ambient reflection
-        '  vec3 diffuse = u_LightColor * n_color.rgb * nDotL;\n' +
-        '  vec3 ambient = u_AmbientLight * n_color.rgb;\n' +
-        '  gl_FragColor = vec4(diffuse + ambient, n_color.a);\n' +
+        '  vec3 diffuse = u_LightColor * v_Color.rgb * nDotL;\n' +
+        '  vec3 ambient = u_AmbientLight * v_Color.rgb;\n' +
+        '  gl_FragColor = vec4(diffuse + ambient, v_Color.a);\n' +
         '}\n';
 
         private _modelMatrix:Matrix4 = new Matrix4(null);//模型矩阵
@@ -47,27 +47,72 @@ namespace shader{
         private _normalMatrix:Matrix4= new Matrix4(null);//法向量变换矩阵
         
         program:WebGLProgram = null;
+        a_Position  = -1;
+        a_Color     = -1;
+        a_Normal    = -1;
 
+        u_ModelMatrix:WebGLUniformLocation      = null;
+        u_MvpMatrix:WebGLUniformLocation        = null;
+        u_NormalMatrix:WebGLUniformLocation     = null;
+        u_LightColor:WebGLUniformLocation       = null;
+        u_LightPosition:WebGLUniformLocation    = null;
+        u_AmbientLight:WebGLUniformLocation     = null;
+
+        OBJ = null;//各类数组
         constructor(){
             this.initShader(this);
+            this.a_Position      = GL.getAttribLocation(this.program, 'a_Position');
+            this.a_Color         = GL.getAttribLocation(this.program, 'a_Color');
+            this.a_Normal        = GL.getAttribLocation(this.program, 'a_Normal');
+    
+            this.u_ModelMatrix   = GL.getUniformLocation(this.program, 'u_ModelMatrix');
+            this.u_MvpMatrix     = GL.getUniformLocation(this.program, 'u_MvpMatrix');
+            this.u_NormalMatrix  = GL.getUniformLocation(this.program, 'u_NormalMatrix');
+            this.u_LightColor    = GL.getUniformLocation(this.program, 'u_LightColor');
+            this.u_LightPosition = GL.getUniformLocation(this.program, 'u_LightPosition');
+            this.u_AmbientLight  = GL.getUniformLocation(this.program, 'u_AmbientLight');
         }
         draw(){
-            GL.useProgram(this.program);
+            if(this.program && this.OBJ){
+                GL.useProgram(this.program);
+                if (this.a_Position < 0 || this.a_Color<0 || this.a_Normal<0) {
+                    console.log('Failed to get the attribute storage location');
+                    return;
+                }
+    
+                if (!this.u_ModelMatrix||!this.u_MvpMatrix || !this.u_NormalMatrix || !this.u_LightColor || !this.u_LightPosition　|| !this.u_AmbientLight ) {
+                    console.log('Failed to get the unifrom storage location');
+                    return;
+                }
+    
+                this.initAttributeVariable(GL,this.a_Position, this.OBJ.vertex);
+                this.initAttributeVariable(GL,this.a_Color, this.OBJ.color);
+                this.initAttributeVariable(GL,this.a_Normal, this.OBJ.normal);
+                GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER,  this.OBJ.index.buffer)
 
+                // Set the light color (white)
+                GL.uniform3fv(this.u_LightColor,sceneInfo.LigthColor);
+                // Set the light direction (in the world coordinate)
+                GL.uniform3fv(this.u_LightPosition,sceneInfo.LigthPoint);
+                // Set the ambient light
+                GL.uniform3fv(this.u_AmbientLight,sceneInfo.AmbientLight);
+
+                // Pass the model matrix to u_ModelMatrix
+                GL.uniformMatrix4fv(this.u_ModelMatrix, false, this._modelMatrix.elements);
+                // Pass the model view projection matrix to u_MvpMatrix
+                GL.uniformMatrix4fv(this.u_MvpMatrix, false, this._mvpMatrix.elements);
+                // Pass the matrix to transform the normal based on the model matrix to u_NormalMatrix
+                GL.uniformMatrix4fv(this.u_NormalMatrix, false, this._normalMatrix.elements);
+        
+                // Draw the Cylinder
+                GL.drawElements(GL.TRIANGLES,  this.OBJ.numIndices, GL.UNSIGNED_SHORT, 0);
+            }
         }
-        getModelMatrix(position,rotation,scale):Matrix4{
-            this._modelMatrix = new Matrix4(null).setTRS(position,rotation,scale);
-            return this._modelMatrix;
-        }
-        getMvpMatrix(position,rotation,scale):Matrix4{
-            this._modelMatrix = new Matrix4(null).setTRS(position,rotation,scale);
+        //每帧绘制之前计算一下当前的矩阵信息
+        calculateMatrix(position,rotation,scale){
+            this._modelMatrix = new Matrix4(null).setTRS(position, rotation, scale);
             this._mvpMatrix.set(camera.projViewMatrix).multiply(this._modelMatrix);
-            return this._mvpMatrix;
-        }
-        getNormalMatrix(position,rotation,scale):Matrix4{
-            this._modelMatrix = new Matrix4(null).setTRS(position,rotation,scale);
             this._normalMatrix = new Matrix4(null).setInverseOf(this._modelMatrix).transpose();
-            return this._normalMatrix;
         }
         /**
          * 初始化各缓存区

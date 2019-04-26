@@ -128,7 +128,7 @@ namespace shader{
         RR:number;//弯曲半径
         RA:number;//弯曲角度
         IA:number;//弯单元种类
-        constructor(startPoint:Vector3,direct:Vector3,nextDirect:Vector3){
+        constructor(startPoint:Vector3,direct:Vector3,nextDirect?:Vector3){
             super();
             this.initShader(this);
             this.initOBJInfo(this,'./resources/sphere.obj',function(){
