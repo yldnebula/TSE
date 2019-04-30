@@ -1,3 +1,5 @@
+///<reference path="../lib/AssetLoader.ts" />s
+import Loader = Lib.AssetsLoader;
 namespace Core{
     export class Render{
         public  stopped     = true;
@@ -7,13 +9,24 @@ namespace Core{
         public  startTime   = 0;
 
         public  renderQueue = [];
-        public  loadQueue
-        //单例类
+        public  loadQueue = [];
+
+        public loader = new Loader();
+        //单例类,懒得做了，一般不会瞎操作这个类的吧orz
         constructor(){
             // requestAnimationFrame(this.main.bind(this));
         }
         /**
-         * 主控函数，控制生命周期和帧刷新
+         *加载已经注册到render的onLoad函数
+         *对于GLIF来说使用的文件大多都是重复的文件，所以可以使用缓存来提高加载速度，现在没有实现－－－实现方法，localStorage类
+         */
+        public loadAsset(){
+            for (const loadCommand of this.loadQueue) {
+                loadCommand();
+            }
+        }
+        /**
+         * 主控函数，控制生命周期和帧刷新，这里有个需求就是onstart函数要在这里面运行一次
          */
         public main(){
             if (this.stopped) {
@@ -31,22 +44,24 @@ namespace Core{
         /**
          * 渲染函数，将所有帧更新函数加入渲染队列,如果需要渲染几个场景，可以将scene改为Scene[]
          */
-        public render(scene:Scene){
-            //渲染场景，
+        // public render(scene:Scene){//旧版收集NEobject的update函数
+        //     //渲染场景，
 
-            //更新函数
+        //     //更新函数
+        //     scene.traverseScene(scene._root,function(o){
+        //         scene.addUpdateEvents(o.onUpdate.bind(o));
+        //         render.stopped = false;
+        //     })
+
+        //     this.renderQueue.push(scene.initScene.bind(scene))
+        //     this.renderQueue.push(scene._update.bind(scene));
+            
+        // }
+        public renderScene(scene:Scene){//重构nenode之后的收集函数
+            var that = this;
             scene.traverseScene(scene._root,function(o){
                 scene.addUpdateEvents(o.onUpdate.bind(o));
-                render.stopped = false;
-            })
-
-            this.renderQueue.push(scene.initScene.bind(scene))
-            this.renderQueue.push(scene._update.bind(scene));
-            
-        }
-        public renderScene1(scene:Scene){
-            scene.traverseScene1(scene._root,function(o){
-                scene.addUpdateEvents(o.onUpdate.bind(o));
+                that.loadQueue.push(o.onLoad.bind(o))//收集onLoad函数
                 render.stopped = false;
             })
 

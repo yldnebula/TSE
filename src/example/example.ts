@@ -15,8 +15,6 @@ namespace NE3D{
         boundingBox = null;
         constructor(){
             super();
-            this.onUpdate();
-            this.onLoad();
         }
         onLoad(){
             var obp = new OBJParser('./resources/cube.obj');
@@ -27,12 +25,12 @@ namespace NE3D{
                 this.colors   = this.info.colors;
                 this.indices  = this.info.indices;
                 this.shader.OBJ = this.shader.initVertexBuffer(this.vertices,this.colors,this.normals,this.indices);  
-                // this.boundingBox = new BoundingBox(this);
+                this.boundingBox = new BoundingBox(this,this.vertices);
                 // console.log(this.info);
             }.bind(this));
         }
-        onUpdate(){
-            this.shader.calculateMatrix(this.localPosition,this.localRotation,this.localScale)
+        onUpdate(dt){
+            this.shader.calculateMatrix(this.getWorldTransform())
             this.shader.draw();
         }
 

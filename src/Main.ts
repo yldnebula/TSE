@@ -7,10 +7,8 @@
 ///<reference path="./lib/BoundingBox.ts" />
 ///<reference path="../lib/shader-utils/shaderUtils.ts" />
 ///<reference path="../lib/matrix-utils/matrixUtils.ts" />
-///<reference path="./shader/Cube.ts" />
 ///<reference path="./shader/Pipe.ts" />
 ///<reference path="./shader/Sphere.ts" />
-///<reference path="./shader/Cylinder.ts" />
 ///<reference path="../lib/parse-utils/objParse.ts" />
 ///<reference path="../lib/parse-utils/GLIFParser.ts" />
 
@@ -22,9 +20,7 @@ import shaderUtils  = Utils.ShaderUtils;
 import Matrix4      = Utils.Matrix4;
 import Vector3      = Utils.Vector3;
 import Vector4      = Utils.Vector4;
-import Quat      = Utils.Quat;
-import cube         = shader.Cube;
-import Cylinder     = shader.Cylinder;
+import Quat         = Utils.Quat;
 import NEObject     = shader.NEObject;
 import OBJParser    = Utils.ObjParser;
 import Render       =Core.Render;
@@ -72,19 +68,7 @@ function main(){
     ne.getScene().addChild1(cube3);
     var cube4 = new Cube();cube4.name = "cube2";
     cube3.addChild(cube4);  
-    ne.getScene().traverseScene1(ne.getScene()._root,function(o){
-        console.log(o.name)
-    })  
-    console.log(ne.getScene()._root)
-    // cube4.setPosition(6,0,0)
-
-    // cube3.addChild(cube4);
-    
-    // render.render(sceneInfo);
-
-    // render.stopped = false;//将来可以改变为资源加载完成后自动改为false，开始update
-    // render.main();
-    // Pipe1.setParent(ne.getScene())
+    cube4.setPosition(4,0,0)
 
     var RayCaster1 = new RayCaster();
 
@@ -118,9 +102,9 @@ function main(){
                 var pointOnCanvasToNear = new Vector4([_mousex,_mousey,-1.0,1.0]);
                 var positionN = new Matrix4(null).setInverseOf(camera.projViewMatrix).multiplyVector4(pointOnCanvasToNear);
                 RayCaster1.initCameraRay(camera.coordinate.x,camera.coordinate.y,camera.coordinate.z,positionN.elements[0],positionN.elements[1],positionN.elements[2],100);
-                var obj =RayCaster1.intersectObjects(ne.getScene()._root.Child,true);
+                var obj =RayCaster1.intersectObjects(ne.getScene()._root.children,true);
                 if(!!obj){
-                    objClicked = obj;
+                    objClicked = obj[0];
                 }else{
                     objClicked = null;
                 }

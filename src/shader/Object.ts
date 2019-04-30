@@ -1,6 +1,7 @@
 namespace shader{
     /**
      * 所有３维物体的子类，实现基本方法
+     * 停用，使用NEnode.ts类来实现基本
      */
     export class NEObject{
         vertex:string    = ''+
@@ -59,7 +60,7 @@ namespace shader{
         public name  = '';
         public Child = [];
         public parent:NEObject = null;
-        public boundingBox:BoundingBox = new BoundingBox(null);
+        public boundingBox:BoundingBox = null;
         constructor(){
             this.onLoad();
             this.onStart();
@@ -489,7 +490,7 @@ namespace shader{
                 // console.log(info.colors)
                 target.vertices = info.vertices;
                 target.OBJInfo = target.initVertexBuffer(info.vertices,info.colors,info.normals,info.indices);  
-                target.boundingBox = new BoundingBox(target);
+                // target.boundingBox = new BoundingBox(target,info.vertices);
                 // console.log(target.OBJInfo);
                 if(typeof callBack == "function")callBack();
             }.bind(target));

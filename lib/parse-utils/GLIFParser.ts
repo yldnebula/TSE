@@ -97,7 +97,8 @@ namespace Utils{
             for(var i = 0; i < this.Node.length;i++){
                 this.parseNode(this.Node[i]);
             }
-            render.render(ne.getScene())
+            render.renderScene(ne.getScene())
+            render.loadAsset();
             render.main()
             return ret;
         }

@@ -1,5 +1,5 @@
 namespace shader{
-    export class Plane extends NEObject{
+    export class Plane extends NEnode{
         info = null;
         colors = null;
         normals= null;
@@ -20,13 +20,12 @@ namespace shader{
                 this.indices  = this.info.indices;
                 this.cube = this.initVertexBuffer(this.vertices,this.colors,this.normals,this.indices);  
                 
-                this.boundingBox = new BoundingBox(this);
+                this.boundingBox = new BoundingBox(this,this.vertices);
                 // console.log(this.info);
             }.bind(this));
             // this.scale = new Vector3(50,0,50);
         }
-        onUpdate(){
-            this._draw(this.program, this.info);
+        onUpdate(dt){
         }
     }
 }

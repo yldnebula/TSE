@@ -1,6 +1,10 @@
 declare namespace Utils {
     const generateUUID: () => string;
     function arrayRemove<T>(arr: Array<T>, elm: T): void;
+    function intToBytes24(i: any): any[];
+    function intToBytes32(i: any): any[];
+    function bytesToInt24(r: any, g: any, b: any): number;
+    function bytesToInt32(r: any, g: any, b: any, a: any): number;
 }
 declare namespace Utils {
     const DEG_TO_RAD: number;
@@ -419,7 +423,7 @@ declare namespace Utils {
     }
 }
 /**
- * 单例着色器工具类
+ * 通用工具类
  */
 declare namespace Utils {
     class ShaderUtils {
@@ -508,7 +512,7 @@ declare namespace Core {
         LigthPoint: Float32Array;
         AmbientLight: Float32Array;
         projViewMatrix: Matrix4;
-        _root: NEObject;
+        _root: NEnode;
         private updateEvents;
         constructor(id: number);
         /**
@@ -525,12 +529,12 @@ declare namespace Core {
         /**
          * 为场景添加一个孩子
          */
-        addChild(object: NEObject): void;
+        addChild(object: NEnode): void;
         addChild1(object: NEnode): void;
         /**
          * 删除一个孩子
          */
-        deleteChild(object: NEObject): void;
+        deleteChild(object: NEnode): void;
         /**
          * 场景更新函数，最终交由render管理
          * @param dt 帧间隔时间
@@ -549,9 +553,14 @@ declare namespace Core {
         /**
          * 递归遍历场景子节点,自顶向下行为
          * //也可以考虑在每个NEObject中定义注册函数，形成自下而上的行为
+         * 旧版暂时不用
          */
-        traverseScene(parent: NEObject, callBack: (parent: NEObject) => void): void;
-        traverseScene1(parent: NEnode | NEObject, callBack: (parent: NEnode) => void): void;
+        /**
+         * 重构之后的遍历
+         * @param parent
+         * @param callBack
+         */
+        traverseScene(parent: NEnode, callBack: (parent: NEnode) => void): void;
     }
 }
 declare namespace Core {
@@ -591,6 +600,21 @@ declare namespace Core {
         getSightDirection(ratio: number): number[];
     }
 }
+declare namespace Lib {
+    /**
+     * 资源加载类
+     */
+    class AssetsLoader {
+        obj: {};
+        constructor();
+        static loadAssets(obj: {
+            [s: string]: Promise<any>;
+        }): Promise<AssetsLoader>;
+        get<T = any>(name: string): T;
+        private set;
+    }
+}
+import Loader = Lib.AssetsLoader;
 declare namespace Core {
     class Render {
         stopped: boolean;
@@ -599,17 +623,22 @@ declare namespace Core {
         frameRate: number;
         startTime: number;
         renderQueue: any[];
-        loadQueue: any;
+        loadQueue: any[];
+        loader: Loader;
         constructor();
         /**
-         * 主控函数，控制生命周期和帧刷新
+         *加载已经注册到render的onLoad函数
+         *对于GLIF来说使用的文件大多都是重复的文件，所以可以使用缓存来提高加载速度，现在没有实现－－－实现方法，localStorage类
+         */
+        loadAsset(): void;
+        /**
+         * 主控函数，控制生命周期和帧刷新，这里有个需求就是onstart函数要在这里面运行一次
          */
         main(): void;
         /**
          * 渲染函数，将所有帧更新函数加入渲染队列,如果需要渲染几个场景，可以将scene改为Scene[]
          */
-        render(scene: Scene): void;
-        renderScene1(scene: Scene): void;
+        renderScene(scene: Scene): void;
         /**
          * async Load
          */
@@ -645,16 +674,10 @@ import arrayRemove = Utils.arrayRemove;
 import NElement = Core.NElement;
 declare namespace Core {
     class NEnode extends NElement implements Script {
-        scaleCompensatePosTransform: Matrix4;
-        scaleCompensatePos: Vector3;
-        scaleCompensateRot: Quat;
-        scaleCompensateRot2: Quat;
-        scaleCompensateScale: Vector3;
-        scaleCompensateScaleForParent: Vector3;
         scale: Vector3;
         rotation: Quat;
         position: Vector3;
-        color: Vector4;
+        color: Color;
         eulerAngles: Vector3;
         worldTransform: Matrix4;
         localPosition: Vector3;
@@ -662,17 +685,19 @@ declare namespace Core {
         localScale: Vector3;
         localEulerAngles: Vector3;
         localTransform: Matrix4;
-        scaleCompensation: boolean;
-        private _dirtyNormal;
-        private _dirtyLocal;
-        private _dirtyWorld;
         private _up;
         private _right;
         private _forward;
         parent: NEnode;
         children: NEnode[];
+        boundingBox: any;
+        shader: Shader;
         constructor();
         onLoad(): void;
+        onStart(): void;
+        onUpdate(dt: any): void;
+        onDestroy(): void;
+        setColor(color: Color): void;
         addChild(child: NEnode): void;
         removeChild(child: NEnode): void;
         setPosition(x: Vector3): this;
@@ -680,7 +705,6 @@ declare namespace Core {
         /**
          * 获取世界坐标
          * @returns
-         * @memberof INode
          */
         getPosition(): Vector3;
         setLocalEulerAngles(x: Vector3): this;
@@ -701,7 +725,6 @@ declare namespace Core {
         setRotation(x: Quat): this;
         setRotation(x: number, y: number, z: number, w: number): this;
         getRotation(): Quat;
-        getWorldTransform(): Matrix4;
         setLocalScale(x: Vector3): this;
         setLocalScale(x: number, y: number, z: number): this;
         getLocalScale(): Vector3;
@@ -709,23 +732,15 @@ declare namespace Core {
         rotate(x: number, y: number, z: number): this;
         rotateLocal(x: Vector3): this;
         rotateLocal(x: number, y: number, z: number): this;
+        rotateFromAxis(axis: Vector3, angle: number, isRadian: boolean): this;
         translate(x: Vector3): this;
         translate(x: number, y: number, z: number): this;
         translateLocal(x: Vector3): this;
         translateLocal(x: number, y: number, z: number): this;
         getLocalTransform(): Matrix4;
-        syncHierarchy(): void;
+        getWorldTransform(): Matrix4;
         private _sync;
         readonly root: NEnode;
-        /**
-         * 标记自己和儿子“脏” 需要重新获取位置
-         *
-         * @private
-         * @param {boolean} [local]
-         * @returns
-         * @memberof INode
-         */
-        _dirtify(local?: boolean): void;
         readonly up: Vector3;
         readonly forward: Vector3;
         readonly right: Vector3;
@@ -748,10 +763,11 @@ declare namespace shader {
         u_LightColor: WebGLUniformLocation;
         u_LightPosition: WebGLUniformLocation;
         u_AmbientLight: WebGLUniformLocation;
+        u_colorSet: WebGLUniformLocation;
         OBJ: any;
         constructor();
         draw(): void;
-        calculateMatrix(position: any, rotation: any, scale: any): void;
+        calculateMatrix(worldMatrix: Matrix4): void;
         /**
          * 初始化各缓存区
          * @param gl 上下文
@@ -812,7 +828,7 @@ declare namespace NE3D {
         boundingBox: any;
         constructor();
         onLoad(): void;
-        onUpdate(): void;
+        onUpdate(dt: any): void;
     }
 }
 declare namespace Lib {
@@ -830,7 +846,7 @@ declare namespace Lib {
          * @param objects 检查的物体
          * @param testChild 是否检查子物体
          */
-        intersectObjects(objects: NEObject[], testChild: boolean): NEObject;
+        intersectObjects(objects: NEnode[], testChild: boolean): NEnode[];
         /**
          * 判断点在面中
          * @param pA 三角形a点
@@ -866,14 +882,14 @@ declare namespace Lib {
     class BoundingBox {
         vertices: Float32Array;
         indices: Uint16Array;
-        target: NEObject;
+        target: NEnode;
         maxX: number;
         maxY: number;
         maxZ: number;
         minX: number;
         minY: number;
         minZ: number;
-        constructor(object: NEObject);
+        constructor(object: NEnode, vertices: Float32Array);
         updateBoundingBox(): void;
         handleObject(vertices: any): void;
         setVertices(maxX: any, minX: any, maxY: any, minY: any, maxZ: any, minZ: any): void;
@@ -883,6 +899,7 @@ declare namespace Lib {
 declare namespace shader {
     /**
      * 所有３维物体的子类，实现基本方法
+     * 停用，使用NEnode.ts类来实现基本
      */
     class NEObject {
         vertex: string;
@@ -992,39 +1009,6 @@ declare namespace shader {
     }
 }
 declare namespace shader {
-    class Cube extends NEObject {
-        vertex: string;
-        fragment: string;
-        vertices: Float32Array;
-        colors: Float32Array;
-        indices: Uint16Array;
-        normals: Float32Array;
-        gl: WebGLRenderingContext;
-        program: WebGLProgram;
-        shadertool: shaderUtils;
-        u_ModelMatrix: WebGLUniformLocation;
-        u_MvpMatrix: WebGLUniformLocation;
-        u_NormalMatrix: WebGLUniformLocation;
-        u_LightColor: WebGLUniformLocation;
-        u_LightPosition: WebGLUniformLocation;
-        u_AmbientLight: WebGLUniformLocation;
-        cube: any;
-        info: any;
-        constructor();
-        /**
-         * 生命周期函数
-         */
-        onUpdate(dt: any): void;
-        _draw(): void;
-        getVertex(): string;
-        getFragment(): string;
-        /**
-         * 生成单位立方体，位于原点
-         */
-        initCubeInfo(): void;
-    }
-}
-declare namespace shader {
     interface ISIE {
         IS: number;
         IE: number;
@@ -1035,18 +1019,18 @@ declare namespace shader {
      * 2阀门
      * 1管道
      */
-    class Pipe extends NEObject implements ISIE {
+    class Pipe extends NEnode implements ISIE {
         IS: number;
         IE: number;
         direct: Vector3;
         length: number;
+        shader: Shader;
         constructor(x: number, y: number, z: number, startPoint: Vector3);
         onLoad(): void;
-        calculate1(x: number, y: number, z: number, startPoint: Vector3): Vector3;
-        setAxisDirection(which: any): void;
         onUpdate(dt: any): void;
+        calculate1(x: number, y: number, z: number, startPoint: Vector3): Vector3;
     }
-    class Tee extends NEObject implements ISIE {
+    class Tee extends NEnode implements ISIE {
         IS: number;
         IE: number;
         constructor();
@@ -1054,19 +1038,20 @@ declare namespace shader {
         onUpdate(dt: any): void;
         calculate(): void;
     }
-    class Elbow extends NEObject implements ISIE {
+    class Elbow extends NEnode implements ISIE {
         IS: number;
         IE: number;
         RR: number;
         RA: number;
         IA: number;
+        shader: Shader;
         constructor(startPoint: Vector3, direct: Vector3, nextDirect?: Vector3);
         onLoad(): void;
+        onUpdate(dt: any): void;
         initSphere(startPoint: Vector3): void;
         calculate(startPoint: Vector3, direct: Vector3, nextDirect: Vector3): void;
-        onUpdate(dt: any): void;
     }
-    class Valve extends NEObject implements ISIE {
+    class Valve extends NEnode implements ISIE {
         IS: number;
         IE: number;
         constructor();
@@ -1077,7 +1062,7 @@ declare namespace shader {
         ISN: number;
         IEN: number;
         ITY: number;
-        UnitPool: NEObject[];
+        UnitPool: NEnode[];
         startPoint: any[];
         constructor(isn: any, ien: any, ity: any);
     }
@@ -1094,39 +1079,6 @@ declare namespace shader {
         onUpdate(dt: any): void;
     }
 }
-declare namespace shader {
-    class Cylinder extends NEObject {
-        vertex: string;
-        fragment: string;
-        vertices: Float32Array;
-        colors: Float32Array;
-        indices: Uint16Array;
-        normals: Float32Array;
-        gl: WebGLRenderingContext;
-        program: WebGLProgram;
-        shadertool: shaderUtils;
-        u_ModelMatrix: WebGLUniformLocation;
-        u_MvpMatrix: WebGLUniformLocation;
-        u_NormalMatrix: WebGLUniformLocation;
-        u_LightColor: WebGLUniformLocation;
-        u_LightPosition: WebGLUniformLocation;
-        u_AmbientLight: WebGLUniformLocation;
-        Cylinder: any;
-        info: any;
-        constructor();
-        /**
-         * 生命周期函数
-         */
-        onUpdate(dt: any): void;
-        _draw(): void;
-        getVertex(): string;
-        getFragment(): string;
-        /**
-         * 生成单位立方体，位于原点
-         */
-        initCylinderInfo(): void;
-    }
-}
 import Nebula = Core.Nebula;
 import Scene = Core.Scene;
 import Camera = Core.Camera;
@@ -1135,8 +1087,6 @@ import Matrix4 = Utils.Matrix4;
 import Vector3 = Utils.Vector3;
 import Vector4 = Utils.Vector4;
 import Quat = Utils.Quat;
-import cube = shader.Cube;
-import Cylinder = shader.Cylinder;
 import NEObject = shader.NEObject;
 import OBJParser = Utils.ObjParser;
 import Render = Core.Render;
@@ -1161,6 +1111,24 @@ declare var sceneInfo: Scene;
 declare var camera: Camera;
 declare var render: Render;
 declare function main(): void;
+import intToBytes32 = Utils.intToBytes32;
+import intToBytes24 = Utils.intToBytes24;
+declare namespace Core {
+    class Color {
+        buffer: ArrayBuffer;
+        data: Float32Array;
+        constructor(r?: number, g?: number, b?: number, a?: number);
+        clone(): Color;
+        copy({ data }: Color): this;
+        set(r: number, g: number, b: number, a?: number): this;
+        fromString(hex: any): this;
+        toString(alpha: any): string;
+        r: number;
+        g: number;
+        b: number;
+        a: number;
+    }
+}
 declare const zero_guard = 0.00001;
 declare function rayPickLog(val: any): void;
 declare function test1(): void;
@@ -1187,7 +1155,7 @@ declare function pointInSurface2D(pA: any, pB: any, pC: any, p: any): boolean;
  */
 declare function cross(out: any, a: any, b: any): any;
 declare namespace shader {
-    class Plane extends NEObject {
+    class Plane extends NEnode {
         info: any;
         colors: any;
         normals: any;
@@ -1195,6 +1163,6 @@ declare namespace shader {
         constructor();
         constructor();
         initPlane(): void;
-        onUpdate(): void;
+        onUpdate(dt: any): void;
     }
 }

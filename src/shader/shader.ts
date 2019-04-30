@@ -25,11 +25,12 @@ namespace shader{
         'uniform vec3 u_LightColor;\n' +     // Light color
         'uniform vec3 u_LightPosition;\n' +  // Position of the light source
         'uniform vec3 u_AmbientLight;\n' +   // Ambient light color
+        'uniform vec3 u_colorSet;\n'+
         'varying vec3 v_Normal;\n' +
         'varying vec3 v_Position;\n' +
         'varying vec4 v_Color;\n' +
         'void main() {\n' +
-        // '  vec4 n_color = vec4(1.0,1.0,0.0,1.0);\n' +
+        '  vec4 n_color = vec4(1.0,1.0,0.0,1.0);\n' +
         // Normalize the normal because it is interpolated and not 1.0 in length any more
         '  vec3 normal = normalize(v_Normal);\n' +
         // Calculate the light direction and make its length 1.
@@ -57,6 +58,7 @@ namespace shader{
         u_LightColor:WebGLUniformLocation       = null;
         u_LightPosition:WebGLUniformLocation    = null;
         u_AmbientLight:WebGLUniformLocation     = null;
+        u_colorSet:WebGLUniformLocation     = null;
 
         OBJ = null;//各类数组
         constructor(){
@@ -71,6 +73,7 @@ namespace shader{
             this.u_LightColor    = GL.getUniformLocation(this.program, 'u_LightColor');
             this.u_LightPosition = GL.getUniformLocation(this.program, 'u_LightPosition');
             this.u_AmbientLight  = GL.getUniformLocation(this.program, 'u_AmbientLight');
+            this.u_colorSet      = GL.getUniformLocation(this.program, 'u_colorSet');
         }
         draw(){
             if(this.program && this.OBJ){
@@ -109,8 +112,8 @@ namespace shader{
             }
         }
         //每帧绘制之前计算一下当前的矩阵信息
-        calculateMatrix(position,rotation,scale){
-            this._modelMatrix = new Matrix4(null).setTRS(position, rotation, scale);
+        calculateMatrix(worldMatrix:Matrix4){
+            this._modelMatrix = worldMatrix;
             this._mvpMatrix.set(camera.projViewMatrix).multiply(this._modelMatrix);
             this._normalMatrix = new Matrix4(null).setInverseOf(this._modelMatrix).transpose();
         }

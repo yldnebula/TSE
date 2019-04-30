@@ -1,5 +1,5 @@
 /**
- * 单例着色器工具类
+ * 通用工具类
  */
 namespace Utils{
     export class ShaderUtils{

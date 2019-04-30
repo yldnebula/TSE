@@ -9,7 +9,7 @@ namespace Core{
         AmbientLight:Float32Array = new Float32Array([0.2, 0.2, 0.2]);;
         projViewMatrix:Matrix4 = null;
 
-        _root:NEObject = new NEObject();//根节点
+        _root:NEnode = new NEnode();//根节点
         private updateEvents: Array<(deltaTime: number) => void> = [];
         constructor(id:number){
             // if(Scene.instanceCount == 0){//不是单例类，多个场景切换
@@ -41,20 +41,20 @@ namespace Core{
         /**
          * 为场景添加一个孩子
          */
-        addChild(object:NEObject){
-            this._root.Child.push(object);
+        addChild(object:NEnode){
+            this._root.children.push(object);
         }
         addChild1(object:NEnode){
-            this._root.Child.push(object);
+            this._root.children.push(object);
 
         }
         /**
          * 删除一个孩子
          */
-        deleteChild(object:NEObject){
-            for(var i = 0; i < this._root.Child.length; i++){
-                if(this._root.Child[i] === object){
-                    this._root.Child.splice(i,1);
+        deleteChild(object:NEnode){
+            for(var i = 0; i < this._root.children.length; i++){
+                if(this._root.children[i] === object){
+                    this._root.children.splice(i,1);
                 }
             }
         }
@@ -90,25 +90,31 @@ namespace Core{
         /**
          * 递归遍历场景子节点,自顶向下行为
          * //也可以考虑在每个NEObject中定义注册函数，形成自下而上的行为
+         * 旧版暂时不用
          */
-        traverseScene(parent:NEObject,callBack:(parent:NEObject)=>void){
+        // traverseScene(parent:NEObject,callBack:(parent:NEObject)=>void){
+        //     if(parent instanceof NEObject){
+        //         callBack(parent);
+        //     }
+        //     if(!!parent && parent.Child.length>0){
+        //         for(var child of parent.Child){
+        //             this.traverseScene(child,callBack);
+        //         }
+        //     }
+        // }
+        /**
+         * 重构之后的遍历
+         * @param parent 
+         * @param callBack 
+         */
+        traverseScene(parent:NEnode,callBack:(parent:NEnode)=>void){
             if(parent instanceof NEObject){
-                callBack(parent);
-            }
-            if(!!parent && parent.Child.length>0){
                 for(var child of parent.Child){
-                    this.traverseScene(child,callBack);
-                }
-            }
-        }
-        traverseScene1(parent:NEnode | NEObject,callBack:(parent:NEnode)=>void){
-            if(parent instanceof NEObject){
-                for(var child of parent.Child){
-                    this.traverseScene1(child,callBack)
+                    this.traverseScene(child,callBack)
                 }
             }else if(!!parent && parent.children.length>0){
                 for(var child1 of parent.children){
-                    this.traverseScene1(child1,callBack);
+                    this.traverseScene(child1,callBack);
                 }
             }
             if(parent instanceof NEnode){

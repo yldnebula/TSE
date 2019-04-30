@@ -44,4 +44,50 @@ namespace Utils{
             arr.splice(i, 1);
         }
     }
+    
+    export function intToBytes24(i) {
+        let r, g, b;
+    
+        r = (i >> 16) & 0xff;
+        g = (i >> 8) & 0xff;
+        b = (i) & 0xff;
+    
+        return [r, g, b];
+    }
+    
+    export function intToBytes32(i) {
+        let r, g, b, a;
+    
+        r = (i >> 24) & 0xff;
+        g = (i >> 16) & 0xff;
+        b = (i >> 8) & 0xff;
+        a = (i) & 0xff;
+    
+        return [r, g, b, a];
+    }
+    
+    
+    export function bytesToInt24(r, g, b) {
+        if (r.length) {
+            b = r[2];
+            g = r[1];
+            r = r[0];
+        }
+        return ((r << 16) | (g << 8) | b);
+    }
+    
+    export function bytesToInt32(r, g, b, a) {
+        if (r.length) {
+            a = r[3];
+            b = r[2];
+            g = r[1];
+            r = r[0];
+        }
+        // Why ((r << 24)>>>32)?
+        // << operator uses signed 32 bit numbers, so 128<<24 is negative.
+        // >>> used unsigned so >>>32 converts back to an unsigned.
+        // See http://stackoverflow.com/questions/1908492/unsigned-integer-in-javascript
+        return ((r << 24) | (g << 16) | (b << 8) | a) >>> 32;
+    }
+    
 }

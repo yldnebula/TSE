@@ -10,17 +10,12 @@ import NElement = Core.NElement
 namespace Core{
 
     export class NEnode extends NElement implements Script{
-        scaleCompensatePosTransform = new Matrix4();
-        scaleCompensatePos = new Vector3();
-        scaleCompensateRot = new Quat();
-        scaleCompensateRot2 = new Quat();
-        scaleCompensateScale = new Vector3();
-        scaleCompensateScaleForParent = new Vector3();
+    
         //world
         scale = new Vector3(1,1,1);
         rotation = new Quat(0,0,0,1);
         position = new Vector3(0,0,0);
-        color = new Vector4(0,0,0,1);
+        color = new Color(0,0,0,1);
         eulerAngles = new Vector3(0,0,0);
         worldTransform = new Matrix4();
 
@@ -32,26 +27,39 @@ namespace Core{
         localEulerAngles = new Vector3(0, 0, 0);
         localTransform = new Matrix4();
 
-        scaleCompensation = false;
-        private _dirtyNormal = true;
-        private _dirtyLocal = false;
-        private _dirtyWorld = false;
         private _up = new Vector3();
         private _right = new Vector3();
         private _forward = new Vector3();
     
         parent:NEnode = null;
         children:NEnode[] = [];
+
+        //*****下面的变量有点没想好咋处理，先申明在这里 */
+        boundingBox = null;
+        shader:Shader = null;
         constructor(){
             super();
         }
         onLoad(){
             
         }
+        onStart(){
+
+        }
+        onUpdate(dt){
+
+        }
+        onDestroy(){
+
+        }
+        setColor(color:Color){//我也不知道放这里好不好，但是现在还没有合适的位置;也不太清楚这个是不是最合适的修改颜色的方法,希望多思考一下，必要时可以改动一下架构
+            this.color = color;
+            // this.shader.OBJ.color = this.shader.initArrayBufferForLaterUse(GL,)
+        }
         addChild(child: NEnode) {
             this.children.push(child);
             child.parent = this;
-            child._dirtify();
+
         }
         removeChild(child: NEnode) {
             arrayRemove(this.children, child);
@@ -59,28 +67,22 @@ namespace Core{
         }
         setPosition(x: Vector3): this;
         setPosition(x: number, y: number, z: number): this;
-        setPosition(x?, y?, z?) {
+        setPosition(x?, y?, z?) {//与层级结构有关的位置变换
             let position = new Vector3();
             if (x instanceof Vector3) {
                 position.copy(x);
             } else {
                 position.set(x, y, z);
             }
-            if (this.parent == null) {
-                this.localPosition = position;
-            } else {
-                let invParentWtm = new Matrix4().copy(this.parent.getWorldTransform()).invert();
-                invParentWtm.transformPoint(position, this.localPosition);
-            }
-            if (!this._dirtyLocal) {
-                this._dirtify(true);
-            }
+            this.localPosition = position;
+
+            this._sync();//更新
+
             return this;
         }
         /**
          * 获取世界坐标
          * @returns
-         * @memberof INode
          */
         getPosition() {
             this.getWorldTransform().getTranslation(this.position);
@@ -94,9 +96,8 @@ namespace Core{
             } else {
                 this.localRotation.setFromEulerAngles(x, y, z);
             }
-            if (!this._dirtyLocal) {
-                this._dirtify(true);
-            }
+
+            this.getLocalTransform();//修改本地模型矩阵
             return this;
         }
         getLocalEulerAngles() {
@@ -111,15 +112,8 @@ namespace Core{
             } else {
                 this.localRotation.setFromEulerAngles(x, y, z);
             }
-            if (this.parent != null) {
-                let parentRot = this.parent.getRotation();
-                let invParentRot = new Quat().copy(parentRot).invert();
-                this.localRotation.mul2(invParentRot, this.localRotation);
-            }
-    
-            if (!this._dirtyLocal) {
-                this._dirtify(true);
-            }
+
+            this._sync();
             return this;
         }
         getEulerAngles() {
@@ -134,10 +128,8 @@ namespace Core{
             } else {
                 this.localPosition.set(x, y, z);
             }
-            // this.localPosition.copy(Vector3);
-            if (!this._dirtyLocal) {
-                this._dirtify(true);
-            }
+
+            this.getLocalTransform();
             return this;
         }
         getLocalPosition() {
@@ -158,32 +150,13 @@ namespace Core{
             } else {
                 rotation = new Quat(x, y, z, w);
             }
-            if (this.parent == null) {
-                this.localRotation.copy(rotation);
-            } else {
-                let parentRot = this.parent.getRotation();
-                let invParentRot = new Quat().copy(parentRot).invert();
-                this.localRotation.copy(invParentRot).mul(rotation);
-            }
-    
-            if (!this._dirtyLocal) {
-                this._dirtify(true);
-            }
+            this.localRotation = rotation;
+            this._sync();
             return this;
         }
         getRotation() {
             this.rotation.setFromMat4(this.getWorldTransform());
             return this.rotation;
-        }
-        getWorldTransform() {
-            if (!this._dirtyLocal && !this._dirtyWorld) {
-                return this.worldTransform;
-            }
-            if (this.parent) {
-                this.parent.getWorldTransform();
-            }
-            this._sync();
-            return this.worldTransform;
         }
         setLocalScale(x: Vector3): this;
         setLocalScale(x: number, y: number, z: number): this;
@@ -192,10 +165,6 @@ namespace Core{
                 this.localScale.copy(x);
             } else {
                 this.localScale.set(x, y, z);
-            }
-    
-            if (!this._dirtyLocal) {
-                this._dirtify(true);
             }
             return this;
         }
@@ -224,9 +193,7 @@ namespace Core{
                 this.localRotation.mul2(quaternion, rot);
             }
     
-            if (!this._dirtyLocal) {
-                this._dirtify(true);
-            }
+            this._sync();
             return this;
         }
         rotateLocal(x: Vector3): this;
@@ -241,9 +208,20 @@ namespace Core{
     
             this.localRotation.mul(quaternion);
     
-            if (!this._dirtyLocal) {
-                this._dirtify(true);
-            }
+            return this;
+        }
+        rotateFromAxis(axis:Vector3,angle:number,isRadian:boolean){//绕轴旋转，右手定则
+            let rotation: Quat;
+            var alpha = isRadian?angle:angle*Math.PI/180;//修改为右手定则
+            axis = axis.normalize();
+            
+            var x= Math.sin(alpha/2)*axis.x;
+            var y= Math.sin(alpha/2)*axis.y;
+            var z= Math.sin(alpha/2)*axis.z;
+            var w= Math.cos(alpha/2)
+
+            rotation = new Quat(x, y, z, w);
+            this.localRotation.mul(rotation);
             return this;
         }
         translate(x: Vector3): this;
@@ -270,91 +248,33 @@ namespace Core{
             }
             this.localRotation.transformVector(translation, translation);
             this.localPosition.add(translation);
-    
-            if (!this._dirtyLocal) {
-                this._dirtify(true);
-            }
+
             return this;
         }
         getLocalTransform() {
-            if (this._dirtyLocal) {
-                this.localTransform.setTRS(this.localPosition, this.localRotation, this.localScale);
-                this._dirtyLocal = false;
-            }
+            this.localTransform = new Matrix4().setTRS(this.localPosition,this.localRotation,this.localScale);
+
             return this.localTransform;
         }
-        // 更新此节点及其所有后代的世界转换矩阵。
-        syncHierarchy() {
-            if (!this.enabled) {
-                return;
+        getWorldTransform() {
+            var parentModelMatrix = new Matrix4();
+            if (!!this.parent) {//如果父亲存在,层级结构可以一直递归到根
+                parentModelMatrix = this.parent.getWorldTransform();
             }
-            if (this._dirtyLocal || this._dirtyWorld) {
-                this._sync();
-            }
-            for (let i = 0; i < this.children.length; i++) {
-                this.children[i].syncHierarchy();
-            }
+
+            this.worldTransform = parentModelMatrix.multiply(this.getLocalTransform());//setTRS
+
+            return this.worldTransform;
         }
-        private _sync() {
-            if (this._dirtyLocal) {
-                this.localTransform.setTRS(this.localPosition, this.localRotation, this.localScale);
-                this._dirtyLocal = false;
-            }
-            if (this._dirtyWorld) {
-                if (this.parent == null) {
-    
-                    this.worldTransform.copy(this.localTransform);
-                } else {
-                    if (this.scaleCompensation) {
-                        let parentWorldScale!: Vector3;
-                        let parent = this.parent;
-    
-                        // Find a parent of the first uncompensated node up in the hierarchy and use its scale * localScale
-                        let scale = this.localScale;
-                        let parentToUseScaleFrom: NEnode | undefined = parent; // current parent
-                        if (parentToUseScaleFrom) {
-                            while (parentToUseScaleFrom && parentToUseScaleFrom.scaleCompensation) {
-                                parentToUseScaleFrom = parentToUseScaleFrom.parent;
-                            }
-                            // topmost node with scale compensation
-                            if (parentToUseScaleFrom) {
-                                parentToUseScaleFrom = parentToUseScaleFrom.parent;
-                            } // node without scale compensation
-                            if (parentToUseScaleFrom) {
-                                parentWorldScale = parentToUseScaleFrom.worldTransform.getScale();
-                                this.scaleCompensateScale.mul2(parentWorldScale, this.localScale);
-                                scale = this.scaleCompensateScale;
-                            }
-                        }
-    
-    
-                        // Rotation is as usual
-                        this.scaleCompensateRot2.setFromMat4(parent.worldTransform);
-                        this.scaleCompensateRot.mul2(this.scaleCompensateRot2, this.localRotation);
-    
-                        // Find matrix to transform position
-                        let tmatrix = parent.worldTransform;
-                        if (parent.scaleCompensation) {
-                            // console.assert(parentWorldScale, 'parentWorldScale 不能是null');
-                            this.scaleCompensateScaleForParent.mul2(parentWorldScale, parent.getLocalScale());
-                            this.scaleCompensatePosTransform.setTRS(parent.worldTransform.getTranslation(this.scaleCompensatePos),
-                                this.scaleCompensateRot2,
-                                this.scaleCompensateScaleForParent);
-                            tmatrix = this.scaleCompensatePosTransform;
-                        }
-                        tmatrix.transformPoint(this.localPosition, this.scaleCompensatePos);
-    
-                        this.worldTransform.setTRS(this.scaleCompensatePos,this. scaleCompensateRot, scale);
-    
-                    } else {
-                        this.worldTransform.mul2(this.parent.worldTransform, this.localTransform);
-                    }
+        private _sync(){//更新层级结构世界模型矩阵
+            this.worldTransform = this.getWorldTransform();
+
+            if(this.children.length>0){
+                for(var child of this.children){
+                    child.worldTransform = this.worldTransform.multiply(child.localTransform);//更新子节点世界模型矩阵，传入shader即可进行层次修改
                 }
-    
-                this._dirtyWorld = false;
             }
         }
-    
         get root() {
             let parent = this.parent;
             if (!parent) {
@@ -364,37 +284,6 @@ namespace Core{
                 parent = parent.parent;
             }
             return parent;
-        }
-        /**
-         * 标记自己和儿子“脏” 需要重新获取位置
-         *
-         * @private
-         * @param {boolean} [local]
-         * @returns
-         * @memberof INode
-         */
-        // tslint:disable-next-line:member-ordering
-        _dirtify(local?: boolean) {
-            if ((!local || (local && this._dirtyLocal)) && this._dirtyWorld) {
-                return;
-            }
-            if (local) {
-                this._dirtyLocal = true;
-            }
-            if (!this._dirtyWorld) {
-                this._dirtyWorld = true;
-    
-                let i = this.children.length;
-                while (i--) {
-                    if (this.children[i]._dirtyWorld) {
-                        continue;
-                    }
-                    this.children[i]._dirtify();
-                }
-            }
-            this._dirtyNormal = true;
-            // this._aabbVer++;
-            // TODO
         }
         get up() {
             return this.getWorldTransform().getY(this._up).normalize();
