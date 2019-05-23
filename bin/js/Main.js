@@ -1,3 +1,38 @@
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+var __generator = (this && this.__generator) || function (thisArg, body) {
+    var _ = { label: 0, sent: function() { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g;
+    return g = { next: verb(0), "throw": verb(1), "return": verb(2) }, typeof Symbol === "function" && (g[Symbol.iterator] = function() { return this; }), g;
+    function verb(n) { return function (v) { return step([n, v]); }; }
+    function step(op) {
+        if (f) throw new TypeError("Generator is already executing.");
+        while (_) try {
+            if (f = 1, y && (t = op[0] & 2 ? y["return"] : op[0] ? y["throw"] || ((t = y["return"]) && t.call(y), 0) : y.next) && !(t = t.call(y, op[1])).done) return t;
+            if (y = 0, t) op = [op[0] & 2, t.value];
+            switch (op[0]) {
+                case 0: case 1: t = op; break;
+                case 4: _.label++; return { value: op[1], done: false };
+                case 5: _.label++; y = op[1]; op = [0]; continue;
+                case 7: op = _.ops.pop(); _.trys.pop(); continue;
+                default:
+                    if (!(t = _.trys, t = t.length > 0 && t[t.length - 1]) && (op[0] === 6 || op[0] === 2)) { _ = 0; continue; }
+                    if (op[0] === 3 && (!t || (op[1] > t[0] && op[1] < t[3]))) { _.label = op[1]; break; }
+                    if (op[0] === 6 && _.label < t[1]) { _.label = t[1]; t = op; break; }
+                    if (t && _.label < t[2]) { _.label = t[2]; _.ops.push(op); break; }
+                    if (t[2]) _.ops.pop();
+                    _.trys.pop(); continue;
+            }
+            op = body.call(thisArg, _);
+        } catch (e) { op = [6, e]; y = 0; } finally { f = t = 0; }
+        if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
+    }
+};
 var __extends = (this && this.__extends) || (function () {
     var extendStatics = function (d, b) {
         extendStatics = Object.setPrototypeOf ||
@@ -13,6 +48,84 @@ var __extends = (this && this.__extends) || (function () {
 })();
 var Utils;
 (function (Utils) {
+    //生成通用位移识别码
+    Utils.generateUUID = (function _() {
+        // http://www.broofa.com/Tools/Math.uuid.htm
+        var chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'.split('');
+        var uuid = new Array(36);
+        var rnd = 0;
+        var r;
+        return function generateUUID() {
+            for (var i = 0; i < 36; i++) {
+                if (i === 8 || i === 13 || i === 18 || i === 23) {
+                    uuid[i] = '-';
+                }
+                else if (i === 14) {
+                    uuid[i] = '4';
+                }
+                else {
+                    if (rnd <= 0x02)
+                        rnd = 0x2000000 + (Math.random() * 0x1000000) | 0;
+                    // tslint:disable-next-line:number-literal-format
+                    r = rnd & 0xf;
+                    rnd = rnd >> 4;
+                    uuid[i] = chars[(i === 19) ? (r & 0x3) | 0x8 : r];
+                }
+            }
+            return uuid.join(''); //返回36位的uuid通用唯一识别码 (Universally Unique Identifier).
+        };
+    })();
+    //数组移除
+    function arrayRemove(arr, elm) {
+        var i = arr.indexOf(elm);
+        if (i > -1) {
+            arr.splice(i, 1);
+        }
+    }
+    Utils.arrayRemove = arrayRemove;
+    function intToBytes24(i) {
+        var r, g, b;
+        r = (i >> 16) & 0xff;
+        g = (i >> 8) & 0xff;
+        b = (i) & 0xff;
+        return [r, g, b];
+    }
+    Utils.intToBytes24 = intToBytes24;
+    function intToBytes32(i) {
+        var r, g, b, a;
+        r = (i >> 24) & 0xff;
+        g = (i >> 16) & 0xff;
+        b = (i >> 8) & 0xff;
+        a = (i) & 0xff;
+        return [r, g, b, a];
+    }
+    Utils.intToBytes32 = intToBytes32;
+    function bytesToInt24(r, g, b) {
+        if (r.length) {
+            b = r[2];
+            g = r[1];
+            r = r[0];
+        }
+        return ((r << 16) | (g << 8) | b);
+    }
+    Utils.bytesToInt24 = bytesToInt24;
+    function bytesToInt32(r, g, b, a) {
+        if (r.length) {
+            a = r[3];
+            b = r[2];
+            g = r[1];
+            r = r[0];
+        }
+        // Why ((r << 24)>>>32)?
+        // << operator uses signed 32 bit numbers, so 128<<24 is negative.
+        // >>> used unsigned so >>>32 converts back to an unsigned.
+        // See http://stackoverflow.com/questions/1908492/unsigned-integer-in-javascript
+        return ((r << 24) | (g << 16) | (b << 8) | a) >>> 32;
+    }
+    Utils.bytesToInt32 = bytesToInt32;
+})(Utils || (Utils = {}));
+var Utils;
+(function (Utils) {
     Utils.DEG_TO_RAD = Math.PI / 180;
     Utils.RAD_TO_DEG = 180 / Math.PI;
     Utils.INV_LOG2 = 1 / Math.log(2);
@@ -20,19 +133,79 @@ var Utils;
      * 四方矩阵类
      */
     var Matrix4 = /** @class */ (function () {
-        function Matrix4(opt_src) {
+        function Matrix4(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15) {
+            var _this = this;
             this.elements = null;
-            var i, s, d;
-            if (opt_src && opt_src.hasOwnProperty('elements')) {
-                s = opt_src.elements;
-                d = new Float32Array(16);
-                for (i = 0; i < 16; ++i) {
-                    d[i] = s[i];
-                }
-                this.elements = d;
+            this.getEulerAngles = (function () {
+                var scale = new Vector3();
+                return function (eulers) {
+                    var x, y, z, sx, sy, sz, m, halfPi;
+                    eulers = (eulers === undefined) ? new Vector3() : eulers;
+                    _this.getScale(scale);
+                    sx = scale.x;
+                    sy = scale.y;
+                    sz = scale.z;
+                    m = _this.elements;
+                    y = Math.asin(-m[2] / sx);
+                    halfPi = Math.PI * 0.5;
+                    if (y < halfPi) {
+                        if (y > -halfPi) {
+                            x = Math.atan2(m[6] / sy, m[10] / sz);
+                            z = Math.atan2(m[1] / sx, m[0] / sx);
+                        }
+                        else {
+                            // Not a unique solution
+                            z = 0;
+                            x = -Math.atan2(m[4] / sy, m[5] / sy);
+                        }
+                    }
+                    else {
+                        // Not a unique solution
+                        z = 0;
+                        x = Math.atan2(m[4] / sy, m[5] / sy);
+                    }
+                    return eulers.set(x, y, z).scale(Utils.RAD_TO_DEG);
+                };
+            })();
+            this.getScale = (function () {
+                var x, y, z;
+                x = new Vector3();
+                y = new Vector3();
+                z = new Vector3();
+                return function (scale) {
+                    scale = (scale === undefined) ? new Vector3() : scale;
+                    _this.getX(x);
+                    _this.getY(y);
+                    _this.getZ(z);
+                    scale.set(x.length(), y.length(), z.length());
+                    return scale;
+                };
+            })();
+            if (v0 && v0.length === 16) {
+                this.elements = new Float32Array(v0);
+                return;
+            }
+            this.elements = new Float32Array(16);
+            if (typeof (v0) === 'number') {
+                this.elements[0] = v0;
+                this.elements[1] = v1;
+                this.elements[2] = v2;
+                this.elements[3] = v3;
+                this.elements[4] = v4;
+                this.elements[5] = v5;
+                this.elements[6] = v6;
+                this.elements[7] = v7;
+                this.elements[8] = v8;
+                this.elements[9] = v9;
+                this.elements[10] = v10;
+                this.elements[11] = v11;
+                this.elements[12] = v12;
+                this.elements[13] = v13;
+                this.elements[14] = v14;
+                this.elements[15] = v15;
             }
             else {
-                this.elements = new Float32Array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]);
+                this.setIdentity();
             }
         }
         /**
@@ -109,6 +282,58 @@ var Utils;
          */
         Matrix4.prototype.multiply = function (other) {
             this.concat(other);
+            return this;
+        };
+        Matrix4.prototype.mul2 = function (lhs, rhs) {
+            var a00, a01, a02, a03, a10, a11, a12, a13, a20, a21, a22, a23, a30, a31, a32, a33, b0, b1, b2, b3, a = lhs.elements, b = rhs.elements, r = this.elements;
+            a00 = a[0];
+            a01 = a[1];
+            a02 = a[2];
+            a03 = a[3];
+            a10 = a[4];
+            a11 = a[5];
+            a12 = a[6];
+            a13 = a[7];
+            a20 = a[8];
+            a21 = a[9];
+            a22 = a[10];
+            a23 = a[11];
+            a30 = a[12];
+            a31 = a[13];
+            a32 = a[14];
+            a33 = a[15];
+            b0 = b[0];
+            b1 = b[1];
+            b2 = b[2];
+            b3 = b[3];
+            r[0] = a00 * b0 + a10 * b1 + a20 * b2 + a30 * b3;
+            r[1] = a01 * b0 + a11 * b1 + a21 * b2 + a31 * b3;
+            r[2] = a02 * b0 + a12 * b1 + a22 * b2 + a32 * b3;
+            r[3] = a03 * b0 + a13 * b1 + a23 * b2 + a33 * b3;
+            b0 = b[4];
+            b1 = b[5];
+            b2 = b[6];
+            b3 = b[7];
+            r[4] = a00 * b0 + a10 * b1 + a20 * b2 + a30 * b3;
+            r[5] = a01 * b0 + a11 * b1 + a21 * b2 + a31 * b3;
+            r[6] = a02 * b0 + a12 * b1 + a22 * b2 + a32 * b3;
+            r[7] = a03 * b0 + a13 * b1 + a23 * b2 + a33 * b3;
+            b0 = b[8];
+            b1 = b[9];
+            b2 = b[10];
+            b3 = b[11];
+            r[8] = a00 * b0 + a10 * b1 + a20 * b2 + a30 * b3;
+            r[9] = a01 * b0 + a11 * b1 + a21 * b2 + a31 * b3;
+            r[10] = a02 * b0 + a12 * b1 + a22 * b2 + a32 * b3;
+            r[11] = a03 * b0 + a13 * b1 + a23 * b2 + a33 * b3;
+            b0 = b[12];
+            b1 = b[13];
+            b2 = b[14];
+            b3 = b[15];
+            r[12] = a00 * b0 + a10 * b1 + a20 * b2 + a30 * b3;
+            r[13] = a01 * b0 + a11 * b1 + a21 * b2 + a31 * b3;
+            r[14] = a02 * b0 + a12 * b1 + a22 * b2 + a32 * b3;
+            r[15] = a03 * b0 + a13 * b1 + a23 * b2 + a33 * b3;
             return this;
         };
         /**
@@ -223,6 +448,119 @@ var Utils;
                 d[i] = inv[i] * det;
             }
             return this;
+        };
+        Matrix4.prototype.copy = function (rhs) {
+            var src = rhs.elements, dst = this.elements;
+            dst[0] = src[0];
+            dst[1] = src[1];
+            dst[2] = src[2];
+            dst[3] = src[3];
+            dst[4] = src[4];
+            dst[5] = src[5];
+            dst[6] = src[6];
+            dst[7] = src[7];
+            dst[8] = src[8];
+            dst[9] = src[9];
+            dst[10] = src[10];
+            dst[11] = src[11];
+            dst[12] = src[12];
+            dst[13] = src[13];
+            dst[14] = src[14];
+            dst[15] = src[15];
+            return this;
+        };
+        /**
+         * 修改自身，逆矩阵
+         *
+         * @returns {this} this
+         * @memberof Mat4
+         */
+        Matrix4.prototype.invert = function () {
+            var a00, a01, a02, a03, a10, a11, a12, a13, a20, a21, a22, a23, a30, a31, a32, a33, b00, b01, b02, b03, b04, b05, b06, b07, b08, b09, b10, b11, det, invDet, m;
+            m = this.elements;
+            a00 = m[0];
+            a01 = m[1];
+            a02 = m[2];
+            a03 = m[3];
+            a10 = m[4];
+            a11 = m[5];
+            a12 = m[6];
+            a13 = m[7];
+            a20 = m[8];
+            a21 = m[9];
+            a22 = m[10];
+            a23 = m[11];
+            a30 = m[12];
+            a31 = m[13];
+            a32 = m[14];
+            a33 = m[15];
+            b00 = a00 * a11 - a01 * a10;
+            b01 = a00 * a12 - a02 * a10;
+            b02 = a00 * a13 - a03 * a10;
+            b03 = a01 * a12 - a02 * a11;
+            b04 = a01 * a13 - a03 * a11;
+            b05 = a02 * a13 - a03 * a12;
+            b06 = a20 * a31 - a21 * a30;
+            b07 = a20 * a32 - a22 * a30;
+            b08 = a20 * a33 - a23 * a30;
+            b09 = a21 * a32 - a22 * a31;
+            b10 = a21 * a33 - a23 * a31;
+            b11 = a22 * a33 - a23 * a32;
+            det = (b00 * b11 - b01 * b10 + b02 * b09 + b03 * b08 - b04 * b07 + b05 * b06);
+            if (det === 0) {
+                // #ifdef DEBUG
+                console.warn("pc.Mat4#invert: Can't invert matrix, determinant is 0");
+                // #endif
+                this.setIdentity();
+            }
+            else {
+                invDet = 1 / det;
+                m[0] = (a11 * b11 - a12 * b10 + a13 * b09) * invDet;
+                m[1] = (-a01 * b11 + a02 * b10 - a03 * b09) * invDet;
+                m[2] = (a31 * b05 - a32 * b04 + a33 * b03) * invDet;
+                m[3] = (-a21 * b05 + a22 * b04 - a23 * b03) * invDet;
+                m[4] = (-a10 * b11 + a12 * b08 - a13 * b07) * invDet;
+                m[5] = (a00 * b11 - a02 * b08 + a03 * b07) * invDet;
+                m[6] = (-a30 * b05 + a32 * b02 - a33 * b01) * invDet;
+                m[7] = (a20 * b05 - a22 * b02 + a23 * b01) * invDet;
+                m[8] = (a10 * b10 - a11 * b08 + a13 * b06) * invDet;
+                m[9] = (-a00 * b10 + a01 * b08 - a03 * b06) * invDet;
+                m[10] = (a30 * b04 - a31 * b02 + a33 * b00) * invDet;
+                m[11] = (-a20 * b04 + a21 * b02 - a23 * b00) * invDet;
+                m[12] = (-a10 * b09 + a11 * b07 - a12 * b06) * invDet;
+                m[13] = (a00 * b09 - a01 * b07 + a02 * b06) * invDet;
+                m[14] = (-a30 * b03 + a31 * b01 - a32 * b00) * invDet;
+                m[15] = (a20 * b03 - a21 * b01 + a22 * b00) * invDet;
+            }
+            return this;
+        };
+        /**
+ * 移动到某个点
+ *
+ * @param {Vec3} vec
+ * @param {Vec3} [res] ref
+ * @returns {Vec3} res
+ * @memberof Mat4
+ */
+        Matrix4.prototype.transformPoint = function (vec, res) {
+            var x, y, z, m = this.elements, v = vec.elements;
+            res = (res === undefined) ? new Vector3() : res;
+            x =
+                v[0] * m[0] +
+                    v[1] * m[4] +
+                    v[2] * m[8] +
+                    m[12];
+            y =
+                v[0] * m[1] +
+                    v[1] * m[5] +
+                    v[2] * m[9] +
+                    m[13];
+            z =
+                v[0] * m[2] +
+                    v[1] * m[6] +
+                    v[2] * m[10] +
+                    m[14];
+            return res.set(x, y, z);
         };
         /**
          * 设置正交投影矩阵，定义盒状可视空间，变量范围在[-1.0,1.0]
@@ -702,6 +1040,22 @@ var Utils;
             m[15] = 1;
             return this;
         };
+        Matrix4.prototype.getTranslation = function (t) {
+            t = (t === undefined) ? new Vector3() : t;
+            return t.set(this.elements[12], this.elements[13], this.elements[14]);
+        };
+        Matrix4.prototype.getX = function (x) {
+            x = (x === undefined) ? new Vector3() : x;
+            return x.set(this.elements[0], this.elements[1], this.elements[2]);
+        };
+        Matrix4.prototype.getY = function (y) {
+            y = (y === undefined) ? new Vector3() : y;
+            return y.set(this.elements[4], this.elements[5], this.elements[6]);
+        };
+        Matrix4.prototype.getZ = function (z) {
+            z = (z === undefined) ? new Vector3() : z;
+            return z.set(this.elements[8], this.elements[9], this.elements[10]);
+        };
         return Matrix4;
     }());
     Utils.Matrix4 = Matrix4;
@@ -755,6 +1109,13 @@ var Utils;
             v[0] *= m;
             v[1] *= m;
             v[2] *= m;
+            return this;
+        };
+        Vector3.prototype.mul2 = function (lhs, rhs) {
+            var a = lhs.elements, b = rhs.elements, r = this.elements;
+            r[0] = a[0] * b[0];
+            r[1] = a[1] * b[1];
+            r[2] = a[2] * b[2];
             return this;
         };
         Vector3.prototype.clone = function () {
@@ -1327,7 +1688,8 @@ var Utils;
             for (var i = 0; i < this.Node.length; i++) {
                 this.parseNode(this.Node[i]);
             }
-            render.render(ne.getScene());
+            render.renderScene(ne.getScene());
+            render.loadAsset();
             render.main();
             return ret;
         };
@@ -2039,7 +2401,7 @@ var Utils;
     }
 })(Utils || (Utils = {}));
 /**
- * 单例着色器工具类
+ * 通用工具类
  */
 var Utils;
 (function (Utils) {
@@ -2139,16 +2501,6 @@ var Core;
         function Nebula(id, width, height) {
             this.GL = null;
             this.canvas = null;
-            this.eye = {
-                x: 0,
-                y: 0,
-                z: 14
-            };
-            this.center = {
-                x: 0,
-                y: 0,
-                z: 0
-            };
             this.scene = [];
             this.nowScene = null;
             this.canvas = this.getCanvasByID(id, width, height);
@@ -2263,7 +2615,7 @@ var Core;
             this.LigthPoint = new Float32Array([99999, 99999, 99999]);
             this.AmbientLight = new Float32Array([0.2, 0.2, 0.2]);
             this.projViewMatrix = null;
-            this.Child = [];
+            this._root = new Core.NEnode(); //根节点
             this.updateEvents = [];
             // if(Scene.instanceCount == 0){//不是单例类，多个场景切换
             //     Scene.instanceCount ++;
@@ -2276,7 +2628,7 @@ var Core;
         }
         ;
         /**
-         * 初始化场景
+         * 初始化场景,这个函数必须在每帧一开始调用，并且每帧只能调用一次
          */
         Scene.prototype.initScene = function () {
             GL.clearColor(0.0, 0, 0, 1.0);
@@ -2295,15 +2647,18 @@ var Core;
          * 为场景添加一个孩子
          */
         Scene.prototype.addChild = function (object) {
-            this.Child.push(object);
+            this._root.children.push(object);
+        };
+        Scene.prototype.addChild1 = function (object) {
+            this._root.children.push(object);
         };
         /**
          * 删除一个孩子
          */
         Scene.prototype.deleteChild = function (object) {
-            for (var i = 0; i < this.Child.length; i++) {
-                if (this.Child[i] === object) {
-                    this.Child.splice(i, 1);
+            for (var i = 0; i < this._root.children.length; i++) {
+                if (this._root.children[i] === object) {
+                    this._root.children.splice(i, 1);
                 }
             }
         };
@@ -2340,16 +2695,38 @@ var Core;
         /**
          * 递归遍历场景子节点,自顶向下行为
          * //也可以考虑在每个NEObject中定义注册函数，形成自下而上的行为
+         * 旧版暂时不用
+         */
+        // traverseScene(parent:NEObject,callBack:(parent:NEObject)=>void){
+        //     if(parent instanceof NEObject){
+        //         callBack(parent);
+        //     }
+        //     if(!!parent && parent.Child.length>0){
+        //         for(var child of parent.Child){
+        //             this.traverseScene(child,callBack);
+        //         }
+        //     }
+        // }
+        /**
+         * 重构之后的遍历
+         * @param parent
+         * @param callBack
          */
         Scene.prototype.traverseScene = function (parent, callBack) {
             if (parent instanceof NEObject) {
-                callBack(parent);
-            }
-            if (!!parent && parent.Child.length > 0) {
                 for (var _i = 0, _a = parent.Child; _i < _a.length; _i++) {
                     var child = _a[_i];
                     this.traverseScene(child, callBack);
                 }
+            }
+            else if (!!parent && parent.children.length > 0) {
+                for (var _b = 0, _c = parent.children; _b < _c.length; _b++) {
+                    var child1 = _c[_b];
+                    this.traverseScene(child1, callBack);
+                }
+            }
+            if (parent instanceof Core.NEnode) {
+                callBack(parent);
             }
         };
         Scene.instanceCount = 0;
@@ -2408,6 +2785,10 @@ var Core;
          * 设置正视摄像机,暂时不用开发
          */
         Camera.prototype.setOrthoCamera = function () {
+            this.projectMatrix = new Matrix4(null);
+            // this.projectMatrix.setOrtho(fovy,aspect,near,far);
+            this.projectMatrix.lookAt(this.coordinate.x, this.coordinate.y, this.coordinate.z, this.center.x, this.center.y, this.center.z, 0, 1, 0);
+            this.projViewMatrix = this.projectMatrix;
         };
         /**
          * 获取视线方向向量
@@ -2424,21 +2805,80 @@ var Core;
     }());
     Core.Camera = Camera;
 })(Core || (Core = {}));
+var Lib;
+(function (Lib) {
+    /**
+     * 资源加载类
+     */
+    var AssetsLoader = /** @class */ (function () {
+        function AssetsLoader() {
+            this.assets = {};
+        }
+        AssetsLoader.loadAssets = function (assets) {
+            return __awaiter(this, void 0, void 0, function () {
+                var promiseArr, maps, i, x_1, x, loader;
+                return __generator(this, function (_a) {
+                    switch (_a.label) {
+                        case 0:
+                            promiseArr = [];
+                            maps = {};
+                            i = 0;
+                            for (x_1 in assets) {
+                                promiseArr.push(assets[x_1]);
+                                maps[i++] = x_1;
+                            }
+                            return [4 /*yield*/, Promise.all(promiseArr)];
+                        case 1:
+                            x = _a.sent();
+                            loader = new AssetsLoader();
+                            x.forEach(function (x, i) {
+                                loader.set(maps[i], x);
+                            });
+                            return [2 /*return*/, loader];
+                    }
+                });
+            });
+        };
+        AssetsLoader.prototype.get = function (assetName) {
+            return this.assets[assetName];
+        };
+        AssetsLoader.prototype.set = function (assetName, p) {
+            this.assets[assetName] = p;
+        };
+        return AssetsLoader;
+    }());
+    Lib.AssetsLoader = AssetsLoader;
+})(Lib || (Lib = {}));
+///<reference path="../lib/AssetLoader.ts" />s
+var Loader = Lib.AssetsLoader;
 var Core;
 (function (Core) {
     var Render = /** @class */ (function () {
-        //单例类
+        //单例类,懒得做了，一般不会瞎操作这个类的吧orz
         function Render() {
             this.stopped = true;
             this.currentFPS = 0;
             this.duration = 0;
             this.frameRate = 1000 / 60;
             this.startTime = 0;
+            //Timer计时器，引擎时间线
             this.renderQueue = [];
+            this.loadQueue = [];
+            this.loader = new Loader();
             // requestAnimationFrame(this.main.bind(this));
         }
         /**
-         * 主控函数，控制生命周期和帧刷新
+         *加载已经注册到render的onLoad函数
+         *对于GLIF来说使用的文件大多都是重复的文件，所以可以使用缓存来提高加载速度，现在没有实现－－－实现方法，localStorage类
+         */
+        Render.prototype.loadAsset = function () {
+            for (var _i = 0, _a = this.loadQueue; _i < _a.length; _i++) {
+                var loadCommand = _a[_i];
+                loadCommand();
+            }
+        };
+        /**
+         * 主控函数，控制生命周期和帧刷新，这里有个需求就是onstart函数要在这里面运行一次
          */
         Render.prototype.main = function () {
             if (this.stopped) {
@@ -2457,20 +2897,598 @@ var Core;
         /**
          * 渲染函数，将所有帧更新函数加入渲染队列,如果需要渲染几个场景，可以将scene改为Scene[]
          */
-        Render.prototype.render = function (scene) {
-            //渲染场景，
-            //更新函数
-            ne.getScene().traverseScene(ne.getScene(), function (o) {
-                ne.getScene().addUpdateEvents(o.onUpdate.bind(o));
+        // public render(scene:Scene){//旧版收集NEobject的update函数
+        //     //渲染场景，
+        //     //更新函数
+        //     scene.traverseScene(scene._root,function(o){
+        //         scene.addUpdateEvents(o.onUpdate.bind(o));
+        //         render.stopped = false;
+        //     })
+        //     this.renderQueue.push(scene.initScene.bind(scene))
+        //     this.renderQueue.push(scene._update.bind(scene));
+        // }
+        Render.prototype.renderScene = function (scene) {
+            var that = this;
+            scene.traverseScene(scene._root, function (o) {
+                scene.addUpdateEvents(o.onUpdate.bind(o));
+                that.loadQueue.push(o.onLoad.bind(o)); //收集onLoad函数
                 render.stopped = false;
             });
             this.renderQueue.push(scene.initScene.bind(scene));
             this.renderQueue.push(scene._update.bind(scene));
         };
+        /**
+         * async Load
+         */
+        Render.prototype.onLoad = function (obj) {
+            return __awaiter(this, void 0, void 0, function () {
+                return __generator(this, function (_a) {
+                    switch (_a.label) {
+                        case 0: return [4 /*yield*/, obj.onLoad()];
+                        case 1:
+                            _a.sent();
+                            return [2 /*return*/];
+                    }
+                });
+            });
+        };
         return Render;
     }());
     Core.Render = Render;
 })(Core || (Core = {}));
+var generateUUID = Utils.generateUUID;
+var Core;
+(function (Core) {
+    var NElement = /** @class */ (function () {
+        function NElement() {
+            this.uuid = generateUUID();
+            this.name = '';
+            this.tag = [];
+            this.enabled = true;
+        }
+        return NElement;
+    }());
+    Core.NElement = NElement;
+})(Core || (Core = {}));
+var script;
+(function (script) {
+    /**
+     * 生命周期函数抽象类，NEnode和Component的生命周期都要实现这个类
+     * load表示渲染之前的准备
+     * start开始渲染的第一帧，在onstart之后
+     * update每帧更新
+     * destroy被销毁之前进行的操作，下一帧进行销毁
+     */
+    var Script = /** @class */ (function () {
+        function Script() {
+        }
+        return Script;
+    }());
+    script.Script = Script;
+})(script || (script = {}));
+// /<reference path=".././lib/Render.ts" />
+///<reference path="../core/elements.ts" />
+///<reference path="../../lib/matrix-utils/matrixUtils.ts" />
+///<reference path="../script/Script.ts" />
+var Script = script.Script;
+var arrayRemove = Utils.arrayRemove;
+var NElement = Core.NElement;
+var Core;
+(function (Core) {
+    var NEnode = /** @class */ (function (_super) {
+        __extends(NEnode, _super);
+        function NEnode() {
+            var _this = _super.call(this) || this;
+            //world
+            _this.scale = new Vector3(1, 1, 1);
+            _this.rotation = new Quat(0, 0, 0, 1);
+            _this.position = new Vector3(0, 0, 0);
+            // color = new Color(0,0,0,1);
+            _this.eulerAngles = new Vector3(0, 0, 0);
+            _this.worldTransform = new Matrix4();
+            //local
+            _this.localPosition = new Vector3(0, 0, 0);
+            _this.localRotation = new Quat(0, 0, 0, 1);
+            _this.localScale = new Vector3(1, 1, 1);
+            _this.localEulerAngles = new Vector3(0, 0, 0);
+            _this.localTransform = new Matrix4();
+            _this._up = new Vector3();
+            _this._right = new Vector3();
+            _this._forward = new Vector3();
+            _this.parent = null;
+            _this.children = [];
+            //*****下面的变量有点没想好咋处理，先申明在这里 */
+            _this.boundingBox = null;
+            _this.shader = null;
+            return _this;
+        }
+        NEnode.prototype.onLoad = function () {
+        };
+        NEnode.prototype.onStart = function () {
+        };
+        NEnode.prototype.onUpdate = function (dt) {
+        };
+        NEnode.prototype.onDestroy = function () {
+        };
+        NEnode.prototype.setColor = function (color) {
+            // this.color = color;
+            // this.shader.OBJ.color = this.shader.initArrayBufferForLaterUse(GL,)
+        };
+        NEnode.prototype.addChild = function (child) {
+            this.children.push(child);
+            child.parent = this;
+        };
+        NEnode.prototype.removeChild = function (child) {
+            arrayRemove(this.children, child);
+            child.parent = undefined;
+        };
+        NEnode.prototype.setPosition = function (x, y, z) {
+            var position = new Vector3();
+            if (x instanceof Vector3) {
+                position.copy(x);
+            }
+            else {
+                position.set(x, y, z);
+            }
+            this.localPosition = position;
+            this._sync(); //更新
+            return this;
+        };
+        /**
+         * 获取父物体下的坐标
+         * @returns
+         */
+        NEnode.prototype.getPosition = function () {
+            this.getWorldTransform().getTranslation(this.position);
+            return this.position;
+        };
+        NEnode.prototype.setLocalEulerAngles = function (x, y, z) {
+            if (x instanceof Vector3) {
+                this.localRotation.setFromEulerAngles(x.elements[0], x.elements[1], x.elements[2]);
+            }
+            else {
+                this.localRotation.setFromEulerAngles(x, y, z);
+            }
+            this.getLocalTransform(); //修改本地模型矩阵
+            return this;
+        };
+        NEnode.prototype.getLocalEulerAngles = function () {
+            this.localRotation.getEulerAngles(this.localEulerAngles);
+            return this.localEulerAngles;
+        };
+        NEnode.prototype.setEulerAngles = function (x, y, z) {
+            if (x instanceof Vector3) {
+                this.localRotation.setFromEulerAngles(x.elements[0], x.elements[1], x.elements[2]);
+            }
+            else {
+                this.localRotation.setFromEulerAngles(x, y, z);
+            }
+            this._sync();
+            return this;
+        };
+        NEnode.prototype.getEulerAngles = function () {
+            this.getWorldTransform().getEulerAngles(this.eulerAngles);
+            return this.eulerAngles;
+        };
+        NEnode.prototype.setLocalPosition = function (x, y, z) {
+            if (x instanceof Vector3) {
+                this.localPosition.copy(x);
+            }
+            else {
+                this.localPosition.set(x, y, z);
+            }
+            this.getLocalTransform();
+            return this;
+        };
+        NEnode.prototype.getLocalPosition = function () {
+            return this.localPosition;
+        };
+        NEnode.prototype.setRotation = function (x, y, z, w) {
+            var rotation;
+            if (x instanceof Quat) {
+                rotation = x;
+            }
+            else {
+                rotation = new Quat(x, y, z, w);
+            }
+            this.localRotation = rotation;
+            this._sync();
+            return this;
+        };
+        NEnode.prototype.getRotation = function () {
+            this.rotation.setFromMat4(this.getWorldTransform());
+            return this.rotation;
+        };
+        NEnode.prototype.setLocalScale = function (x, y, z) {
+            if (x instanceof Vector3) {
+                this.localScale.copy(x);
+            }
+            else {
+                this.localScale.set(x, y, z);
+            }
+            return this;
+        };
+        NEnode.prototype.getLocalScale = function () {
+            return this.localScale;
+        };
+        NEnode.prototype.rotate = function (x, y, z) {
+            var quaternion = new Quat();
+            var invParentRot = new Quat();
+            if (x instanceof Vector3) {
+                quaternion.setFromEulerAngles(x.elements[0], x.elements[1], x.elements[2]);
+            }
+            else {
+                quaternion.setFromEulerAngles(x, y, z);
+            }
+            if (this.parent == null) {
+                this.localRotation.mul2(quaternion, this.localRotation);
+            }
+            else {
+                var rot = this.getRotation();
+                var parentRot = this.parent.getRotation();
+                invParentRot.copy(parentRot).invert();
+                quaternion.mul2(invParentRot, quaternion);
+                this.localRotation.mul2(quaternion, rot);
+            }
+            this._sync();
+            return this;
+        };
+        NEnode.prototype.rotateLocal = function (x, y, z) {
+            var quaternion = new Quat();
+            if (x instanceof Vector3) {
+                quaternion.setFromEulerAngles(x.elements[0], x.elements[1], x.elements[2]);
+            }
+            else {
+                quaternion.setFromEulerAngles(x, y, z);
+            }
+            this.localRotation.mul(quaternion);
+            return this;
+        };
+        NEnode.prototype.rotateFromAxis = function (axis, angle, isRadian) {
+            var rotation;
+            var alpha = isRadian ? angle : angle * Math.PI / 180; //修改为右手定则
+            axis = axis.normalize();
+            var x = Math.sin(alpha / 2) * axis.x;
+            var y = Math.sin(alpha / 2) * axis.y;
+            var z = Math.sin(alpha / 2) * axis.z;
+            var w = Math.cos(alpha / 2);
+            rotation = new Quat(x, y, z, w);
+            this.localRotation.mul(rotation);
+            return this;
+        };
+        NEnode.prototype.translate = function (x, y, z) {
+            var translation;
+            if (x instanceof Vector3) {
+                translation = x.clone();
+            }
+            else {
+                translation = new Vector3(x, y, z);
+            }
+            translation.add(this.getPosition());
+            this.setPosition(translation);
+            return this;
+        };
+        NEnode.prototype.translateLocal = function (x, y, z) {
+            var translation;
+            if (x instanceof Vector3) {
+                translation = x.clone();
+            }
+            else {
+                translation = new Vector3(x, y, z);
+            }
+            this.localRotation.transformVector(translation, translation);
+            this.localPosition.add(translation);
+            return this;
+        };
+        NEnode.prototype.getLocalTransform = function () {
+            this.localTransform = new Matrix4().setTRS(this.localPosition, this.localRotation, this.localScale);
+            return this.localTransform;
+        };
+        NEnode.prototype.getWorldTransform = function () {
+            var parentModelMatrix = new Matrix4();
+            if (!!this.parent) { //如果父亲存在,层级结构可以一直递归到根
+                parentModelMatrix = this.parent.getWorldTransform();
+            }
+            this.worldTransform = parentModelMatrix.multiply(this.getLocalTransform()); //setTRS
+            return this.worldTransform;
+        };
+        NEnode.prototype._sync = function () {
+            this.worldTransform = this.getWorldTransform();
+            if (this.children.length > 0) {
+                for (var _i = 0, _a = this.children; _i < _a.length; _i++) {
+                    var child = _a[_i];
+                    child.worldTransform = this.worldTransform.multiply(child.localTransform); //更新子节点世界模型矩阵，传入shader即可进行层次修改
+                }
+            }
+        };
+        Object.defineProperty(NEnode.prototype, "root", {
+            get: function () {
+                var parent = this.parent;
+                if (!parent) {
+                    return this;
+                }
+                while (parent.parent) {
+                    parent = parent.parent;
+                }
+                return parent;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(NEnode.prototype, "up", {
+            get: function () {
+                return this.getWorldTransform().getY(this._up).normalize();
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(NEnode.prototype, "forward", {
+            get: function () {
+                return this.getWorldTransform().getZ(this._forward).normalize();
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(NEnode.prototype, "right", {
+            get: function () {
+                return this.getWorldTransform().getX(this._right).normalize();
+            },
+            enumerable: true,
+            configurable: true
+        });
+        return NEnode;
+    }(Core.NElement));
+    Core.NEnode = NEnode;
+})(Core || (Core = {}));
+var shader;
+(function (shader) {
+    var Shader = /** @class */ (function () {
+        function Shader() {
+            this.vertex = '' +
+                'attribute  vec4 a_Position;\n' +
+                'attribute  vec4 a_Color;\n' +
+                'attribute  vec4 a_Normal;\n' +
+                'uniform    mat4 u_MvpMatrix;\n' +
+                'uniform    mat4 u_ModelMatrix;\n' + // Model matrix
+                'uniform    mat4 u_NormalMatrix;\n' + // Transformation matrix of the normal
+                'uniform    bool u_Clicked;\n' +
+                'varying    vec4 v_Color;\n' +
+                'varying    vec3 v_Normal;\n' +
+                'varying    vec3 v_Position;\n' +
+                'void main() {\n' +
+                '   gl_Position = u_MvpMatrix * a_Position;\n' +
+                // Calculate the vertex position in the world coordinate
+                '   v_Position = vec3(u_ModelMatrix * a_Position);\n' +
+                '   v_Normal = normalize(vec3(u_NormalMatrix * a_Normal));\n' +
+                '   v_Color = a_Color;\n' +
+                '}\n';
+            this.fragment = '' +
+                '#ifdef GL_ES\n' +
+                'precision mediump float;\n' +
+                '#endif\n' +
+                'uniform vec3 u_LightColor;\n' + // Light color
+                'uniform vec3 u_LightPosition;\n' + // Position of the light source
+                'uniform vec3 u_AmbientLight;\n' + // Ambient light color
+                'uniform vec3 u_colorSet;\n' +
+                'varying vec3 v_Normal;\n' +
+                'varying vec3 v_Position;\n' +
+                'varying vec4 v_Color;\n' +
+                'void main() {\n' +
+                '  vec4 n_color = vec4(1.0,1.0,0.0,1.0);\n' +
+                // Normalize the normal because it is interpolated and not 1.0 in length any more
+                '  vec3 normal = normalize(v_Normal);\n' +
+                // Calculate the light direction and make its length 1.
+                '  vec3 lightDirection = normalize(u_LightPosition - v_Position);\n' +
+                // The dot product of the light direction and the orientation of a surface (the normal)
+                '  float nDotL = max(dot(lightDirection, normal), 0.0);\n' +
+                // Calculate the final color from diffuse reflection and ambient reflection
+                '  vec3 diffuse = u_LightColor * v_Color.rgb * nDotL;\n' +
+                '  vec3 ambient = u_AmbientLight * v_Color.rgb;\n' +
+                '  gl_FragColor = vec4(diffuse + ambient, v_Color.a);\n' +
+                '}\n';
+            this._modelMatrix = new Matrix4(null); //模型矩阵
+            this._mvpMatrix = new Matrix4(null); //模型视图投影矩阵
+            this._normalMatrix = new Matrix4(null); //法向量变换矩阵
+            this.program = null;
+            this.a_Position = -1;
+            this.a_Color = -1;
+            this.a_Normal = -1;
+            this.u_ModelMatrix = null;
+            this.u_MvpMatrix = null;
+            this.u_NormalMatrix = null;
+            this.u_LightColor = null;
+            this.u_LightPosition = null;
+            this.u_AmbientLight = null;
+            this.u_colorSet = null;
+            this.OBJ = null; //各类数组
+            this.initShader(this);
+            this.a_Position = GL.getAttribLocation(this.program, 'a_Position');
+            this.a_Color = GL.getAttribLocation(this.program, 'a_Color');
+            this.a_Normal = GL.getAttribLocation(this.program, 'a_Normal');
+            this.u_ModelMatrix = GL.getUniformLocation(this.program, 'u_ModelMatrix');
+            this.u_MvpMatrix = GL.getUniformLocation(this.program, 'u_MvpMatrix');
+            this.u_NormalMatrix = GL.getUniformLocation(this.program, 'u_NormalMatrix');
+            this.u_LightColor = GL.getUniformLocation(this.program, 'u_LightColor');
+            this.u_LightPosition = GL.getUniformLocation(this.program, 'u_LightPosition');
+            this.u_AmbientLight = GL.getUniformLocation(this.program, 'u_AmbientLight');
+            this.u_colorSet = GL.getUniformLocation(this.program, 'u_colorSet');
+        }
+        Shader.prototype.draw = function () {
+            if (this.program && this.OBJ) {
+                GL.useProgram(this.program);
+                if (this.a_Position < 0 || this.a_Color < 0 || this.a_Normal < 0) {
+                    console.log('Failed to get the attribute storage location');
+                    return;
+                }
+                if (!this.u_ModelMatrix || !this.u_MvpMatrix || !this.u_NormalMatrix || !this.u_LightColor || !this.u_LightPosition || !this.u_AmbientLight) {
+                    console.log('Failed to get the unifrom storage location');
+                    return;
+                }
+                this.initAttributeVariable(GL, this.a_Position, this.OBJ.vertex);
+                this.initAttributeVariable(GL, this.a_Color, this.OBJ.color);
+                this.initAttributeVariable(GL, this.a_Normal, this.OBJ.normal);
+                GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.OBJ.index.buffer);
+                // Set the light color (white)
+                GL.uniform3fv(this.u_LightColor, sceneInfo.LigthColor);
+                // Set the light direction (in the world coordinate)
+                GL.uniform3fv(this.u_LightPosition, sceneInfo.LigthPoint);
+                // Set the ambient light
+                GL.uniform3fv(this.u_AmbientLight, sceneInfo.AmbientLight);
+                // Pass the model matrix to u_ModelMatrix
+                GL.uniformMatrix4fv(this.u_ModelMatrix, false, this._modelMatrix.elements);
+                // Pass the model view projection matrix to u_MvpMatrix
+                GL.uniformMatrix4fv(this.u_MvpMatrix, false, this._mvpMatrix.elements);
+                // Pass the matrix to transform the normal based on the model matrix to u_NormalMatrix
+                GL.uniformMatrix4fv(this.u_NormalMatrix, false, this._normalMatrix.elements);
+                // Draw the Cylinder
+                GL.drawElements(GL.TRIANGLES, this.OBJ.numIndices, GL.UNSIGNED_SHORT, 0);
+            }
+        };
+        //每帧绘制之前计算一下当前的矩阵信息
+        Shader.prototype.calculateMatrix = function (worldMatrix) {
+            this._modelMatrix = worldMatrix;
+            this._mvpMatrix.set(camera.projViewMatrix).multiply(this._modelMatrix);
+            this._normalMatrix = new Matrix4(null).setInverseOf(this._modelMatrix).transpose();
+        };
+        /**
+         * 初始化各缓存区
+         * @param gl 上下文
+         * @param data 源数据
+         * @param num 单位数据长度
+         * @param type 单位类型
+         */
+        Shader.prototype.initArrayBufferForLaterUse = function (gl, data, num, type) {
+            var arrBufferObj = {
+                buffer: null,
+                num: null,
+                type: null
+            };
+            arrBufferObj.num = num;
+            arrBufferObj.type = type;
+            arrBufferObj.buffer = gl.createBuffer();
+            if (!arrBufferObj.buffer) {
+                console.log("failed to create buffer");
+                return null;
+            }
+            gl.bindBuffer(gl.ARRAY_BUFFER, arrBufferObj.buffer);
+            gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
+            return arrBufferObj;
+        };
+        /**
+         * 初始化索引数组
+         * @param gl 上下文
+         * @param data 源数据
+         * @param type 索引源数据类型
+         */
+        Shader.prototype.initElementArrayBufferForLaterUse = function (gl, data, type) {
+            var eleBufferObj = {
+                buffer: null,
+                type: null,
+            };
+            eleBufferObj.type = type;
+            eleBufferObj.buffer = gl.createBuffer(); // Create a buffer object
+            if (!eleBufferObj.buffer) {
+                console.log('Failed to create the buffer object');
+                return null;
+            }
+            // Write date into the buffer object
+            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, eleBufferObj.buffer);
+            gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, data, gl.STATIC_DRAW);
+            return eleBufferObj;
+        };
+        /**
+         * 分配缓冲区对象并且激活分配
+         * @param gl 上下文
+         * @param a_attribute 属性名
+         * @param buffer 缓冲区数据
+         */
+        Shader.prototype.initAttributeVariable = function (gl, a_attribute, bufferObj) {
+            gl.bindBuffer(gl.ARRAY_BUFFER, bufferObj.buffer);
+            gl.vertexAttribPointer(a_attribute, bufferObj.num, bufferObj.type, false, 0, 0);
+            gl.enableVertexAttribArray(a_attribute);
+        };
+        /**
+         * 初始化obj数据，全局只需绑定一次
+         * @param vertices 顶点矩阵
+         * @param colors 颜色矩阵
+         * @param normals 法向量矩阵
+         * @param program　对应的着色器程序
+         * @param indices 索引矩阵
+         */
+        Shader.prototype.initVertexBuffer = function (vertices, colors, normals, indices) {
+            var OBJ = {
+                vertex: null,
+                color: null,
+                normal: null,
+                index: null,
+                numIndices: null,
+            };
+            OBJ.vertex = this.initArrayBufferForLaterUse(GL, vertices, 3, GL.FLOAT);
+            OBJ.color = this.initArrayBufferForLaterUse(GL, colors, 4, GL.FLOAT);
+            OBJ.normal = this.initArrayBufferForLaterUse(GL, normals, 3, GL.FLOAT);
+            OBJ.index = this.initElementArrayBufferForLaterUse(GL, indices, GL.UNSIGNED_SHORT);
+            if (!OBJ.vertex || !OBJ.color || !OBJ.normal || !OBJ.index) {
+                console.log("failed to init buffer");
+                return null;
+            }
+            OBJ.numIndices = indices.length;
+            GL.bindBuffer(GL.ARRAY_BUFFER, null);
+            GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, null);
+            return OBJ;
+        };
+        Shader.prototype.initShader = function (target) {
+            var shadertool = new shaderUtils();
+            var obj = shadertool.initShaders(GL, target.vertex, target.fragment);
+            if (!obj.status) {
+                console.log("failed to init shader");
+                return;
+            }
+            target.program = obj.program;
+        };
+        return Shader;
+    }());
+    shader.Shader = Shader;
+})(shader || (shader = {}));
+///<reference path="../core/NEnode.ts" />
+///<reference path="../shader/shader.ts" />
+var NEnode = Core.NEnode;
+var Shader = shader.Shader;
+var NE3D;
+(function (NE3D) {
+    var Cube = /** @class */ (function (_super) {
+        __extends(Cube, _super);
+        function Cube() {
+            var _this = _super.call(this) || this;
+            _this.shader = new Shader();
+            _this.vertices = null;
+            _this.colors = null;
+            _this.normals = null;
+            _this.indices = null;
+            _this.info = null;
+            _this.boundingBox = null;
+            return _this;
+        }
+        Cube.prototype.onLoad = function () {
+            var obp = new OBJParser('./resources/cube.obj');
+            obp.readOBJFile('./resources/cube.obj', 1, true, function () {
+                this.info = obp.getDrawingInfo();
+                this.vertices = this.info.vertices;
+                this.normals = this.info.normals;
+                this.colors = this.info.colors;
+                this.indices = this.info.indices;
+                this.shader.OBJ = this.shader.initVertexBuffer(this.vertices, this.colors, this.normals, this.indices);
+                this.boundingBox = new BoundingBox(this, this.vertices);
+                // console.log(this.info);
+            }.bind(this));
+        };
+        Cube.prototype.onUpdate = function (dt) {
+            this.shader.calculateMatrix(this.getWorldTransform());
+            this.shader.draw();
+        };
+        return Cube;
+    }(NEnode));
+    NE3D.Cube = Cube;
+})(NE3D || (NE3D = {}));
 var Lib;
 (function (Lib) {
     var RayCaster = /** @class */ (function () {
@@ -2526,11 +3544,13 @@ var Lib;
          * @param testChild 是否检查子物体
          */
         RayCaster.prototype.intersectObjects = function (objects, testChild) {
-            this.test2();
+            // this.test2();
             var ret = [];
             var out = [];
             for (var i = 0; i < objects.length; i++) {
                 // console.log("***********************name:"+objects[i].name);
+                if (!objects[i].boundingBox)
+                    continue;
                 var triArr = objects[i].boundingBox.generateTestTriangle();
                 for (var _i = 0, triArr_1 = triArr; _i < triArr_1.length; _i++) {
                     var tri = triArr_1[_i];
@@ -2540,12 +3560,11 @@ var Lib;
                     }
                 }
                 if (testChild) {
-                    var length = objects[i].Child.length;
+                    var length = objects[i].children.length;
                     if (length > 0) {
-                        var childObj = this.intersectObjects.bind(this)(objects[i].Child, true); //递归检测\
-                        for (var _a = 0, childObj_1 = childObj; _a < childObj_1.length; _a++) {
-                            var child = childObj_1[_a];
-                            ret.push(child);
+                        var childObj = this.intersectObjects.bind(this)(objects[i].children, true); //递归检测\
+                        for (var i = 0; i < childObj.length; i++) {
+                            ret.push(childObj[i]);
                         }
                     }
                 }
@@ -2559,7 +3578,7 @@ var Lib;
             //     }
             // }
             // console.log(ret);
-            return ret[0];
+            return ret;
         };
         /**
          * 判断点在面中
@@ -2928,7 +3947,7 @@ var Lib;
 var Lib;
 (function (Lib) {
     var BoundingBox = /** @class */ (function () {
-        function BoundingBox(object) {
+        function BoundingBox(object, vertices) {
             this.vertices = null;
             this.indices = null;
             this.target = null;
@@ -2941,7 +3960,7 @@ var Lib;
             this.target = object;
             if (this.target == null)
                 return;
-            this.handleObject(this.target.vertices);
+            this.handleObject(vertices);
             this.setVertices(this.maxX, this.minX, this.maxY, this.minY, this.maxZ, this.minZ);
             this.updateBoundingBox();
         }
@@ -3018,7 +4037,7 @@ var Lib;
         };
         BoundingBox.prototype.generateTestTriangle = function () {
             var ret = [];
-            var modelMatrix = this.target.getModelMatrix();
+            var modelMatrix = this.target.getWorldTransform();
             var vertices = this.vertices;
             var indices = this.indices;
             for (var i = 0; i < indices.length; i += 3) {
@@ -3050,6 +4069,7 @@ var shader;
 (function (shader) {
     /**
      * 所有３维物体的子类，实现基本方法
+     * 停用，使用NEnode.ts类来实现基本
      */
     var NEObject = /** @class */ (function () {
         function NEObject() {
@@ -3106,7 +4126,7 @@ var shader;
             this.name = '';
             this.Child = [];
             this.parent = null;
-            this.boundingBox = new BoundingBox(null);
+            this.boundingBox = null;
             this.onLoad();
             this.onStart();
         }
@@ -3477,7 +4497,7 @@ var shader;
                 // console.log(info.colors)
                 target.vertices = info.vertices;
                 target.OBJInfo = target.initVertexBuffer(info.vertices, info.colors, info.normals, info.indices);
-                target.boundingBox = new BoundingBox(target);
+                // target.boundingBox = new BoundingBox(target,info.vertices);
                 // console.log(target.OBJInfo);
                 if (typeof callBack == "function")
                     callBack();
@@ -3486,201 +4506,6 @@ var shader;
         return NEObject;
     }());
     shader.NEObject = NEObject;
-})(shader || (shader = {}));
-///<reference path="./Object.ts" />
-var shader;
-(function (shader) {
-    var Cube = /** @class */ (function (_super) {
-        __extends(Cube, _super);
-        function Cube() {
-            var _this = _super.call(this) || this;
-            _this.vertex = '' +
-                'attribute  vec4 a_Position;\n' +
-                'attribute  vec4 a_Color;\n' +
-                'attribute  vec4 a_Normal;\n' +
-                'uniform    mat4 u_MvpMatrix;\n' +
-                'uniform    mat4 u_ModelMatrix;\n' + // Model matrix
-                'uniform    mat4 u_NormalMatrix;\n' + // Transformation matrix of the normal
-                'uniform    bool u_Clicked;\n' +
-                'varying    vec4 v_Color;\n' +
-                'varying    vec3 v_Normal;\n' +
-                'varying    vec3 v_Position;\n' +
-                'void main() {\n' +
-                '   gl_Position = u_MvpMatrix * a_Position;\n' +
-                // Calculate the vertex position in the world coordinate
-                '   v_Position = vec3(u_ModelMatrix * a_Position);\n' +
-                '   v_Normal = normalize(vec3(u_NormalMatrix * a_Normal));\n' +
-                '   v_Color = a_Color;\n' +
-                '}\n';
-            _this.fragment = '' +
-                '#ifdef GL_ES\n' +
-                'precision mediump float;\n' +
-                '#endif\n' +
-                'uniform vec3 u_LightColor;\n' + // Light color
-                'uniform vec3 u_LightPosition;\n' + // Position of the light source
-                'uniform vec3 u_AmbientLight;\n' + // Ambient light color
-                'varying vec3 v_Normal;\n' +
-                'varying vec3 v_Position;\n' +
-                'varying vec4 v_Color;\n' +
-                'void main() {\n' +
-                // Normalize the normal because it is interpolated and not 1.0 in length any more
-                '  vec3 normal = normalize(v_Normal);\n' +
-                // Calculate the light direction and make its length 1.
-                '  vec3 lightDirection = normalize(u_LightPosition - v_Position);\n' +
-                // The dot product of the light direction and the orientation of a surface (the normal)
-                '  float nDotL = max(dot(lightDirection, normal), 0.0);\n' +
-                // Calculate the final color from diffuse reflection and ambient reflection
-                '  vec3 diffuse = u_LightColor * v_Color.rgb * nDotL;\n' +
-                '  vec3 ambient = u_AmbientLight * v_Color.rgb;\n' +
-                '  gl_FragColor = vec4(diffuse + ambient, v_Color.a);\n' +
-                '}\n';
-            _this.vertices = null;
-            _this.colors = null;
-            _this.indices = null;
-            _this.normals = null;
-            _this.gl = null;
-            _this.program = null;
-            _this.shadertool = null;
-            //变量类型
-            _this.u_ModelMatrix = null;
-            _this.u_MvpMatrix = null;
-            _this.u_NormalMatrix = null;
-            _this.u_LightColor = null;
-            _this.u_LightPosition = null;
-            _this.u_AmbientLight = null;
-            //
-            _this.cube = null;
-            _this.info = null;
-            _this.name = 'cube';
-            _this.shadertool = new shaderUtils();
-            _this.gl = GL;
-            var obj = _this.shadertool.initShaders(GL, _this.vertex, _this.fragment);
-            if (!obj.status) {
-                console.log("failed to init shader");
-                return _this;
-            }
-            _this.program = obj.program;
-            _this.initCubeInfo();
-            return _this;
-        }
-        /**
-         * 生命周期函数
-         */
-        // onload(){
-        // }
-        Cube.prototype.onUpdate = function (dt) {
-            // console.log(dt)
-            this._draw();
-        };
-        Cube.prototype._draw = function () {
-            if (this.program && this.info) {
-                GL.useProgram(this.program);
-                var a_Position = GL.getAttribLocation(this.program, 'a_Position');
-                var a_Color = GL.getAttribLocation(this.program, 'a_Color');
-                var a_Normal = GL.getAttribLocation(this.program, 'a_Normal');
-                var u_ModelMatrix = GL.getUniformLocation(this.program, 'u_ModelMatrix');
-                var u_MvpMatrix = GL.getUniformLocation(this.program, 'u_MvpMatrix');
-                var u_NormalMatrix = GL.getUniformLocation(this.program, 'u_NormalMatrix');
-                var u_LightColor = GL.getUniformLocation(this.program, 'u_LightColor');
-                var u_LightPosition = GL.getUniformLocation(this.program, 'u_LightPosition');
-                var u_AmbientLight = GL.getUniformLocation(this.program, 'u_AmbientLight');
-                if (a_Position < 0 || a_Color < 0 || a_Normal < 0) {
-                    console.log('Failed to get the attribute storage location');
-                    return;
-                }
-                if (!u_ModelMatrix || !u_MvpMatrix || !u_NormalMatrix || !u_LightColor || !u_LightPosition || !u_AmbientLight) {
-                    console.log('Failed to get the unifrom storage location');
-                    return;
-                }
-                this.initAttributeVariable(GL, a_Position, this.cube.vertex);
-                this.initAttributeVariable(GL, a_Color, this.cube.color);
-                this.initAttributeVariable(GL, a_Normal, this.cube.normal);
-                GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.cube.index.buffer);
-                // Set the light color (white)
-                GL.uniform3fv(u_LightColor, sceneInfo.LigthColor);
-                // Set the light direction (in the world coordinate)
-                GL.uniform3fv(u_LightPosition, sceneInfo.LigthPoint);
-                // Set the ambient light
-                GL.uniform3fv(u_AmbientLight, sceneInfo.AmbientLight);
-                // Pass the model matrix to u_ModelMatrix
-                GL.uniformMatrix4fv(u_ModelMatrix, false, this.getModelMatrix().elements);
-                // Pass the model view projection matrix to u_MvpMatrix
-                GL.uniformMatrix4fv(u_MvpMatrix, false, this.getMvpMatrix().elements);
-                // Pass the matrix to transform the normal based on the model matrix to u_NormalMatrix
-                GL.uniformMatrix4fv(u_NormalMatrix, false, this.getNormalMatrix().elements);
-                // Draw the cube
-                GL.drawElements(GL.TRIANGLES, this.cube.numIndices, GL.UNSIGNED_SHORT, 0);
-            }
-        };
-        Cube.prototype.getVertex = function () {
-            return this.vertex;
-        };
-        Cube.prototype.getFragment = function () {
-            return this.fragment;
-        };
-        /**
-         * 生成单位立方体，位于原点
-         */
-        Cube.prototype.initCubeInfo = function () {
-            // Create a cube,
-            //    v6----- v5        v0-v1-v2-v3 front
-            //   /|      /|         v0-v3-v4-v5 right
-            //  v1------v0|         v0-v5-v6-v1 up
-            //  | |     | |         v1-v6-v7-v2 left
-            //  | |v7---|-|v4       v7-v4-v3-v2 down
-            //  |/      |/          v4-v7-v6-v5 back
-            //  v2------v3
-            //初始化顶点数组，六个面逆时针显示
-            this.vertices = new Float32Array([
-                0.5, 0.5, 0.5, -0.5, 0.5, 0.5, -0.5, -0.5, 0.5, 0.5, -0.5, 0.5,
-                0.5, 0.5, 0.5, 0.5, -0.5, 0.5, 0.5, -0.5, -0.5, 0.5, 0.5, -0.5,
-                0.5, 0.5, 0.5, -0.5, 0.5, 0.5, -0.5, -0.5, 0.5, 0.5, -0.5, 0.5,
-                -0.5, 0.5, 0.5, -0.5, 0.5, -0.5, -0.5, -0.5, -0.5, -0.5, -0.5, 0.5,
-                -0.5, -0.5, -0.5, 0.5, -0.5, -0.5, 0.5, -0.5, 0.5, 0.5, -0.5, 0.5,
-                0.5, -0.5, -0.5, -0.5, -0.5, -0.5, -0.5, 0.5, -0.5, 0.5, 0.5, -0.5
-            ]);
-            //初始化顶点颜色
-            this.colors = new Float32Array([
-                1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0,
-                1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0,
-                1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0,
-                1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0,
-                1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0,
-                1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0
-            ]);
-            //初始化各面法向量
-            this.normals = new Float32Array([
-                0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0,
-                1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0,
-                0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0,
-                -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0,
-                0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0,
-                0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0
-            ]);
-            //初始化顶点索引=>按照顶点数组的24个元素来设置,逆时针三角形
-            this.indices = new Uint16Array([
-                0, 1, 2, 0, 2, 3,
-                4, 5, 6, 4, 6, 7,
-                8, 9, 10, 8, 10, 11,
-                12, 13, 14, 12, 14, 15,
-                16, 17, 18, 16, 18, 19,
-                20, 21, 22, 20, 22, 23 // back
-            ]);
-            var obp = new OBJParser('./resources/cube.obj');
-            obp.readOBJFile('./resources/cube.obj', 1, true, function () {
-                this.info = obp.getDrawingInfo();
-                this.vertices = this.info.vertices;
-                this.normals = this.info.normals;
-                this.colors = this.info.colors;
-                this.indices = this.info.indices;
-                this.cube = this.initVertexBuffer(this.vertices, this.colors, this.normals, this.indices);
-                this.boundingBox = new BoundingBox(this);
-                // console.log(this.info);
-            }.bind(this));
-        };
-        return Cube;
-    }(shader.NEObject));
-    shader.Cube = Cube;
 })(shader || (shader = {}));
 ///<reference path="./Object.ts" />
 var shader;
@@ -3695,20 +4520,33 @@ var shader;
         __extends(Pipe, _super);
         function Pipe(x, y, z, startPoint) {
             var _this = _super.call(this) || this;
-            _this.initShader(_this);
-            _this.initOBJInfo(_this, './resources/1/pipe.obj', function () {
-                this.length = Math.sqrt(x * x + y * y + z * z);
-                this.calculate1(x, y, z, startPoint);
-                this.setLocalScale(this.length, 1, 1);
-            }.bind(_this));
+            _this.shader = new shader.Shader();
+            _this.length = Math.sqrt(x * x + y * y + z * z);
+            _this.setLocalScale(_this.length, 1, 1);
+            _this.calculate1(x, y, z, startPoint);
             return _this;
         }
         Pipe.prototype.onLoad = function () {
             this.name = 'Pipe';
+            var obp = new OBJParser('./resources/1/pipe.obj');
+            obp.readOBJFile('./resources/1/pipe.obj', 1 / 60, true, function () {
+                this.info = obp.getDrawingInfo();
+                this.vertices = this.info.vertices;
+                this.normals = this.info.normals;
+                this.colors = this.info.colors;
+                this.indices = this.info.indices;
+                this.shader.OBJ = this.shader.initVertexBuffer(this.vertices, this.colors, this.normals, this.indices);
+                this.boundingBox = new BoundingBox(this, this.vertices);
+                // console.log(this.info);
+            }.bind(this));
+        };
+        Pipe.prototype.onUpdate = function (dt) {
+            this.shader.calculateMatrix(this.getWorldTransform());
+            this.shader.draw();
         };
         Pipe.prototype.calculate1 = function (x, y, z, startPoint) {
             this.direct = new Vector3(x, y, z);
-            this.setLocalPosition(startPoint.elements[0], startPoint.elements[1], startPoint.elements[2]);
+            this.setPosition(startPoint.elements[0], startPoint.elements[1], startPoint.elements[2]);
             var endPoint = this.direct.clone().add(startPoint);
             var angle1;
             var angle2;
@@ -3771,13 +4609,8 @@ var shader;
             }
             return endPoint;
         };
-        Pipe.prototype.setAxisDirection = function (which) {
-        };
-        Pipe.prototype.onUpdate = function (dt) {
-            this._draw(this.program, this.OBJInfo);
-        };
         return Pipe;
-    }(shader.NEObject));
+    }(NEnode));
     shader.Pipe = Pipe;
     var Tee = /** @class */ (function (_super) {
         __extends(Tee, _super);
@@ -3785,34 +4618,43 @@ var shader;
             return _super.call(this) || this;
         }
         Tee.prototype.onLoad = function () {
-            this.name = 'Tee';
-            this.initShader(this);
-            this.initOBJInfo(this, './resources/1/tee.obj', null);
         };
         Tee.prototype.onUpdate = function (dt) {
-            this._draw(this.program, this.OBJInfo);
         };
         Tee.prototype.calculate = function () {
         };
         return Tee;
-    }(shader.NEObject));
+    }(NEnode));
     shader.Tee = Tee;
     var Elbow = /** @class */ (function (_super) {
         __extends(Elbow, _super);
         function Elbow(startPoint, direct, nextDirect) {
             var _this = _super.call(this) || this;
-            _this.initShader(_this);
-            _this.initOBJInfo(_this, './resources/sphere.obj', function () {
-                this.initSphere(startPoint);
-            }.bind(_this));
+            _this.shader = new shader.Shader();
+            _this.initSphere(startPoint);
             return _this;
         }
         Elbow.prototype.onLoad = function () {
             this.name = 'Elbow';
+            var obp = new OBJParser('./resources/sphere.obj');
+            obp.readOBJFile('./resources/sphere.obj', 1 / 60, true, function () {
+                this.info = obp.getDrawingInfo();
+                this.vertices = this.info.vertices;
+                this.normals = this.info.normals;
+                this.colors = this.info.colors;
+                this.indices = this.info.indices;
+                this.shader.OBJ = this.shader.initVertexBuffer(this.vertices, this.colors, this.normals, this.indices);
+                this.boundingBox = new BoundingBox(this, this.vertices);
+                // console.log(this.info);
+            }.bind(this));
+        };
+        Elbow.prototype.onUpdate = function (dt) {
+            this.shader.calculateMatrix(this.getWorldTransform());
+            this.shader.draw();
         };
         Elbow.prototype.initSphere = function (startPoint) {
             this.setLocalScale(12.35, 12.35, 12.35);
-            this.setLocalPosition(startPoint);
+            this.setPosition(startPoint);
         };
         Elbow.prototype.calculate = function (startPoint, direct, nextDirect) {
             this.setLocalPosition(startPoint.x, startPoint.y, startPoint.z);
@@ -3888,11 +4730,8 @@ var shader;
             // }
             // angle3 = Math.atan(y/z)
         };
-        Elbow.prototype.onUpdate = function (dt) {
-            this._draw(this.program, this.OBJInfo);
-        };
         return Elbow;
-    }(shader.NEObject));
+    }(NEnode));
     shader.Elbow = Elbow;
     var Valve = /** @class */ (function (_super) {
         __extends(Valve, _super);
@@ -3901,14 +4740,11 @@ var shader;
         }
         Valve.prototype.onLoad = function () {
             this.name = 'Valve';
-            this.initShader(this);
-            this.initOBJInfo(this, './resources/1/valve.obj', null);
         };
         Valve.prototype.onUpdate = function (dt) {
-            this._draw(this.program, this.OBJInfo);
         };
         return Valve;
-    }(shader.NEObject));
+    }(NEnode));
     shader.Valve = Valve;
     var GLIFNode = /** @class */ (function () {
         function GLIFNode(isn, ien, ity) {
@@ -3962,168 +4798,17 @@ var shader;
     }(shader.NEObject));
     shader.Sphere = Sphere;
 })(shader || (shader = {}));
-///<reference path="./Object.ts" />
-var shader;
-(function (shader) {
-    var Cylinder = /** @class */ (function (_super) {
-        __extends(Cylinder, _super);
-        function Cylinder() {
-            var _this = _super.call(this) || this;
-            _this.vertex = '' +
-                'attribute  vec4 a_Position;\n' +
-                'attribute  vec4 a_Color;\n' +
-                'attribute  vec4 a_Normal;\n' +
-                'uniform    mat4 u_MvpMatrix;\n' +
-                'uniform    mat4 u_ModelMatrix;\n' + // Model matrix
-                'uniform    mat4 u_NormalMatrix;\n' + // Transformation matrix of the normal
-                'uniform    bool u_Clicked;\n' +
-                'varying    vec4 v_Color;\n' +
-                'varying    vec3 v_Normal;\n' +
-                'varying    vec3 v_Position;\n' +
-                'void main() {\n' +
-                '   gl_Position = u_MvpMatrix * a_Position;\n' +
-                // Calculate the vertex position in the world coordinate
-                '   v_Position = vec3(u_ModelMatrix * a_Position);\n' +
-                '   v_Normal = normalize(vec3(u_NormalMatrix * a_Normal));\n' +
-                '   v_Color = a_Color;\n' +
-                '}\n';
-            _this.fragment = '' +
-                '#ifdef GL_ES\n' +
-                'precision mediump float;\n' +
-                '#endif\n' +
-                'uniform vec3 u_LightColor;\n' + // Light color
-                'uniform vec3 u_LightPosition;\n' + // Position of the light source
-                'uniform vec3 u_AmbientLight;\n' + // Ambient light color
-                'varying vec3 v_Normal;\n' +
-                'varying vec3 v_Position;\n' +
-                'varying vec4 v_Color;\n' +
-                'void main() {\n' +
-                // Normalize the normal because it is interpolated and not 1.0 in length any more
-                '  vec3 normal = normalize(v_Normal);\n' +
-                // Calculate the light direction and make its length 1.
-                '  vec3 lightDirection = normalize(u_LightPosition - v_Position);\n' +
-                // The dot product of the light direction and the orientation of a surface (the normal)
-                '  float nDotL = max(dot(lightDirection, normal), 0.0);\n' +
-                // Calculate the final color from diffuse reflection and ambient reflection
-                '  vec3 diffuse = u_LightColor * v_Color.rgb * nDotL;\n' +
-                '  vec3 ambient = u_AmbientLight * v_Color.rgb;\n' +
-                '  gl_FragColor = vec4(diffuse + ambient, v_Color.a);\n' +
-                '}\n';
-            _this.vertices = null;
-            _this.colors = null;
-            _this.indices = null;
-            _this.normals = null;
-            _this.gl = null;
-            _this.program = null;
-            _this.shadertool = null;
-            //变量类型
-            _this.u_ModelMatrix = null;
-            _this.u_MvpMatrix = null;
-            _this.u_NormalMatrix = null;
-            _this.u_LightColor = null;
-            _this.u_LightPosition = null;
-            _this.u_AmbientLight = null;
-            //
-            _this.Cylinder = null;
-            _this.info = null;
-            _this.name = 'cylinder';
-            _this.shadertool = new shaderUtils();
-            _this.gl = GL;
-            var obj = _this.shadertool.initShaders(GL, _this.vertex, _this.fragment);
-            if (!obj.status) {
-                console.log("failed to init shader");
-                return _this;
-            }
-            _this.program = obj.program;
-            _this.initCylinderInfo();
-            return _this;
-        }
-        /**
-         * 生命周期函数
-         */
-        // onload(){
-        // }
-        Cylinder.prototype.onUpdate = function (dt) {
-            this._draw();
-        };
-        Cylinder.prototype._draw = function () {
-            if (this.program && this.info) {
-                GL.useProgram(this.program);
-                var a_Position = GL.getAttribLocation(this.program, 'a_Position');
-                var a_Color = GL.getAttribLocation(this.program, 'a_Color');
-                var a_Normal = GL.getAttribLocation(this.program, 'a_Normal');
-                var u_ModelMatrix = GL.getUniformLocation(this.program, 'u_ModelMatrix');
-                var u_MvpMatrix = GL.getUniformLocation(this.program, 'u_MvpMatrix');
-                var u_NormalMatrix = GL.getUniformLocation(this.program, 'u_NormalMatrix');
-                var u_LightColor = GL.getUniformLocation(this.program, 'u_LightColor');
-                var u_LightPosition = GL.getUniformLocation(this.program, 'u_LightPosition');
-                var u_AmbientLight = GL.getUniformLocation(this.program, 'u_AmbientLight');
-                if (a_Position < 0 || a_Color < 0 || a_Normal < 0) {
-                    console.log('Failed to get the attribute storage location');
-                    return;
-                }
-                if (!u_ModelMatrix || !u_MvpMatrix || !u_NormalMatrix || !u_LightColor || !u_LightPosition || !u_AmbientLight) {
-                    console.log('Failed to get the unifrom storage location');
-                    return;
-                }
-                this.initAttributeVariable(GL, a_Position, this.Cylinder.vertex);
-                this.initAttributeVariable(GL, a_Color, this.Cylinder.color);
-                this.initAttributeVariable(GL, a_Normal, this.Cylinder.normal);
-                GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, this.Cylinder.index.buffer);
-                // Set the light color (white)
-                GL.uniform3fv(u_LightColor, sceneInfo.LigthColor);
-                // Set the light direction (in the world coordinate)
-                GL.uniform3fv(u_LightPosition, sceneInfo.LigthPoint);
-                // Set the ambient light
-                GL.uniform3fv(u_AmbientLight, sceneInfo.AmbientLight);
-                // Pass the model matrix to u_ModelMatrix
-                GL.uniformMatrix4fv(u_ModelMatrix, false, this.getModelMatrix().elements);
-                // Pass the model view projection matrix to u_MvpMatrix
-                GL.uniformMatrix4fv(u_MvpMatrix, false, this.getMvpMatrix().elements);
-                // Pass the matrix to transform the normal based on the model matrix to u_NormalMatrix
-                GL.uniformMatrix4fv(u_NormalMatrix, false, this.getNormalMatrix().elements);
-                // Draw the Cylinder
-                GL.drawElements(GL.TRIANGLES, this.Cylinder.numIndices, GL.UNSIGNED_SHORT, 0);
-            }
-        };
-        Cylinder.prototype.getVertex = function () {
-            return this.vertex;
-        };
-        Cylinder.prototype.getFragment = function () {
-            return this.fragment;
-        };
-        /**
-         * 生成单位立方体，位于原点
-         */
-        Cylinder.prototype.initCylinderInfo = function () {
-            var obp = new OBJParser('./resources/1/2.obj');
-            obp.readOBJFile('./resources/1/2.obj', 0.1, true, function () {
-                this.info = obp.getDrawingInfo();
-                this.vertices = this.info.vertices;
-                this.normals = this.info.normals;
-                this.colors = this.info.colors;
-                this.indices = this.info.indices;
-                this.Cylinder = this.initVertexBuffer(this.vertices, this.colors, this.normals, this.program, this.indices);
-                this.boundingBox = new BoundingBox(this);
-                // console.log(this.Cylinder);
-            }.bind(this));
-        };
-        return Cylinder;
-    }(shader.NEObject));
-    shader.Cylinder = Cylinder;
-})(shader || (shader = {}));
 ///<reference path="./core/Engine.ts" />
 ///<reference path="./core/Scene.ts" />
 ///<reference path="./core/Camera.ts" />
 ///<reference path="./core/Render.ts" />
+///<reference path="./example/example.ts" />
 ///<reference path="./lib/RayCaster.ts" />
 ///<reference path="./lib/BoundingBox.ts" />
 ///<reference path="../lib/shader-utils/shaderUtils.ts" />
 ///<reference path="../lib/matrix-utils/matrixUtils.ts" />
-///<reference path="./shader/Cube.ts" />
 ///<reference path="./shader/Pipe.ts" />
 ///<reference path="./shader/Sphere.ts" />
-///<reference path="./shader/Cylinder.ts" />
 ///<reference path="../lib/parse-utils/objParse.ts" />
 ///<reference path="../lib/parse-utils/GLIFParser.ts" />
 var Nebula = Core.Nebula;
@@ -4134,8 +4819,6 @@ var Matrix4 = Utils.Matrix4;
 var Vector3 = Utils.Vector3;
 var Vector4 = Utils.Vector4;
 var Quat = Utils.Quat;
-var cube = shader.Cube;
-var Cylinder = shader.Cylinder;
 var NEObject = shader.NEObject;
 var OBJParser = Utils.ObjParser;
 var Render = Core.Render;
@@ -4148,6 +4831,7 @@ var Elbow = shader.Elbow;
 var Valve = shader.Valve;
 var GLIFNode = shader.GLIFNode;
 var Sphere = shader.Sphere;
+var Cube = NE3D.Cube;
 //************全局变量Global****************** */
 var shaderTool = new shaderUtils();
 var GL = null;
@@ -4162,45 +4846,23 @@ var sceneInfo = new Scene(0);
 ne.addScene(sceneInfo);
 ne.setScene(0);
 sceneInfo.initScene();
-//摄像机信息
+//摄像机信息０
 var camera = new Camera(85, canvas.width / canvas.height, 1, 1000);
 //初始化主控渲染器
 var render = new Render();
-//初始化GLIF解析器
+// //初始化GLIF解析器
 var gp = new GLIFParser(ne.getScene());
-gp.readGilfFile('./glif/inp6.TXT', "");
+gp.readGilfFile('./glif/inp2.TXT', "");
+// var cube1 = new cube();
+// cube1.setParent(ne.getScene()._root)
 //******************************************* */
-// var Cube = new Pipe(-1,1,-1,new Vector3([0,0,0])); 
-// var Cube1 = new Pipe(-1,1,-1,new Vector3([-1,1,-1])); 
-// var Plane = new cube();
-// var Cube = new Tee();
-// // var elbow = new Elbow(new Vector3([0,0,0]),new Vector3(1,0,0),new Vector3(0,1,0))
-// var sphere = new Sphere();
-// var pipe1 = new Pipe(1,0,0,new Vector3(0,0,0))
-// var pipe2 = new Pipe(2,8,0,new Vector3(1,0,0))
 main();
 function main() {
-    // Cube.setLocalScale(2,1,1);
-    // Cube.setRotationFromAxis(new Vector3(0,0,1),90,false)
-    // Cube.rotateFromAxis(new Vector3(0,0,1),-90,false)
-    // Cube.setRotation(new Quat(0,0,Math.sqrt(2)/2,Math.sqrt(2)/2))
-    // Cube.setLocalScale(4,1,1)
-    // Cube.setLocalPosition(new Vector3(3,5,0))
-    // Cube.translate(new Vector3(-3,-5,0))
-    // Cube.setParent(ne.getScene());
-    // Plane.setParent(ne.getScene());
-    // Cube1.setParent(ne.getScene());
-    // Plane.setLocalScale(50,0.001,50)
-    // elbow.setLocalPosition(50,0,0)
-    // sphere.setLocalScale(12.35,12.35,12.35)
-    // sphere.setLocalPosition(1,0,0)
-    // sphere.setParent(ne.getScene())
-    // pipe1.setParent(ne.getScene())
-    // pipe2.setParent(ne.getScene())
-    render.render(sceneInfo);
-    render.stopped = false; //将来可以改变为资源加载完成后自动改为false，开始update
-    render.main();
-    // Pipe1.setParent(ne.getScene())
+    // var cube3 = new Cube();cube3.name = "cube1";
+    // ne.getScene().addChild1(cube3);
+    // var cube4 = new Cube();cube4.name = "cube2";
+    // cube3.addChild(cube4);  
+    // cube4.setPosition(4,0,0)
     var RayCaster1 = new RayCaster();
     var ca = document.getElementById('canvas');
     var isDrag = false;
@@ -4229,9 +4891,9 @@ function main() {
                 var pointOnCanvasToNear = new Vector4([_mousex, _mousey, -1.0, 1.0]);
                 var positionN = new Matrix4(null).setInverseOf(camera.projViewMatrix).multiplyVector4(pointOnCanvasToNear);
                 RayCaster1.initCameraRay(camera.coordinate.x, camera.coordinate.y, camera.coordinate.z, positionN.elements[0], positionN.elements[1], positionN.elements[2], 100);
-                var obj = RayCaster1.intersectObjects(ne.getScene().Child, true);
+                var obj = RayCaster1.intersectObjects(ne.getScene()._root.children, true);
                 if (!!obj) {
-                    objClicked = obj;
+                    objClicked = obj[0];
                 }
                 else {
                     objClicked = null;
@@ -4326,6 +4988,110 @@ function main() {
         }
     };
 }
+var intToBytes32 = Utils.intToBytes32;
+var intToBytes24 = Utils.intToBytes24;
+var Core;
+(function (Core) {
+    var Color = /** @class */ (function () {
+        function Color(r, g, b, a) {
+            this.buffer = new ArrayBuffer(4 * 4);
+            this.data = new Float32Array(this.buffer, 0, 4);
+            this.data[0] = r || 0;
+            this.data[1] = g || 0;
+            this.data[2] = b || 0;
+            this.data[3] = a !== undefined ? a : 1;
+        }
+        Color.prototype.clone = function () {
+            return new Color(this.data[0], this.data[1], this.data[2], this.data[3]);
+        };
+        Color.prototype.copy = function (_a) {
+            var data = _a.data;
+            // tslint:disable-next-line:one-variable-per-declaration
+            var a = this.data, b = data;
+            a[0] = b[0];
+            a[1] = b[1];
+            a[2] = b[2];
+            a[3] = b[3];
+            return this;
+        };
+        Color.prototype.set = function (r, g, b, a) {
+            var c = this.data;
+            c[0] = r;
+            c[1] = g;
+            c[2] = b;
+            c[3] = (a === undefined) ? 1 : a;
+            return this;
+        };
+        Color.prototype.fromString = function (hex) {
+            var i = parseInt(hex.replace('#', '0x'), 10);
+            var bytes;
+            if (hex.length > 7) {
+                bytes = intToBytes32(i);
+            }
+            else {
+                bytes = intToBytes24(i);
+                bytes[3] = 255;
+            }
+            this.set(bytes[0] / 255, bytes[1] / 255, bytes[2] / 255, bytes[3] / 255);
+            return this;
+        };
+        Color.prototype.toString = function (alpha) {
+            var s = "#" + ((1 << 24) + (parseInt((this.r * 255).toString(), 10) << 16) + (parseInt((this.g * 255).toString(), 10) << 8) + parseInt((this.b * 255).toString(), 10)).toString(16).slice(1);
+            if (alpha === true) {
+                var a = parseInt((this.a * 255).toString(), 10).toString(16);
+                if (this.a < 16 / 255) {
+                    s += "0" + a;
+                }
+                else {
+                    s += a;
+                }
+            }
+            return s;
+        };
+        Object.defineProperty(Color.prototype, "r", {
+            get: function () {
+                return this.data[0];
+            },
+            set: function (value) {
+                this.data[0] = value;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Color.prototype, "g", {
+            get: function () {
+                return this.data[1];
+            },
+            set: function (value) {
+                this.data[1] = value;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Color.prototype, "b", {
+            get: function () {
+                return this.data[2];
+            },
+            set: function (value) {
+                this.data[2] = value;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Color.prototype, "a", {
+            get: function () {
+                return this.data[3];
+            },
+            set: function (value) {
+                this.data[3] = value;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        return Color;
+    }());
+    Core.Color = Color;
+})(Core || (Core = {}));
 var zero_guard = 0.00001;
 function rayPickLog(val) {
     //return;
@@ -4769,16 +5535,15 @@ var shader;
                 this.colors = this.info.colors;
                 this.indices = this.info.indices;
                 this.cube = this.initVertexBuffer(this.vertices, this.colors, this.normals, this.indices);
-                this.boundingBox = new BoundingBox(this);
+                this.boundingBox = new BoundingBox(this, this.vertices);
                 // console.log(this.info);
             }.bind(this));
             // this.scale = new Vector3(50,0,50);
         };
-        Plane.prototype.onUpdate = function () {
-            this._draw(this.program, this.info);
+        Plane.prototype.onUpdate = function (dt) {
         };
         return Plane;
-    }(shader.NEObject));
+    }(NEnode));
     shader.Plane = Plane;
 })(shader || (shader = {}));
 //# sourceMappingURL=Main.js.map

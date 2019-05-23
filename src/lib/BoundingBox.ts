@@ -2,17 +2,17 @@ namespace Lib{
     export class BoundingBox{//包含aabb包围盒和obb包围盒,暂时先实现aabb
         vertices:Float32Array = null;
         indices:Uint16Array = null;
-        target:NEObject = null;
+        target:NEnode = null;
         maxX:number = null;
         maxY:number = null;
         maxZ:number = null;
         minX:number = null;
         minY:number = null;
         minZ:number = null;
-        constructor(object:NEObject){
+        constructor(object:NEnode, vertices:Float32Array){
             this.target = object;
             if(this.target == null)return;
-            this.handleObject(this.target.vertices);
+            this.handleObject(vertices);
             this.setVertices(this.maxX,this.minX,this.maxY,this.minY,this.maxZ,this.minZ);
             this.updateBoundingBox();
         }
@@ -80,7 +80,7 @@ namespace Lib{
         }
         generateTestTriangle(){
             var ret = [];
-            var modelMatrix = this.target.getModelMatrix();
+            var modelMatrix = this.target.getWorldTransform();
             var vertices = this.vertices;
             var indices = this.indices;
             for(var i = 0; i < indices.length; i+=3){

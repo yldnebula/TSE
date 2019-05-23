@@ -1,6 +1,10 @@
 {
   "compilerOptions": {
-    "target": "es5", /* ECMAScript目标版本: 'ES3' (default), 'ES5', 'ES2015', 'ES2016', 'ES2017','ES2018' or 'ESNEXT'. */
+    "target": "es5", /* ECMAScript目标版本: 'ES3' (default), 'ES5', 'ES2015', 'ES2016', 'ES2017','ES*/
+    "lib": [
+      "dom",
+      "es2015",
+    ],
     "declaration": true, /* 是否创建 '.d.ts' 文件. */
     "sourceMap": true, /* 是否创建 '.map' 文件.这个文件主要用于前端调试 */
     "outFile": "bin/js/Main.js", /* 指定输入到一个js文件中. */

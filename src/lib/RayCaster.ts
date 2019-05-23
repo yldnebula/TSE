@@ -57,12 +57,14 @@ namespace Lib{
          * @param objects 检查的物体
          * @param testChild 是否检查子物体
          */
-        intersectObjects(objects:NEObject[], testChild:boolean):NEObject{
-            this.test2();
-            var ret:NEObject[] = [];
+        intersectObjects(objects:NEnode[], testChild:boolean):NEnode[]{
+            // this.test2();
+            var ret:NEnode[] = [];
             var out = [];
             for(var i = 0; i < objects.length;i++){
                 // console.log("***********************name:"+objects[i].name);
+                if(!objects[i].boundingBox)
+                    continue;
                 var triArr = objects[i].boundingBox.generateTestTriangle();
                 for(var tri of triArr){
                     if(this.intersectSurfaceLine(tri[0].elements,tri[1].elements,tri[2].elements,this.start,this.end,out)){
@@ -71,11 +73,11 @@ namespace Lib{
                     }
                 }
                 if(testChild){
-                    var length = objects[i].Child.length;
+                    var length = objects[i].children.length;
                     if(length>0){
-                        var childObj = this.intersectObjects.bind(this)(objects[i].Child,true);//递归检测\
-                        for(var child of childObj){
-                            ret.push(child);
+                        var childObj = this.intersectObjects.bind(this)(objects[i].children,true);//递归检测\
+                        for(var i =0; i < childObj.length;i++){
+                            ret.push(childObj[i]);
                         }
                     }
                 }
@@ -89,7 +91,7 @@ namespace Lib{
             //     }
             // }
             // console.log(ret);
-            return ret[0];
+            return ret;
         }
         /**
          * 判断点在面中

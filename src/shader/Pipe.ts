@@ -11,28 +11,40 @@ namespace shader{
      * 2阀门
      * 1管道
      */
-    export class Pipe extends NEObject implements ISIE{
+    export class Pipe extends NEnode implements ISIE{
         IS:number;
         IE:number;
         direct:Vector3;
         length:number;
+
+        shader:Shader = new Shader();
         constructor(x:number, y:number, z:number, startPoint:Vector3){
             super();
-            this.initShader(this);
-            this.initOBJInfo(this,'./resources/1/pipe.obj',function(){
-                this.length = Math.sqrt(x*x+y*y+z*z);
-                this.calculate1(x, y, z, startPoint);
-                this.setLocalScale(this.length,1,1);
-
-            }.bind(this));
+            this.length = Math.sqrt(x*x + y*y + z*z)
+            this.setLocalScale(this.length, 1,1);
+            this.calculate1(x,y,z,startPoint);
         }
         onLoad(){
             this.name = 'Pipe';
+            var obp = new OBJParser('./resources/1/pipe.obj');
+            obp.readOBJFile('./resources/1/pipe.obj',1/60,true,function(){
+                this.info = obp.getDrawingInfo();
+                this.vertices = this.info.vertices;
+                this.normals  = this.info.normals;
+                this.colors   = this.info.colors;
+                this.indices  = this.info.indices;
+                this.shader.OBJ = this.shader.initVertexBuffer(this.vertices,this.colors,this.normals,this.indices);  
+                this.boundingBox = new BoundingBox(this,this.vertices);
+                // console.log(this.info);
+            }.bind(this));
         }
-
+        onUpdate(dt){
+            this.shader.calculateMatrix(this.getWorldTransform())
+            this.shader.draw();
+        }
         calculate1(x:number, y:number, z:number, startPoint:Vector3):Vector3{
             this.direct = new Vector3(x,y,z);
-            this.setLocalPosition(startPoint.elements[0],startPoint.elements[1],startPoint.elements[2]);
+            this.setPosition(startPoint.elements[0],startPoint.elements[1],startPoint.elements[2]);
             
             var endPoint = this.direct.clone().add(startPoint);
             var angle1:number;
@@ -96,52 +108,55 @@ namespace shader{
 
             return endPoint;
         }
-        setAxisDirection(which){
-
-        }
-        onUpdate(dt){
-            this._draw(this.program,this.OBJInfo);
-        }
     }
     
-    export class Tee extends NEObject implements ISIE{
+    export class Tee extends NEnode implements ISIE{
         IS:number;
         IE:number;
         constructor(){
             super();
         }
         onLoad(){
-            this.name = 'Tee';
-            this.initShader(this);
-            this.initOBJInfo(this,'./resources/1/tee.obj',null);
         }
         onUpdate(dt){
-            this._draw(this.program,this.OBJInfo);
+
         }
         calculate(){
 
         }
     }
-    export class Elbow extends NEObject implements ISIE{
+    export class Elbow extends NEnode implements ISIE{
         IS:number;//弯曲半径和弯曲角度有时候不是标准的90度，如何弄？
         IE:number;
         RR:number;//弯曲半径
         RA:number;//弯曲角度
         IA:number;//弯单元种类
-        constructor(startPoint:Vector3,direct:Vector3,nextDirect:Vector3){
+        shader:Shader = new Shader();
+        constructor(startPoint:Vector3,direct:Vector3,nextDirect?:Vector3){
             super();
-            this.initShader(this);
-            this.initOBJInfo(this,'./resources/sphere.obj',function(){
-                this.initSphere(startPoint);
-            }.bind(this));
+            this.initSphere(startPoint);
         }
         onLoad(){
             this.name = 'Elbow';
-
+            var obp = new OBJParser('./resources/sphere.obj');
+            obp.readOBJFile('./resources/sphere.obj',1/60,true,function(){
+                this.info = obp.getDrawingInfo();
+                this.vertices = this.info.vertices;
+                this.normals  = this.info.normals;
+                this.colors   = this.info.colors;
+                this.indices  = this.info.indices;
+                this.shader.OBJ = this.shader.initVertexBuffer(this.vertices,this.colors,this.normals,this.indices);  
+                this.boundingBox = new BoundingBox(this,this.vertices);
+                // console.log(this.info);
+            }.bind(this));
+        }
+        onUpdate(dt){
+            this.shader.calculateMatrix(this.getWorldTransform())
+            this.shader.draw();
         }
         initSphere(startPoint:Vector3){
             this.setLocalScale(12.35,12.35,12.35)    
-            this.setLocalPosition(startPoint); 
+            this.setPosition(startPoint); 
 
         }
         calculate(startPoint:Vector3,direct:Vector3,nextDirect:Vector3){
@@ -219,13 +234,9 @@ namespace shader{
             // }
             // angle3 = Math.atan(y/z)
 
-        }
-        onUpdate(dt){
-            this._draw(this.program,this.OBJInfo);
-        }
-        
+        }   
     }
-    export class Valve extends NEObject implements ISIE{
+    export class Valve extends NEnode implements ISIE{
         IS:number;
         IE:number;
         constructor(){
@@ -233,11 +244,9 @@ namespace shader{
         }
         onLoad(){
             this.name = 'Valve';
-            this.initShader(this);
-            this.initOBJInfo(this,'./resources/1/valve.obj',null);
+
         }
         onUpdate(dt){
-            this._draw(this.program,this.OBJInfo);
         } 
     }
     export class GLIFNode {
@@ -245,7 +254,7 @@ namespace shader{
         IEN:number;//分支结束节点号
         ITY:number;//分支节点约束类型
         
-        UnitPool:NEObject[]=[];
+        UnitPool:NEnode[]=[];
         startPoint = [];//存储该节点的开始位置
         constructor(isn,ien,ity){
             this.IEN = ien;

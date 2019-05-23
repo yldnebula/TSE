@@ -7,18 +7,43 @@ namespace Utils{
      */
     export class Matrix4{
         elements:Float32Array= null;
-        constructor(opt_src:Matrix4 | null){
-            var i:number, s:Float32Array, d:Float32Array;
-            if (opt_src && opt_src.hasOwnProperty('elements')) {
-                s = opt_src.elements;
-                d = new Float32Array(16);
-                for (i = 0; i < 16; ++i) {
-                  d[i] = s[i];
-                }
-                this.elements = d;
-              } else {
-                this.elements = new Float32Array([1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1]);
-              }
+        constructor();
+        constructor(
+            v0: number, v1: number, v2: number, v3: number, v4: number, v5: number, v6: number, v7: number, v8: number,
+            v9: number, v10: number, v11: number, v12: number, v13: number, v14: number, v15: number
+        );
+        constructor(v0: [
+            number, number, number, number, number, number, number, number,
+            number, number, number, number, number, number, number, number
+        ]);
+        constructor(v0?, v1?, v2?, v3?, v4?, v5?, v6?, v7?, v8?, v9?, v10?, v11?, v12?, v13?, v14?, v15?) {
+            if (v0 && v0.length === 16) {
+                this.elements = new Float32Array(v0);
+                return;
+            }
+    
+            this.elements = new Float32Array(16);
+    
+            if (typeof (v0) === 'number') {
+                this.elements[0] = v0;
+                this.elements[1] = v1;
+                this.elements[2] = v2;
+                this.elements[3] = v3;
+                this.elements[4] = v4;
+                this.elements[5] = v5;
+                this.elements[6] = v6;
+                this.elements[7] = v7;
+                this.elements[8] = v8;
+                this.elements[9] = v9;
+                this.elements[10] = v10;
+                this.elements[11] = v11;
+                this.elements[12] = v12;
+                this.elements[13] = v13;
+                this.elements[14] = v14;
+                this.elements[15] = v15;
+            } else {
+                this.setIdentity();
+            }
         }
         /**
          * 设置单位矩阵
@@ -90,6 +115,71 @@ namespace Utils{
          */
         multiply(other:Matrix4){
             this.concat(other);
+            return this;
+        }
+        mul2(lhs: Matrix4, rhs: Matrix4): this {
+            let a00, a01, a02, a03,
+                a10, a11, a12, a13,
+                a20, a21, a22, a23,
+                a30, a31, a32, a33,
+                b0, b1, b2, b3,
+                a = lhs.elements,
+                b = rhs.elements,
+                r = this.elements;
+    
+            a00 = a[0];
+            a01 = a[1];
+            a02 = a[2];
+            a03 = a[3];
+            a10 = a[4];
+            a11 = a[5];
+            a12 = a[6];
+            a13 = a[7];
+            a20 = a[8];
+            a21 = a[9];
+            a22 = a[10];
+            a23 = a[11];
+            a30 = a[12];
+            a31 = a[13];
+            a32 = a[14];
+            a33 = a[15];
+    
+            b0 = b[0];
+            b1 = b[1];
+            b2 = b[2];
+            b3 = b[3];
+            r[0] = a00 * b0 + a10 * b1 + a20 * b2 + a30 * b3;
+            r[1] = a01 * b0 + a11 * b1 + a21 * b2 + a31 * b3;
+            r[2] = a02 * b0 + a12 * b1 + a22 * b2 + a32 * b3;
+            r[3] = a03 * b0 + a13 * b1 + a23 * b2 + a33 * b3;
+    
+            b0 = b[4];
+            b1 = b[5];
+            b2 = b[6];
+            b3 = b[7];
+            r[4] = a00 * b0 + a10 * b1 + a20 * b2 + a30 * b3;
+            r[5] = a01 * b0 + a11 * b1 + a21 * b2 + a31 * b3;
+            r[6] = a02 * b0 + a12 * b1 + a22 * b2 + a32 * b3;
+            r[7] = a03 * b0 + a13 * b1 + a23 * b2 + a33 * b3;
+    
+            b0 = b[8];
+            b1 = b[9];
+            b2 = b[10];
+            b3 = b[11];
+            r[8] = a00 * b0 + a10 * b1 + a20 * b2 + a30 * b3;
+            r[9] = a01 * b0 + a11 * b1 + a21 * b2 + a31 * b3;
+            r[10] = a02 * b0 + a12 * b1 + a22 * b2 + a32 * b3;
+            r[11] = a03 * b0 + a13 * b1 + a23 * b2 + a33 * b3;
+    
+            b0 = b[12];
+            b1 = b[13];
+            b2 = b[14];
+            b3 = b[15];
+            r[12] = a00 * b0 + a10 * b1 + a20 * b2 + a30 * b3;
+            r[13] = a01 * b0 + a11 * b1 + a21 * b2 + a31 * b3;
+            r[14] = a02 * b0 + a12 * b1 + a22 * b2 + a32 * b3;
+            r[15] = a03 * b0 + a13 * b1 + a23 * b2 + a33 * b3;
+    
             return this;
         }
         /**
@@ -209,6 +299,139 @@ namespace Utils{
 
             return this;
         }
+        copy(rhs: Matrix4): this {
+            let src = rhs.elements,
+                dst = this.elements;
+    
+            dst[0] = src[0];
+            dst[1] = src[1];
+            dst[2] = src[2];
+            dst[3] = src[3];
+            dst[4] = src[4];
+            dst[5] = src[5];
+            dst[6] = src[6];
+            dst[7] = src[7];
+            dst[8] = src[8];
+            dst[9] = src[9];
+            dst[10] = src[10];
+            dst[11] = src[11];
+            dst[12] = src[12];
+            dst[13] = src[13];
+            dst[14] = src[14];
+            dst[15] = src[15];
+    
+            return this;
+        }
+        /**
+         * 修改自身，逆矩阵
+         *
+         * @returns {this} this
+         * @memberof Mat4
+         */
+        invert(): this {
+            let a00, a01, a02, a03,
+                a10, a11, a12, a13,
+                a20, a21, a22, a23,
+                a30, a31, a32, a33,
+                b00, b01, b02, b03,
+                b04, b05, b06, b07,
+                b08, b09, b10, b11,
+                det, invDet, m;
+
+            m = this.elements;
+            a00 = m[0];
+            a01 = m[1];
+            a02 = m[2];
+            a03 = m[3];
+            a10 = m[4];
+            a11 = m[5];
+            a12 = m[6];
+            a13 = m[7];
+            a20 = m[8];
+            a21 = m[9];
+            a22 = m[10];
+            a23 = m[11];
+            a30 = m[12];
+            a31 = m[13];
+            a32 = m[14];
+            a33 = m[15];
+
+            b00 = a00 * a11 - a01 * a10;
+            b01 = a00 * a12 - a02 * a10;
+            b02 = a00 * a13 - a03 * a10;
+            b03 = a01 * a12 - a02 * a11;
+            b04 = a01 * a13 - a03 * a11;
+            b05 = a02 * a13 - a03 * a12;
+            b06 = a20 * a31 - a21 * a30;
+            b07 = a20 * a32 - a22 * a30;
+            b08 = a20 * a33 - a23 * a30;
+            b09 = a21 * a32 - a22 * a31;
+            b10 = a21 * a33 - a23 * a31;
+            b11 = a22 * a33 - a23 * a32;
+
+            det = (b00 * b11 - b01 * b10 + b02 * b09 + b03 * b08 - b04 * b07 + b05 * b06);
+            if (det === 0) {
+                // #ifdef DEBUG
+                console.warn("pc.Mat4#invert: Can't invert matrix, determinant is 0");
+                // #endif
+                this.setIdentity();
+            } else {
+                invDet = 1 / det;
+
+                m[0] = (a11 * b11 - a12 * b10 + a13 * b09) * invDet;
+                m[1] = (-a01 * b11 + a02 * b10 - a03 * b09) * invDet;
+                m[2] = (a31 * b05 - a32 * b04 + a33 * b03) * invDet;
+                m[3] = (-a21 * b05 + a22 * b04 - a23 * b03) * invDet;
+                m[4] = (-a10 * b11 + a12 * b08 - a13 * b07) * invDet;
+                m[5] = (a00 * b11 - a02 * b08 + a03 * b07) * invDet;
+                m[6] = (-a30 * b05 + a32 * b02 - a33 * b01) * invDet;
+                m[7] = (a20 * b05 - a22 * b02 + a23 * b01) * invDet;
+                m[8] = (a10 * b10 - a11 * b08 + a13 * b06) * invDet;
+                m[9] = (-a00 * b10 + a01 * b08 - a03 * b06) * invDet;
+                m[10] = (a30 * b04 - a31 * b02 + a33 * b00) * invDet;
+                m[11] = (-a20 * b04 + a21 * b02 - a23 * b00) * invDet;
+                m[12] = (-a10 * b09 + a11 * b07 - a12 * b06) * invDet;
+                m[13] = (a00 * b09 - a01 * b07 + a02 * b06) * invDet;
+                m[14] = (-a30 * b03 + a31 * b01 - a32 * b00) * invDet;
+                m[15] = (a20 * b03 - a21 * b01 + a22 * b00) * invDet;
+            }
+
+
+            return this;
+        }
+            /**
+     * 移动到某个点
+     *
+     * @param {Vec3} vec
+     * @param {Vec3} [res] ref
+     * @returns {Vec3} res
+     * @memberof Mat4
+     */
+    transformPoint(vec: Vector3, res?/* ref */: Vector3): Vector3 {
+        let x, y, z,
+            m = this.elements,
+            v = vec.elements;
+
+        res = (res === undefined) ? new Vector3() : res;
+
+        x =
+            v[0] * m[0] +
+            v[1] * m[4] +
+            v[2] * m[8] +
+            m[12];
+        y =
+            v[0] * m[1] +
+            v[1] * m[5] +
+            v[2] * m[9] +
+            m[13];
+        z =
+            v[0] * m[2] +
+            v[1] * m[6] +
+            v[2] * m[10] +
+            m[14];
+
+        return res.set(x, y, z);
+    }
         /**
          * 设置正交投影矩阵，定义盒状可视空间，变量范围在[-1.0,1.0]
          * @param left 剪裁面的左边界
@@ -223,7 +446,7 @@ namespace Utils{
 
             if (left === right || bottom === top || near === far) {
               throw 'null frustum';
-            }
+            }　
           
             rw = 1 / (right - left);
             rh = 1 / (top - bottom);
@@ -688,6 +911,84 @@ namespace Utils{
   
           return this;
       }
+      getEulerAngles = (() => {
+        let scale = new Vector3();
+
+        return (eulers?: Vector3): Vector3 => {
+            let x, y, z, sx, sy, sz, m, halfPi;
+
+            eulers = (eulers === undefined) ? new Vector3() : eulers;
+
+            this.getScale(scale);
+            sx = scale.x;
+            sy = scale.y;
+            sz = scale.z;
+
+            m = this.elements;
+
+            y = Math.asin(-m[2] / sx);
+            halfPi = Math.PI * 0.5;
+
+            if (y < halfPi) {
+                if (y > -halfPi) {
+                    x = Math.atan2(m[6] / sy, m[10] / sz);
+                    z = Math.atan2(m[1] / sx, m[0] / sx);
+                } else {
+                    // Not a unique solution
+                    z = 0;
+                    x = -Math.atan2(m[4] / sy, m[5] / sy);
+                }
+            } else {
+                // Not a unique solution
+                z = 0;
+                x = Math.atan2(m[4] / sy, m[5] / sy);
+            }
+
+            return eulers.set(x, y, z).scale(RAD_TO_DEG);
+        };
+    })();
+    getScale = (() => {
+        let x, y, z;
+
+        x = new Vector3();
+        y = new Vector3();
+        z = new Vector3();
+
+        return (scale?: Vector3) => {
+            scale = (scale === undefined) ? new Vector3() : scale;
+
+            this.getX(x);
+            this.getY(y);
+            this.getZ(z);
+            scale.set(x.length(), y.length(), z.length());
+
+            return scale;
+        };
+    })();
+    getTranslation(t?/* ref */: Vector3): Vector3 {
+        t = (t === undefined) ? new Vector3() : t;
+
+        return t.set(this.elements[12], this.elements[13], this.elements[14]);
+    }
+    getX(x?: Vector3): Vector3 {
+        x = (x === undefined) ? new Vector3() : x;
+
+        return x.set(this.elements[0], this.elements[1], this.elements[2]);
+    }
+
+
+    getY(y?/*ref and return*/: Vector3): Vector3 {
+        y = (y === undefined) ? new Vector3() : y;
+
+        return y.set(this.elements[4], this.elements[5], this.elements[6]);
+    }
+
+
+    getZ(z?: Vector3): Vector3 {
+        z = (z === undefined) ? new Vector3() : z;
+
+        return z.set(this.elements[8], this.elements[9], this.elements[10]);
+    }
     }
     /**
      * 三维向量类
@@ -742,6 +1043,17 @@ namespace Utils{
           v[1]*=m;
           v[2]*=m;
           return this;
+        }
+        mul2(lhs: Vector3, rhs: Vector3): this {
+            let a = lhs.elements,
+                b = rhs.elements,
+                r = this.elements;
+    
+            r[0] = a[0] * b[0];
+            r[1] = a[1] * b[1];
+            r[2] = a[2] * b[2];
+    
+            return this;
         }
         clone(): Vector3 {
           return new Vector3().copy(this);
