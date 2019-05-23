@@ -55,8 +55,8 @@ var camera = new Camera(85,canvas.width/canvas.height,1,1000)
 //初始化主控渲染器
 var render = new Render();
 // //初始化GLIF解析器
-// var gp = new GLIFParser(ne.getScene());
-// gp.readGilfFile('./glif/inp2.TXT',"");
+var gp = new GLIFParser(ne.getScene());
+gp.readGilfFile('./glif/inp2.TXT',"");
 // var cube1 = new cube();
 // cube1.setParent(ne.getScene()._root)
 
@@ -64,11 +64,11 @@ var render = new Render();
 main();
 function main(){
 
-    var cube3 = new Cube();cube3.name = "cube1";
-    ne.getScene().addChild1(cube3);
-    var cube4 = new Cube();cube4.name = "cube2";
-    cube3.addChild(cube4);  
-    cube4.setPosition(4,0,0)
+    // var cube3 = new Cube();cube3.name = "cube1";
+    // ne.getScene().addChild1(cube3);
+    // var cube4 = new Cube();cube4.name = "cube2";
+    // cube3.addChild(cube4);  
+    // cube4.setPosition(4,0,0)
 
     var RayCaster1 = new RayCaster();
 

@@ -446,7 +446,7 @@ namespace Utils{
 
             if (left === right || bottom === top || near === far) {
               throw 'null frustum';
-            }
+            }　
           
             rw = 1 / (right - left);
             rh = 1 / (top - bottom);

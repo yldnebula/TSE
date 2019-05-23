@@ -8,6 +8,7 @@ namespace Core{
         public frameRate    = 1000 / 60;
         public  startTime   = 0;
 
+        //Timer计时器，引擎时间线
         public  renderQueue = [];
         public  loadQueue = [];
 

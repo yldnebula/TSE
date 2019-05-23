@@ -29,9 +29,10 @@ namespace NE3D{
                 // console.log(this.info);
             }.bind(this));
         }
-        onUpdate(dt){
+        onUpdate(dt){//***可以放到NEnode */
             this.shader.calculateMatrix(this.getWorldTransform())
             this.shader.draw();
+
         }
 
     }

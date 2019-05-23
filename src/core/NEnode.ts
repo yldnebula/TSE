@@ -15,7 +15,7 @@ namespace Core{
         scale = new Vector3(1,1,1);
         rotation = new Quat(0,0,0,1);
         position = new Vector3(0,0,0);
-        color = new Color(0,0,0,1);
+        // color = new Color(0,0,0,1);
         eulerAngles = new Vector3(0,0,0);
         worldTransform = new Matrix4();
 
@@ -37,6 +37,7 @@ namespace Core{
         //*****下面的变量有点没想好咋处理，先申明在这里 */
         boundingBox = null;
         shader:Shader = null;
+
         constructor(){
             super();
         }
@@ -53,13 +54,12 @@ namespace Core{
 
         }
         setColor(color:Color){//我也不知道放这里好不好，但是现在还没有合适的位置;也不太清楚这个是不是最合适的修改颜色的方法,希望多思考一下，必要时可以改动一下架构
-            this.color = color;
+            // this.color = color;
             // this.shader.OBJ.color = this.shader.initArrayBufferForLaterUse(GL,)
         }
         addChild(child: NEnode) {
             this.children.push(child);
             child.parent = this;
-
         }
         removeChild(child: NEnode) {
             arrayRemove(this.children, child);
@@ -81,7 +81,7 @@ namespace Core{
             return this;
         }
         /**
-         * 获取世界坐标
+         * 获取父物体下的坐标
          * @returns
          */
         getPosition() {

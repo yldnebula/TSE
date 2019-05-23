@@ -605,12 +605,12 @@ declare namespace Lib {
      * 资源加载类
      */
     class AssetsLoader {
-        obj: {};
+        assets: {};
         constructor();
-        static loadAssets(obj: {
+        static loadAssets(assets: {
             [s: string]: Promise<any>;
         }): Promise<AssetsLoader>;
-        get<T = any>(name: string): T;
+        get<T = any>(assetName: string): T;
         private set;
     }
 }
@@ -677,7 +677,6 @@ declare namespace Core {
         scale: Vector3;
         rotation: Quat;
         position: Vector3;
-        color: Color;
         eulerAngles: Vector3;
         worldTransform: Matrix4;
         localPosition: Vector3;
@@ -703,7 +702,7 @@ declare namespace Core {
         setPosition(x: Vector3): this;
         setPosition(x: number, y: number, z: number): this;
         /**
-         * 获取世界坐标
+         * 获取父物体下的坐标
          * @returns
          */
         getPosition(): Vector3;
@@ -1110,6 +1109,7 @@ declare var ne: Nebula;
 declare var sceneInfo: Scene;
 declare var camera: Camera;
 declare var render: Render;
+declare var gp: GLIFParser;
 declare function main(): void;
 import intToBytes32 = Utils.intToBytes32;
 import intToBytes24 = Utils.intToBytes24;

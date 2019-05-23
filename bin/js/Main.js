@@ -2785,6 +2785,10 @@ var Core;
          * 设置正视摄像机,暂时不用开发
          */
         Camera.prototype.setOrthoCamera = function () {
+            this.projectMatrix = new Matrix4(null);
+            // this.projectMatrix.setOrtho(fovy,aspect,near,far);
+            this.projectMatrix.lookAt(this.coordinate.x, this.coordinate.y, this.coordinate.z, this.center.x, this.center.y, this.center.z, 0, 1, 0);
+            this.projViewMatrix = this.projectMatrix;
         };
         /**
          * 获取视线方向向量
@@ -2808,38 +2812,38 @@ var Lib;
      */
     var AssetsLoader = /** @class */ (function () {
         function AssetsLoader() {
-            this.obj = {};
+            this.assets = {};
         }
-        AssetsLoader.loadAssets = function (obj) {
+        AssetsLoader.loadAssets = function (assets) {
             return __awaiter(this, void 0, void 0, function () {
-                var arr, map, i, x_1, x, loader;
+                var promiseArr, maps, i, x_1, x, loader;
                 return __generator(this, function (_a) {
                     switch (_a.label) {
                         case 0:
-                            arr = [];
-                            map = {};
+                            promiseArr = [];
+                            maps = {};
                             i = 0;
-                            for (x_1 in obj) {
-                                arr.push(obj[x_1]);
-                                map[i++] = x_1;
+                            for (x_1 in assets) {
+                                promiseArr.push(assets[x_1]);
+                                maps[i++] = x_1;
                             }
-                            return [4 /*yield*/, Promise.all(arr)];
+                            return [4 /*yield*/, Promise.all(promiseArr)];
                         case 1:
                             x = _a.sent();
                             loader = new AssetsLoader();
                             x.forEach(function (x, i) {
-                                loader.set(map[i], x);
+                                loader.set(maps[i], x);
                             });
                             return [2 /*return*/, loader];
                     }
                 });
             });
         };
-        AssetsLoader.prototype.get = function (name) {
-            return this.obj[name];
+        AssetsLoader.prototype.get = function (assetName) {
+            return this.assets[assetName];
         };
-        AssetsLoader.prototype.set = function (name, p) {
-            this.obj[name] = p;
+        AssetsLoader.prototype.set = function (assetName, p) {
+            this.assets[assetName] = p;
         };
         return AssetsLoader;
     }());
@@ -2857,6 +2861,7 @@ var Core;
             this.duration = 0;
             this.frameRate = 1000 / 60;
             this.startTime = 0;
+            //Timer计时器，引擎时间线
             this.renderQueue = [];
             this.loadQueue = [];
             this.loader = new Loader();
@@ -2978,7 +2983,7 @@ var Core;
             _this.scale = new Vector3(1, 1, 1);
             _this.rotation = new Quat(0, 0, 0, 1);
             _this.position = new Vector3(0, 0, 0);
-            _this.color = new Core.Color(0, 0, 0, 1);
+            // color = new Color(0,0,0,1);
             _this.eulerAngles = new Vector3(0, 0, 0);
             _this.worldTransform = new Matrix4();
             //local
@@ -3006,7 +3011,7 @@ var Core;
         NEnode.prototype.onDestroy = function () {
         };
         NEnode.prototype.setColor = function (color) {
-            this.color = color;
+            // this.color = color;
             // this.shader.OBJ.color = this.shader.initArrayBufferForLaterUse(GL,)
         };
         NEnode.prototype.addChild = function (child) {
@@ -3030,7 +3035,7 @@ var Core;
             return this;
         };
         /**
-         * 获取世界坐标
+         * 获取父物体下的坐标
          * @returns
          */
         NEnode.prototype.getPosition = function () {
@@ -4846,20 +4851,18 @@ var camera = new Camera(85, canvas.width / canvas.height, 1, 1000);
 //初始化主控渲染器
 var render = new Render();
 // //初始化GLIF解析器
-// var gp = new GLIFParser(ne.getScene());
-// gp.readGilfFile('./glif/inp2.TXT',"");
+var gp = new GLIFParser(ne.getScene());
+gp.readGilfFile('./glif/inp2.TXT', "");
 // var cube1 = new cube();
 // cube1.setParent(ne.getScene()._root)
 //******************************************* */
 main();
 function main() {
-    var cube3 = new Cube();
-    cube3.name = "cube1";
-    ne.getScene().addChild1(cube3);
-    var cube4 = new Cube();
-    cube4.name = "cube2";
-    cube3.addChild(cube4);
-    cube4.setPosition(4, 0, 0);
+    // var cube3 = new Cube();cube3.name = "cube1";
+    // ne.getScene().addChild1(cube3);
+    // var cube4 = new Cube();cube4.name = "cube2";
+    // cube3.addChild(cube4);  
+    // cube4.setPosition(4,0,0)
     var RayCaster1 = new RayCaster();
     var ca = document.getElementById('canvas');
     var isDrag = false;

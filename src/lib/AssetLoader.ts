@@ -3,30 +3,30 @@ namespace Lib{
      * 资源加载类
      */
     export class AssetsLoader{
-        obj = {};
+        assets = {};
         constructor(){
 
         }
-        static async loadAssets(obj: { [s: string]: Promise<any> }) {
-            let arr: Array<Promise<any>> = [];
-            let map = {} as any;
+        static async loadAssets(assets: { [s: string]: Promise<any> }) {
+            let promiseArr: Array<Promise<any>> = [];
+            let maps = {} as any;
             let i = 0;
-            for (let x in obj) {
-                arr.push(obj[x]);
-                map[i++] = x;
+            for (let x in assets) {
+                promiseArr.push(assets[x]);
+                maps[i++] = x;
             }
-            let x = await Promise.all(arr);
+            let x = await Promise.all(promiseArr);
             let loader = new AssetsLoader();
             x.forEach((x, i) => {
-                loader.set(map[i], x);
+                loader.set(maps[i], x);
             });
             return loader;
         }
-        get<T= any>(name: string): T {
-            return this.obj[name];
+        get<T= any>(assetName: string): T {
+            return this.assets[assetName];
         }
-        private set(name: string, p: any) {
-            this.obj[name] = p;
+        private set(assetName: string, p: any) {
+            this.assets[assetName] = p;
         }
     }
 }
